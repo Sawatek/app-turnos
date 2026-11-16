@@ -2,6 +2,7 @@
 
 La app de turnos de cualquier negocio, con su marca, lista para mostrar en una reunión.
 Decisiones de producto, arquitectura, stack y diseño: [`DECISIONES.md`](DECISIONES.md).
+Qué falta para que sea un producto real: [`HOJA-DE-RUTA.md`](HOJA-DE-RUTA.md).
 
 ## Levantarla
 
@@ -18,6 +19,39 @@ pnpm dev        # http://localhost:5180
 | `pnpm build` | chequeo de tipos + build de producción con PWA (`dist/`) |
 | `pnpm test` | tests de horarios, datos de ejemplo y contraste de colores |
 | `pnpm lint` | oxlint |
+
+## Tests
+
+| Comando | Qué prueba |
+|---|---|
+| `pnpm test` | Lógica pura: horarios, datos de ejemplo, contraste de colores, instalación (Vitest) |
+| `pnpm test:e2e` | Permisos de cada rol en la base y la app en el navegador (Playwright) |
+
+`pnpm test:e2e` corre contra una **copia local de Supabase** (Docker), nunca contra la base real:
+
+```bash
+pnpm db:local     # una vez: levanta Supabase local y aplica las migraciones
+pnpm test:e2e
+```
+
+Otros: `pnpm db:reset` (vuelve a crear la base local desde las migraciones) y `pnpm db:tipos` (regenera `src/datos/tipos-db.ts` después de cambiar el esquema).
+
+## Roles y datos (fase 1)
+
+Definido en `supabase/migrations/20261117000000_fase1_roles.sql`. Los permisos los hace cumplir la base (RLS), no la app.
+
+| Rol | Cómo se asigna | Qué ve y hace |
+|---|---|---|
+| Super admin | tabla `superadmins` (mail) | Todo |
+| Dueño | `miembros.rol = 'dueno'` | Solo su negocio: catálogo, horarios, clientes, todos los turnos |
+| Profesional | `miembros.rol = 'profesional'` + `profesionales.user_id` | Solo sus turnos (cambiar estado y notas), sus bloqueos |
+| Cliente | `clientes.user_id` (se crea al reservar) | Solo sus turnos, vía funciones |
+
+Tablas: `negocios` (con `es_demo`, `estado`, reglas de reserva), `miembros`, `profesionales`, `servicios`, `profesional_servicios`, `horarios` (semanales por profesional), `bloqueos`, `clientes`, `notas_clientes` (privadas del negocio), `turnos` (la base impide turnos superpuestos del mismo profesional).
+
+La clave secreta y el SQL Editor de Supabase no pasan por las protecciones de la app: son herramientas de SawaTek. Un mail en `superadmins` solo da permisos si la cuenta está confirmada.
+
+Funciones para la app del cliente: `horarios_libres` (cálculo en el servidor), `reservar_turno`, `confirmar_turno`, `cancelar_turno`.
 
 ## Pantallas
 
@@ -36,6 +70,7 @@ Demos de fábrica: `/quetul` (barbería, oscuro), `/lema` (consultorio, claro), 
 1. Antes de la reunión: `/admin` → nombre del negocio, rubro y logo → **Crear demo**.
 2. Abrí `/<negocio>/escenario` en la compu.
 3. En el celular de la izquierda: ingresar (el código llega como notificación de WhatsApp, tocala y se completa sola) y **Reservar este** en "Próximo libre". El turno aparece en vivo en el panel.
+   Mejor todavía: **Conectar un celular** (arriba) muestra un QR; el prospecto lo escanea y reserva desde *su* celular. Cada presentación tiene su propia sala: otras personas que abran la misma demo no ven nada.
 4. Con la máquina del tiempo de arriba: **Ir al recordatorio de 24 h** → llega el WhatsApp con **Confirmo / Cambiar horario**.
 5. En el panel: la calculadora de faltas con los números del dueño.
 6. **Reiniciar** deja todo limpio para la próxima.
@@ -55,7 +90,7 @@ Cómo funciona: cada negocio tiene su manifest e íconos (`src/instalacion/marca
 Sin configurar nada, la app funciona igual pero las demos de `/admin` quedan solo en el navegador. Con Supabase:
 - las demos se guardan en la tabla `negocios` y **el link y el QR abren en cualquier celular**;
 - `/admin` pide ingresar con un link al mail, y solo pueden guardar los mails cargados en `admins`;
-- **en vivo entre dispositivos**: el prospecto reserva desde su celular y aparece en el panel de tu compu; la máquina del tiempo de tu compu le hace llegar los recordatorios a su celular.
+- **en vivo entre dispositivos**: el prospecto escanea el QR de "Conectar un celular" del modo escenario, reserva desde su celular y aparece en el panel de tu compu; la máquina del tiempo de tu compu le hace llegar los recordatorios. Solo se conectan los dispositivos de esa sala.
 
 ### Vercel (una sola vez)
 

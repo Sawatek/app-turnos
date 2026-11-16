@@ -1,13 +1,17 @@
 import { motion } from 'motion/react'
-import { BellRing, Clock, FastForward, Home, MessageSquareText, RotateCcw, Undo2 } from 'lucide-react'
+import { BellRing, Clock, FastForward, Home, MessageSquareText, RotateCcw, Smartphone, Undo2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useAhora, useDemo, useEstadoNegocio } from '@/datos/demo'
 import { useNegocio } from '@/datos/negocios'
+import { linkConSala, useSalaDeEscenario } from '@/datos/sala'
+import { hayNube } from '@/datos/supabase'
 import { capitalizar, diaLargo, diaRelativo, horaCorta } from '@/dominio/tiempo'
 import { useTemaNegocio } from '@/tema/TemaNegocio'
+import { Hoja } from '@/ui/Hoja'
 import { Logo } from '@/ui/Logo'
 import { cn } from '@/ui/cn'
+import { QR } from '../admin/QR'
 import { Cargando, NoEncontrado } from '../NoEncontrado'
 
 const HORA = 3_600_000
@@ -30,13 +34,16 @@ export default function Escenario() {
   const reiniciar = useDemo((s) => s.reiniciar)
   const refCel = useRef<HTMLElement>(null)
   const escala = useEscalaCelular(refCel)
+  // Sala propia de esta presentación: solo se conectan el celular y el panel de acá (y el celular del prospecto, con el QR).
+  const sala = useSalaDeEscenario(slug ?? '')
+  const [conectar, setConectar] = useState(false)
 
   if (cargando) return <Cargando />
   if (!n) return <NoEncontrado />
 
   const t0 = ahora.getTime()
   const vigentes = e.turnos
-    .filter((t) => t.propio && (t.estado === 'pendiente' || t.estado === 'confirmado') && Date.parse(t.inicio) > t0)
+    .filter((t) => (t.propio || t.deLaApp) && (t.estado === 'pendiente' || t.estado === 'confirmado') && Date.parse(t.inicio) > t0)
     .toSorted((a, b) => Date.parse(a.inicio) - Date.parse(b.inicio))
   const proximo = vigentes[0]
 
@@ -87,6 +94,11 @@ export default function Escenario() {
               {avisoEs24 ? 'Mostrar el recordatorio por WhatsApp' : 'Mostrar el aviso previo'}
             </BotonTiempo>
           )}
+          {hayNube && (
+            <BotonTiempo onClick={() => setConectar(true)} Icono={Smartphone}>
+              Conectar un celular
+            </BotonTiempo>
+          )}
           <BotonTiempo onClick={() => adelantar(HORA)} Icono={FastForward}>+1 h</BotonTiempo>
           <BotonTiempo onClick={() => adelantar(24 * HORA)} Icono={FastForward}>+1 día</BotonTiempo>
           {desfase !== 0 && <BotonTiempo onClick={volver} Icono={Undo2}>Volver a hoy</BotonTiempo>}
@@ -121,7 +133,7 @@ export default function Escenario() {
               className="absolute top-0 left-0 origin-top-left overflow-hidden rounded-[52px] bg-black p-3 shadow-2xl ring-1 ring-white/10"
               style={{ width: CEL.ancho + 24, height: CEL.alto + 24, transform: `scale(${escala.valor})` }}
             >
-              <iframe title={`App de ${n.nombre}`} src={`/${n.slug}`} className="size-full rounded-[40px] bg-fondo" style={{ width: CEL.ancho, height: CEL.alto }} />
+              <iframe title={`App de ${n.nombre}`} src={`/${n.slug}?sala=${sala}`} className="size-full rounded-[40px] bg-fondo" style={{ width: CEL.ancho, height: CEL.alto }} />
               <div className="pointer-events-none absolute top-5 left-1/2 h-7 w-28 -translate-x-1/2 rounded-full bg-black" aria-hidden />
             </div>
           </motion.div>
@@ -140,10 +152,24 @@ export default function Escenario() {
               <span className="size-3 rounded-full bg-[#febc2e]" />
               <span className="size-3 rounded-full bg-[#28c840]" />
             </div>
-            <iframe title="Panel del dueño" src={`/${n.slug}/panel?embebido`} className="h-[calc(100%-2.25rem)] w-full" />
+            <iframe title="Panel del dueño" src={`/${n.slug}/panel?embebido&sala=${sala}`} className="h-[calc(100%-2.25rem)] w-full" />
           </motion.div>
         </section>
       </main>
+      <Hoja
+        abierta={conectar}
+        onCerrar={() => setConectar(false)}
+        titulo="Conectá el celular del cliente"
+        descripcion="Lo que haga en su celular aparece acá en vivo, y la máquina del tiempo le hace llegar los avisos."
+      >
+        <div className="flex flex-col items-center gap-4 pb-4 text-center">
+          <QR texto={linkConSala(n.slug, sala)} className="size-56 rounded-medio" />
+          <p className="text-sm text-suave">
+            Escaneá con la cámara. Código de esta presentación: <b className="num text-texto">{sala}</b>
+          </p>
+          <p className="text-xs text-suave">Solo se conectan los celulares que entran con este QR: otras personas que abran la demo no ven nada de acá.</p>
+        </div>
+      </Hoja>
     </div>
   )
 }

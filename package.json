@@ -25,7 +25,11 @@
     "preview": "vite preview",
     "lint": "oxlint src",
     "test": "vitest run",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "db:local": "supabase start -x storage-api,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor,postgres-meta",
+    "db:reset": "supabase db reset",
+    "test:e2e": "playwright test",
+    "db:tipos": "supabase gen types typescript --local > src/datos/tipos-db.ts"
   },
   "dependencies": {
     "@date-fns/tz": "1.5.0",
@@ -46,6 +50,7 @@
   },
   "devDependencies": {
     "@babel/core": "7.29.13",
+    "@playwright/test": "1.65.1",
     "@rolldown/plugin-babel": "0.3.1",
     "@tailwindcss/vite": "4.3.5",
     "@types/culori": "4.0.1",
@@ -55,6 +60,7 @@
     "@vitejs/plugin-react": "6.3.0",
     "babel-plugin-react-compiler": "1.0.0",
     "oxlint": "1.94.0",
+    "supabase": "3.2.0",
     "tailwindcss": "4.3.5",
     "typescript": "7.0.2",
     "vite": "8.3.8",

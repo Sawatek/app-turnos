@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
 import { useAhora, useDemo, useEstadoNegocio } from '@/datos/demo'
 import { useEnVivo } from '@/datos/envivo'
+import { useSala } from '@/datos/sala'
 import { useNegocio } from '@/datos/negocios'
 import type { Aviso, Negocio } from '@/dominio/tipos'
 import { useMarcaInstalable } from '@/instalacion/marca'
@@ -33,7 +34,7 @@ export default function AppCliente() {
 function App({ n }: { n: Negocio }) {
   const e = useEstadoNegocio(n)
   useMarcaInstalable(n)
-  useEnVivo(n)
+  useEnVivo(n, useSala(n.slug))
   const ahora = useAhora()
   const procesar = useDemo((s) => s.procesarRecordatorios)
   const marcarVistos = useDemo((s) => s.marcarAvisosVistos)
