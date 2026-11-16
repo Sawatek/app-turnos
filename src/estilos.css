@@ -1,0 +1,146 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/plus-jakarta-sans';
+
+/*
+  Tokens en 3 capas:
+  1. Primitivos (fijos): tipografía, radios, espacios, duraciones.
+  2. Semánticos (--t-*): los genera tema/paleta.ts a partir del color del negocio.
+  3. De componente: se usan vía las clases de Tailwind mapeadas abajo (bg-acento, text-suave…).
+*/
+
+@theme inline {
+  --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --color-fondo: var(--t-fondo);
+  --color-superficie: var(--t-superficie);
+  --color-superficie-2: var(--t-superficie-2);
+  --color-linea: var(--t-linea);
+  --color-texto: var(--t-texto);
+  --color-suave: var(--t-suave);
+  --color-acento: var(--t-acento);
+  --color-sobre-acento: var(--t-sobre-acento);
+  --color-acento-texto: var(--t-acento-texto);
+  --color-acento-suave: var(--t-acento-suave);
+  --color-acento-borde: var(--t-acento-borde);
+  --color-peligro: var(--t-peligro);
+  --color-exito: var(--t-exito);
+  --color-aviso: var(--t-aviso);
+  --color-wa: #25d366;
+  --color-wa-fondo: #e7fbe9;
+  --color-wa-tinta: #0b3d1f;
+
+  --radius-chico: var(--p-radio-chico);
+  --radius-medio: var(--p-radio-medio);
+  --radius-grande: var(--p-radio-grande);
+
+  --ease-resorte: cubic-bezier(0.2, 0.9, 0.25, 1.15);
+  --ease-salida: cubic-bezier(0.4, 0, 1, 1);
+  --ease-suave: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Valores por defecto (antes de que cargue el negocio): neutros oscuros. */
+:root {
+  --t-fondo: #121316;
+  --t-superficie: #1b1d21;
+  --t-superficie-2: #24272d;
+  --t-linea: #30343b;
+  --t-texto: #f3f0ea;
+  --t-suave: #a4a9b3;
+  --t-acento: #e0b352;
+  --t-sobre-acento: #1a1405;
+  --t-acento-texto: #e0b352;
+  --t-acento-suave: #2c2617;
+  --t-acento-borde: #5e4c22;
+  --t-peligro: #f87171;
+  --t-exito: #4ade80;
+  --t-aviso: #fbbf24;
+  --t-sombra: 0 0% 0%;
+  color-scheme: dark;
+}
+
+/* Personalidades por rubro: cambian forma, peso y aire, no el color. */
+[data-personalidad='moderna'] {
+  --p-radio-chico: 12px;
+  --p-radio-medio: 18px;
+  --p-radio-grande: 28px;
+  --p-titulo-peso: 750;
+  --p-titulo-tracking: -0.025em;
+  --p-aire: 1;
+}
+[data-personalidad='clasica'] {
+  --p-radio-chico: 8px;
+  --p-radio-medio: 12px;
+  --p-radio-grande: 18px;
+  --p-titulo-peso: 800;
+  --p-titulo-tracking: -0.01em;
+  --p-aire: 0.95;
+}
+[data-personalidad='serena'] {
+  --p-radio-chico: 14px;
+  --p-radio-medio: 22px;
+  --p-radio-grande: 32px;
+  --p-titulo-peso: 650;
+  --p-titulo-tracking: -0.015em;
+  --p-aire: 1.1;
+}
+:root {
+  --p-radio-chico: 12px;
+  --p-radio-medio: 18px;
+  --p-radio-grande: 28px;
+  --p-titulo-peso: 750;
+  --p-titulo-tracking: -0.02em;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--t-fondo);
+    color: var(--t-texto);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+    overscroll-behavior-y: none;
+  }
+  h1, h2, h3, .titulo {
+    font-weight: var(--p-titulo-peso);
+    letter-spacing: var(--p-titulo-tracking);
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+  button, [role='button'], a, label[for], select { cursor: pointer; }
+  :focus-visible {
+    outline: 2.5px solid var(--t-acento);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  ::selection { background: var(--t-acento); color: var(--t-sobre-acento); }
+}
+
+@utility num { font-variant-numeric: tabular-nums; }
+@utility sombra-suave { box-shadow: 0 1px 2px hsl(var(--t-sombra) / 0.08), 0 8px 24px -12px hsl(var(--t-sombra) / 0.25); }
+@utility sombra-flotante { box-shadow: 0 2px 6px hsl(var(--t-sombra) / 0.12), 0 24px 48px -16px hsl(var(--t-sombra) / 0.45); }
+@utility pt-segura { padding-top: max(env(safe-area-inset-top), 12px); }
+@utility pb-segura { padding-bottom: max(env(safe-area-inset-bottom), 12px); }
+@utility sin-barra {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+/* Transiciones entre pantallas (View Transitions API). */
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 220ms; animation-timing-function: var(--ease-suave); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
