@@ -1,9 +1,9 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { ArrowLeft, Check, Cloud, Copy, ImageUp, LayoutDashboard, LogOut, MailCheck, MonitorSmartphone, Moon, Smartphone, Sun, Trash2, Wand2 } from 'lucide-react'
+import { ArrowLeft, Check, Cloud, Copy, ImageUp, KeyRound, LayoutDashboard, LogOut, Mail, MailCheck, MonitorSmartphone, Moon, Smartphone, Sun, Trash2, Wand2 } from 'lucide-react'
 import { useId, useState } from 'react'
 import { Link } from 'react-router'
 import { borrarNegocio, guardarNegocio, slugLibre, useRefrescarNegocios, useTodosLosNegocios } from '@/datos/negocios'
-import { pedirLinkDeIngreso, salir, useSesion } from '@/datos/sesion'
+import { entrarConContrasena, pedirLinkDeIngreso, salir, useSesion } from '@/datos/sesion'
 import { hayNube } from '@/datos/supabase'
 import type { Modo, Negocio, Personalidad, RubroId } from '@/dominio/tipos'
 import { LISTA_RUBROS, RUBROS, negocioDesdePlantilla, slugDe } from '@/plantillas/rubros'
@@ -44,31 +44,84 @@ export default function Admin() {
   return <Formulario email={sesion?.user.email} />
 }
 
-/** Con Supabase, /admin pide ingresar con un link que llega al mail. */
+const MENSAJES_AUTH: Record<string, string> = {
+  'Invalid login credentials': 'Mail o contraseña incorrectos.',
+  'Email not confirmed': 'Tu usuario no está confirmado. En Supabase, creá el usuario con "Auto Confirm User".',
+  'email rate limit exceeded': 'Se mandaron demasiados mails en la última hora. Probá en un rato o entrá con contraseña.',
+}
+const traducir = (msg: string) => MENSAJES_AUTH[msg] ?? msg
+
+/**
+ * Con Supabase, /admin pide ingresar. Por defecto con contraseña (los usuarios los crea SawaTek en
+ * Supabase → Authentication → Users). El link al mail queda como alternativa: el servicio de mails
+ * gratuito de Supabase manda muy pocos por hora.
+ */
 function Ingreso() {
+  const [modo, setModo] = useState<'contrasena' | 'link'>('contrasena')
   const [email, setEmail] = useState('')
+  const [contrasena, setContrasena] = useState('')
   const [estado, setEstado] = useState<'inicio' | 'enviando' | 'enviado'>('inicio')
   const [error, setError] = useState<string>()
+  const [errorMail, setErrorMail] = useState<string>()
+
   const enviar = async (ev: React.FormEvent) => {
     ev.preventDefault()
-    if (!/^\S+@\S+\.\S+$/.test(email)) return setError('Escribí un mail válido.')
     setError(undefined)
+    setErrorMail(undefined)
+    if (!/^\S+@\S+\.\S+$/.test(email)) return setErrorMail('Escribí un mail válido.')
+    if (modo === 'contrasena' && !contrasena) return setError('Escribí tu contraseña.')
     setEstado('enviando')
     try {
+      if (modo === 'contrasena') {
+        await entrarConContrasena(email, contrasena) // si sale bien, la sesión cambia y se muestra el formulario
+        return
+      }
       await pedirLinkDeIngreso(email)
       setEstado('enviado')
     } catch (err) {
-      setError((err as Error).message)
+      setError(traducir((err as Error).message))
       setEstado('inicio')
     }
   }
+
+  const cambiarModo = (m: typeof modo) => {
+    setModo(m)
+    setError(undefined)
+    setErrorMail(undefined)
+    setEstado('inicio')
+  }
+
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 px-5">
       <div>
         <p className="text-sm font-bold tracking-wide text-acento-texto uppercase">SawaTek · Turnos</p>
         <h1 className="mt-1 text-3xl">Crear demos</h1>
-        <p className="mt-2 text-suave">Ingresá con tu mail de SawaTek. Te mandamos un link para entrar, sin contraseña.</p>
+        <p className="mt-2 text-suave">Ingresá con tu cuenta de SawaTek.</p>
       </div>
+
+      <div className="grid grid-cols-2 gap-1 rounded-medio bg-superficie p-1 ring-1 ring-linea">
+        {(
+          [
+            ['contrasena', 'Con contraseña', KeyRound],
+            ['link', 'Con link al mail', Mail],
+          ] as const
+        ).map(([id, texto, Icono]) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={modo === id}
+            onClick={() => cambiarModo(id)}
+            className={cn(
+              'flex h-10 items-center justify-center gap-1.5 rounded-chico text-sm font-semibold transition-colors',
+              modo === id ? 'bg-acento text-sobre-acento' : 'text-suave hover:text-texto',
+            )}
+          >
+            <Icono className="size-4" aria-hidden />
+            {texto}
+          </button>
+        ))}
+      </div>
+
       {estado === 'enviado' ? (
         <p aria-live="polite" className="flex items-start gap-3 rounded-grande bg-superficie p-4 ring-1 ring-linea">
           <MailCheck className="mt-0.5 size-5 shrink-0 text-exito" aria-hidden />
@@ -78,10 +131,23 @@ function Ingreso() {
         </p>
       ) : (
         <form onSubmit={enviar} className="flex flex-col gap-4" noValidate>
-          <Campo etiqueta="Tu mail" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} error={error} />
+          <Campo etiqueta="Tu mail" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} error={errorMail ?? (modo === 'link' ? error : undefined)} />
+          {modo === 'contrasena' && (
+            <Campo
+              etiqueta="Contraseña"
+              type="password"
+              autoComplete="current-password"
+              value={contrasena}
+              onChange={(e) => setContrasena(e.target.value)}
+              error={error}
+            />
+          )}
           <Boton type="submit" tamano="grande" cargando={estado === 'enviando'}>
-            Mandarme el link
+            {modo === 'contrasena' ? 'Entrar' : 'Mandarme el link'}
           </Boton>
+          {modo === 'contrasena' && (
+            <p className="text-center text-sm text-suave">¿No tenés usuario o te olvidaste la contraseña? Pedíselo a quien administra Supabase.</p>
+          )}
         </form>
       )}
       <Link to="/" className="text-center text-sm font-semibold text-acento-texto">Volver a las demos</Link>

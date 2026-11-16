@@ -14,13 +14,20 @@ export function useSesion() {
   return sesion
 }
 
-/** Manda el link mágico al mail. Solo entran los mails cargados en la tabla `admins` (lo controlan las reglas al guardar). */
+/** Manda el link mágico al mail. Solo a usuarios ya creados en Supabase (no crea cuentas nuevas). */
 export async function pedirLinkDeIngreso(email: string) {
   if (!supabase) return
   const { error } = await supabase.auth.signInWithOtp({
     email: email.trim().toLowerCase(),
-    options: { emailRedirectTo: `${location.origin}/admin`, shouldCreateUser: true },
+    options: { emailRedirectTo: `${location.origin}/admin`, shouldCreateUser: false },
   })
+  if (error) throw new Error(error.message)
+}
+
+/** Ingreso con mail y contraseña (usuarios creados por SawaTek en Supabase → Authentication → Users). */
+export async function entrarConContrasena(email: string, contrasena: string) {
+  if (!supabase) return
+  const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password: contrasena })
   if (error) throw new Error(error.message)
 }
 
