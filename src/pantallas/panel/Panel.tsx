@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { BellRing, Check, CheckCheck, ExternalLink, MessageCircle, Smartphone, Sparkles, UserX, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { lazy, useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { useAhora, useDemo, useEstadoNegocio, textoMensaje, type EstadoNegocio } from '@/datos/demo'
 import { useEnVivo } from '@/datos/envivo'
@@ -17,12 +17,16 @@ import { cn } from '@/ui/cn'
 import { Cargando, NoEncontrado } from '../NoEncontrado'
 import { Calculadora } from './Calculadora'
 
+// Negocio real (no demo): panel conectado a la base, con login (fase 2).
+const PanelReal = lazy(() => import('../real/panel/PanelReal'))
+
 export default function Panel() {
   const { slug } = useParams()
-  const { negocio: n, cargando } = useNegocio(slug)
+  const { negocio: n, meta, cargando } = useNegocio(slug)
   useTemaNegocio(n, n ? `${n.nombre} · Panel` : undefined)
   if (cargando) return <Cargando />
   if (!n) return <NoEncontrado />
+  if (!meta.esDemo && meta.id) return <PanelReal n={n} meta={{ ...meta, id: meta.id }} />
   return <PanelNegocio key={n.slug} n={n} />
 }
 

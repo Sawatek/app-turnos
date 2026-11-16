@@ -23,6 +23,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'],
         skipWaiting: true,
         clientsClaim: true,
+        importScripts: ['push-sw.js'],
         runtimeCaching: [
           {
             // Manifest e íconos de cada negocio: los guarda la página en la caché "marcas" y el service worker

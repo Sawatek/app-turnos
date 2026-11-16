@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { Bell, CalendarDays, House, Plus, UserRound } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { lazy, useEffect, useState } from 'react'
 import { useParams } from 'react-router'
 import { useAhora, useDemo, useEstadoNegocio } from '@/datos/demo'
 import { useEnVivo } from '@/datos/envivo'
@@ -22,12 +22,16 @@ import { Reserva } from './Reserva'
 
 type Tab = 'inicio' | 'turnos' | 'perfil'
 
+// Negocio real (no demo): app conectada a la base (fase 3).
+const ClienteReal = lazy(() => import('../real/cliente/ClienteReal'))
+
 export default function AppCliente() {
   const { slug } = useParams()
-  const { negocio: n, cargando } = useNegocio(slug)
+  const { negocio: n, meta, cargando } = useNegocio(slug)
   useTemaNegocio(n)
   if (cargando) return <Cargando />
   if (!n) return <NoEncontrado />
+  if (!meta.esDemo && meta.id) return <ClienteReal n={n} meta={{ ...meta, id: meta.id }} />
   return <App key={n.slug} n={n} />
 }
 

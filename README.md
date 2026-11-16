@@ -26,6 +26,7 @@ pnpm dev        # http://localhost:5180
 |---|---|
 | `pnpm test` | Lógica pura: horarios, datos de ejemplo, contraste de colores, instalación (Vitest) |
 | `pnpm test:e2e` | Permisos de cada rol en la base y la app en el navegador (Playwright) |
+| `pnpm exec playwright test -c tests/funciones` | Edge Functions de mensajes (levanta `supabase functions serve` solo) |
 
 `pnpm test:e2e` corre contra una **copia local de Supabase** (Docker), nunca contra la base real:
 
@@ -52,6 +53,18 @@ Tablas: `negocios` (con `es_demo`, `estado`, reglas de reserva), `miembros`, `pr
 La clave secreta y el SQL Editor de Supabase no pasan por las protecciones de la app: son herramientas de SawaTek. Un mail en `superadmins` solo da permisos si la cuenta está confirmada.
 
 Funciones para la app del cliente: `horarios_libres` (cálculo en el servidor), `reservar_turno`, `confirmar_turno`, `cancelar_turno`.
+
+## Negocios reales (fases 2 a 4)
+
+Además de las demos, la app maneja **negocios reales**: con base de datos, panel para el dueño y su equipo, y clientes que entran con el celular.
+
+**Alta (SawaTek):**
+1. En `/admin` → *3. Publicación* → **Negocio real**, con el mail del dueño. La plantilla del rubro carga servicios, equipo y horarios (`crear_negocio_real`), y queda una invitación para ese mail.
+2. En Supabase → *Authentication → Users* → crear el usuario del dueño con ese mail y contraseña ("Auto Confirm User").
+3. El dueño entra a `/<negocio>/panel`: la invitación se acepta sola y queda como dueño. Desde ahí ajusta servicios, precios, horarios e invita a su equipo.
+
+**Clientes:** entran a `/<negocio>` con su celular y un código. El código no lo manda un proveedor de SMS: lo deja un hook de Supabase en la cola `mensajes` y de ahí sale por WhatsApp (fase 4, ver [`docs/WHATSAPP.md`](docs/WHATSAPP.md)).
+En producción hay que activar: *Authentication → Sign In / Providers → Phone* y *Authentication → Hooks → Send SMS → Postgres* `public.hook_enviar_codigo`.
 
 ## Pantallas
 

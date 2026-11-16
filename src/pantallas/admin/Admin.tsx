@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { ArrowLeft, Check, Cloud, Copy, ImageUp, KeyRound, LayoutDashboard, LogOut, Mail, MailCheck, MonitorSmartphone, Moon, Smartphone, Sun, Trash2, Wand2 } from 'lucide-react'
 import { useId, useState } from 'react'
 import { Link } from 'react-router'
-import { borrarNegocio, guardarNegocio, slugLibre, useRefrescarNegocios, useTodosLosNegocios } from '@/datos/negocios'
+import { borrarNegocio, crearNegocioReal, guardarNegocio, slugLibre, useNegociosReales, useRefrescarNegocios, useTodosLosNegocios } from '@/datos/negocios'
 import { entrarConContrasena, pedirLinkDeIngreso, salir, useSesion } from '@/datos/sesion'
 import { hayNube } from '@/datos/supabase'
 import type { Modo, Negocio, Personalidad, RubroId } from '@/dominio/tipos'
@@ -173,6 +173,11 @@ function Formulario({ email }: { email?: string }) {
   const [personalidad, setPersonalidad] = useState<Personalidad>(RUBROS.barberia.personalidad)
   const [slugManual, setSlugManual] = useState<string>()
   const [creado, setCreado] = useState<Negocio>()
+  // Demo de venta (simulada) o negocio real (con base de datos, panel y clientes reales).
+  const [tipo, setTipo] = useState<'demo' | 'real'>('demo')
+  const [creadoReal, setCreadoReal] = useState(false)
+  const [emailDueno, setEmailDueno] = useState('')
+  const reales = useNegociosReales(hayNube && !!email)
   const [error, setError] = useState<string>()
   const [copiado, setCopiado] = useState(false)
   const idLogo = useId()
@@ -207,10 +212,17 @@ function Formulario({ email }: { email?: string }) {
     setError(undefined)
     setGuardando(true)
     try {
-      // Se puede re-guardar la demo recién creada; cualquier otro link repetido se rechaza.
-      if (!(await slugLibre(slug, creado?.slug))) return setError(`Ya existe una demo con el link /${slug}. Cambiá el link.`)
       const n = { ...vista, nombre: nombre.trim() }
-      await guardarNegocio(n)
+      if (tipo === 'real') {
+        if (!(await slugLibre(slug))) return setError(`Ya existe un negocio con el link /${slug}. Cambiá el link.`)
+        await crearNegocioReal(n, emailDueno)
+        setCreadoReal(true)
+      } else {
+        // Se puede re-guardar la demo recién creada; cualquier otro link repetido se rechaza.
+        if (!(await slugLibre(slug, creado?.slug))) return setError(`Ya existe una demo con el link /${slug}. Cambiá el link.`)
+        await guardarNegocio(n)
+        setCreadoReal(false)
+      }
       await refrescar()
       setCreado(n)
     } catch (err) {
@@ -367,9 +379,50 @@ function Formulario({ email }: { email?: string }) {
             </div>
           </Seccion>
 
-          <Seccion titulo="3. El link">
+          <Seccion titulo="3. Publicación">
+            {hayNube && (
+              <div>
+                <p className="mb-2 text-sm font-semibold text-suave">Tipo</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ['demo', 'Demo de venta', 'Todo simulado, para mostrar'],
+                      ['real', 'Negocio real', 'Turnos, clientes y panel de verdad'],
+                    ] as const
+                  ).map(([id, titulo, detalle]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-pressed={tipo === id}
+                      onClick={() => {
+                        setTipo(id)
+                        setCreado(undefined)
+                      }}
+                      className={cn(
+                        'flex min-h-16 flex-col items-start justify-center rounded-medio px-4 text-left',
+                        tipo === id ? 'bg-acento text-sobre-acento' : 'bg-superficie ring-1 ring-linea',
+                      )}
+                    >
+                      <span className="font-semibold">{titulo}</span>
+                      <span className="text-xs opacity-80">{detalle}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {tipo === 'real' && (
+              <Campo
+                etiqueta="Mail del dueño"
+                type="email"
+                autoComplete="off"
+                placeholder="dueno@negocio.com"
+                value={emailDueno}
+                onChange={(e) => setEmailDueno(e.target.value)}
+                ayuda="Le queda una invitación: cuando entre al panel con ese mail, queda como dueño."
+              />
+            )}
             <Campo
-              etiqueta="Dirección de la demo"
+              etiqueta={tipo === 'real' ? 'Dirección del negocio' : 'Dirección de la demo'}
               value={slug}
               onChange={(e) => setSlugManual(slugDe(e.target.value))}
               ayuda={`${location.host}/${slug}`}
@@ -378,7 +431,7 @@ function Formulario({ email }: { email?: string }) {
 
           <Boton type="submit" tamano="grande" cargando={guardando}>
             <Wand2 className="size-5" aria-hidden />
-            {creado ? 'Guardar cambios' : 'Crear demo'}
+            {tipo === 'real' ? 'Crear negocio real' : creado ? 'Guardar cambios' : 'Crear demo'}
           </Boton>
         </form>
 
@@ -400,9 +453,13 @@ function Formulario({ email }: { email?: string }) {
                   <div className="min-w-0">
                     <p className="flex items-center gap-1.5 font-bold text-exito">
                       <Check className="size-5" aria-hidden />
-                      ¡Demo lista!
+                      {creadoReal ? '¡Negocio creado!' : '¡Demo lista!'}
                     </p>
-                    <p className="mt-1 text-sm text-suave">Que el dueño escanee el QR, saque un turno y la instale en su celular.</p>
+                    <p className="mt-1 text-sm text-suave">
+                      {creadoReal
+                        ? `Sus clientes reservan con este QR. El dueño entra al panel con ${emailDueno.trim().toLowerCase()} (creale el usuario en Supabase si todavía no tiene).`
+                        : 'Que el dueño escanee el QR, saque un turno y la instale en su celular.'}
+                    </p>
                     <button
                       type="button"
                       onClick={() => {
@@ -421,7 +478,7 @@ function Formulario({ email }: { email?: string }) {
                   {[
                     { to: `/${creado.slug}`, texto: 'Cliente', Icono: Smartphone },
                     { to: `/${creado.slug}/panel`, texto: 'Dueño', Icono: LayoutDashboard },
-                    { to: `/${creado.slug}/escenario`, texto: 'Escenario', Icono: MonitorSmartphone },
+                    ...(creadoReal ? [] : [{ to: `/${creado.slug}/escenario`, texto: 'Escenario', Icono: MonitorSmartphone }]),
                   ].map(({ to, texto, Icono }) => (
                     <Link key={to} to={to} className="flex h-16 flex-col items-center justify-center gap-1 rounded-medio bg-acento-suave text-xs font-bold text-acento-texto">
                       <Icono className="size-5" aria-hidden />
@@ -442,6 +499,26 @@ function Formulario({ email }: { email?: string }) {
               </motion.section>
             )}
           </AnimatePresence>
+
+          {(reales.data?.length ?? 0) > 0 && (
+            <section aria-labelledby="t-reales" className="rounded-grande bg-superficie p-4 ring-1 ring-linea">
+              <h2 id="t-reales" className="titulo mb-2 text-base">Negocios reales</h2>
+              <ul className="flex flex-col divide-y divide-linea">
+                {reales.data!.map((r) => (
+                  <li key={r.id} className="flex items-center justify-between gap-3 py-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{r.nombre}</p>
+                      <p className="truncate text-xs text-suave">/{r.slug} · {r.estado}</p>
+                    </div>
+                    <Link to={`/${r.slug}/panel`} className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-medio bg-acento-suave px-3 text-xs font-bold text-acento-texto">
+                      <LayoutDashboard className="size-4" aria-hidden />
+                      Panel
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           {creadas.length > 0 && (
             <section aria-labelledby="t-mias" className="rounded-grande bg-superficie p-4 ring-1 ring-linea">

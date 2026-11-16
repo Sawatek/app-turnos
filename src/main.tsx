@@ -18,6 +18,7 @@ const router = createBrowserRouter([
   { path: '/admin', element: <Admin /> },
   { path: '/:slug', element: <AppCliente /> },
   { path: '/:slug/panel', element: <Panel /> },
+  { path: '/:slug/panel/:seccion', element: <Panel /> },
   { path: '/:slug/escenario', element: <Escenario /> },
 ])
 

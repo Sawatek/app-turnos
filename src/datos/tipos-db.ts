@@ -90,6 +90,64 @@ isOneToOne: false
       referencedColumns: ["negocio_id","id"]
     }
                   ]
+                },"invitaciones": {
+                  Row: {
+                    "aceptada": string | null,"creado": string,"creado_por": string | null,"email": string,"id": string,"negocio_id": string,"profesional_id": string | null,"rol": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "aceptada"?: string | null,"creado"?: string,"creado_por"?: string | null,"email": string,"id"?: string,"negocio_id": string,"profesional_id"?: string | null,"rol": string
+                  }
+                  Update: {
+                    "aceptada"?: string | null,"creado"?: string,"creado_por"?: string | null,"email"?: string,"id"?: string,"negocio_id"?: string,"profesional_id"?: string | null,"rol"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "invitaciones_negocio_id_fkey"
+      columns: ["negocio_id"]
+isOneToOne: false
+      referencedRelation: "negocios"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "invitaciones_negocio_id_profesional_id_fkey"
+      columns: ["negocio_id","profesional_id"]
+isOneToOne: false
+      referencedRelation: "profesionales"
+      referencedColumns: ["negocio_id","id"]
+    }
+                  ]
+                },"mensajes": {
+                  Row: {
+                    "canal": string,"cliente_id": string | null,"contenido": NonNullable<Json>,"creado": string,"destino": string,"entregado": string | null,"enviado": string | null,"error": string | null,"estado": string,"id": string,"intentos": number,"leido": string | null,"negocio_id": string | null,"programado": string,"proveedor_id": string | null,"tipo": string,"tomado": string | null,"turno_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "canal"?: string,"cliente_id"?: string | null,"contenido"?: NonNullable<Json>,"creado"?: string,"destino": string,"entregado"?: string | null,"enviado"?: string | null,"error"?: string | null,"estado"?: string,"id"?: string,"intentos"?: number,"leido"?: string | null,"negocio_id"?: string | null,"programado"?: string,"proveedor_id"?: string | null,"tipo": string,"tomado"?: string | null,"turno_id"?: string | null
+                  }
+                  Update: {
+                    "canal"?: string,"cliente_id"?: string | null,"contenido"?: NonNullable<Json>,"creado"?: string,"destino"?: string,"entregado"?: string | null,"enviado"?: string | null,"error"?: string | null,"estado"?: string,"id"?: string,"intentos"?: number,"leido"?: string | null,"negocio_id"?: string | null,"programado"?: string,"proveedor_id"?: string | null,"tipo"?: string,"tomado"?: string | null,"turno_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mensajes_cliente_id_fkey"
+      columns: ["cliente_id"]
+isOneToOne: false
+      referencedRelation: "clientes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mensajes_negocio_id_fkey"
+      columns: ["negocio_id"]
+isOneToOne: false
+      referencedRelation: "negocios"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mensajes_turno_id_fkey"
+      columns: ["turno_id"]
+isOneToOne: false
+      referencedRelation: "turnos"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"miembros": {
                   Row: {
                     "creado": string,"negocio_id": string,"rol": string,"user_id": string
@@ -190,6 +248,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"push_suscripciones": {
+                  Row: {
+                    "actualizado": string,"auth": string,"creado": string,"endpoint": string,"id": string,"negocio_id": string,"p256dh": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actualizado"?: string,"auth": string,"creado"?: string,"endpoint": string,"id"?: string,"negocio_id": string,"p256dh": string,"user_id"?: string
+                  }
+                  Update: {
+                    "actualizado"?: string,"auth"?: string,"creado"?: string,"endpoint"?: string,"id"?: string,"negocio_id"?: string,"p256dh"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_suscripciones_negocio_id_fkey"
+      columns: ["negocio_id"]
+isOneToOne: false
+      referencedRelation: "negocios"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"servicios": {
                   Row: {
                     "activo": boolean,"detalle": string | null,"etiqueta": string | null,"id": string,"minutos": number,"negocio_id": string,"nombre": string,"orden": number,"precio": number
@@ -268,11 +346,40 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "cancelar_turno":
+            "aceptar_invitaciones":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"cancelar_turno":
 { Args: { "p_turno": string }; Returns: undefined
+                           },
+"confirmar_por_whatsapp":
+{ Args: { "p_telefono": string,"p_turno": string }; Returns: string
                            },
 "confirmar_turno":
 { Args: { "p_turno": string }; Returns: undefined
+                           },
+"contenido_turno":
+{ Args: { "p_tipo": string,"p_turno": string }; Returns: Json
+                           },
+"crear_negocio_real":
+{ Args: { "p_config": Json,"p_email_dueno": string,"p_slug": string }; Returns: string
+                           },
+"datos_turno":
+{ Args: { "p_turno": string }; Returns: Json
+                           },
+"disparar_envio_mensajes":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"disponibilidad_dias":
+{ Args: { "p_desde"?: string,"p_dias"?: number,"p_negocio": string,"p_profesional"?: string,"p_servicio": string }; Returns: {
+              "capacidad": number,"dia": string,"libres": number
+            }[]
+                           },
+"encolar_aviso":
+{ Args: { "p_motivo": string,"p_plantilla": string,"p_telefono": string,"p_turno": string }; Returns: undefined
+                           },
+"encolar_mensaje_turno":
+{ Args: { "p_programado"?: string,"p_tipo": string,"p_turno": string }; Returns: undefined
                            },
 "es_dueno":
 { Args: { "p_negocio": string }; Returns: boolean
@@ -289,6 +396,12 @@ isOneToOne: false
 "es_usuario_app":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"guardar_push":
+{ Args: { "p_auth": string,"p_endpoint": string,"p_negocio": string,"p_p256dh": string }; Returns: string
+                           },
+"hook_enviar_codigo":
+{ Args: { "event": Json }; Returns: Json
+                           },
 "horarios_libres":
 { Args: { "p_dia": string,"p_negocio": string,"p_profesional"?: string,"p_servicio": string }; Returns: {
               "inicio": string,"profesional_id": string
@@ -297,12 +410,92 @@ isOneToOne: false
 "mi_profesional":
 { Args: { "p_negocio": string }; Returns: string
                            },
+"mi_resumen":
+{ Args: { "p_negocio": string }; Returns: {
+              "activos": number,"cancelacion_horas": number,"cliente_id": string,"nombre": string,"sellos": number,"telefono": string
+            }[]
+                           },
+"mis_negocios":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "es_demo": boolean,"estado": string,"id": string,"nombre": string,"rol": string,"slug": string
+            }[]
+                           },
+"normalizar_telefono":
+{ Args: { "p": string }; Returns: string
+                           },
+"panel_guardar_horarios":
+{ Args: { "p_franjas": Json,"p_profesional": string }; Returns: undefined
+                           },
+"panel_guardar_servicios_profesional":
+{ Args: { "p_profesional": string,"p_servicios": (string)[] }; Returns: undefined
+                           },
+"panel_miembros":
+{ Args: { "p_negocio": string }; Returns: {
+              "creado": string,"email": string,"profesional": string,"profesional_id": string,"rol": string,"user_id": string
+            }[]
+                           },
+"panel_quitar_miembro":
+{ Args: { "p_negocio": string,"p_user": string }; Returns: undefined
+                           },
+"panel_resumen":
+{ Args: { "p_dia": string,"p_negocio": string,"p_profesional"?: string }; Returns: {
+              "confirmados": number,"facturacion": number,"faltas_mes": number,"turnos_dia": number
+            }[]
+                           },
+"pedir_cambio_por_whatsapp":
+{ Args: { "p_telefono": string,"p_turno": string }; Returns: string
+                           },
+"programar_push_turno":
+{ Args: { "p_turno": string }; Returns: undefined
+                           },
+"programar_recordatorios":
+{ Args: { "p_turno": string }; Returns: undefined
+                           },
+"registrar_envio":
+{ Args: { "p_error"?: string,"p_id": string,"p_proveedor_id"?: string,"p_resultado": string }; Returns: undefined
+                           },
 "reservar_turno":
 { Args: { "p_inicio": string,"p_negocio": string,"p_nombre"?: string,"p_profesional"?: string,"p_servicio": string,"p_telefono"?: string }; Returns: string
                            },
 "rol_en":
 { Args: { "p_negocio": string }; Returns: string
-                           }
+                           },
+"sustituir_plantilla":
+{ Args: { "p_datos": Json,"p_plantilla": string }; Returns: string
+                           },
+"telefono_cliente":
+{ Args: { "p_cliente": string }; Returns: string
+                           },
+"telefono_es_del_turno":
+{ Args: { "p_telefono": string,"p_turno": string }; Returns: boolean
+                           },
+"tomar_mensajes":
+{ Args: { "p_limite"?: number,"p_negocio"?: string }; Returns: {
+              "canal": string,
+"cliente_id": string | null,
+"contenido": NonNullable<Json>,
+"creado": string,
+"destino": string,
+"entregado": string | null,
+"enviado": string | null,
+"error": string | null,
+"estado": string,
+"id": string,
+"intentos": number,
+"leido": string | null,
+"negocio_id": string | null,
+"programado": string,
+"proveedor_id": string | null,
+"tipo": string,
+"tomado": string | null,
+"turno_id": string | null
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "mensajes"
+        isOneToOne: false
+        isSetofReturn: true
+      } }
           }
           Enums: {
             [_ in never]: never
