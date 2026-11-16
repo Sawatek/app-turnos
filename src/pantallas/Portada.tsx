@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import { LayoutDashboard, MonitorSmartphone, Plus, Smartphone } from 'lucide-react'
 import { Link } from 'react-router'
-import { todosLosNegocios, useNegocios } from '@/datos/negocios'
+import { useTodosLosNegocios } from '@/datos/negocios'
 import { RUBROS } from '@/plantillas/rubros'
 import { useTemaNegocio, estiloTema } from '@/tema/TemaNegocio'
 import { Logo } from '@/ui/Logo'
@@ -11,8 +11,7 @@ const SAWATEK = { nombre: 'SawaTek', color: '#e0b352', modo: 'oscuro', personali
 /** Portada interna para el vendedor: todas las demos a mano. */
 export default function Portada() {
   useTemaNegocio(SAWATEK, 'SawaTek · Demos de turnos')
-  const propios = useNegocios((s) => s.propios)
-  const negocios = todosLosNegocios(propios)
+  const { lista: negocios } = useTodosLosNegocios()
 
   return (
     <main className="mx-auto min-h-dvh max-w-5xl px-5 pt-segura pb-16">

@@ -1,8 +1,10 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { ArrowLeft, Check, Copy, ImageUp, LayoutDashboard, MonitorSmartphone, Moon, Smartphone, Sun, Trash2, Wand2 } from 'lucide-react'
+import { ArrowLeft, Check, Cloud, Copy, ImageUp, LayoutDashboard, LogOut, MailCheck, MonitorSmartphone, Moon, Smartphone, Sun, Trash2, Wand2 } from 'lucide-react'
 import { useId, useState } from 'react'
 import { Link } from 'react-router'
-import { slugLibre, useNegocios } from '@/datos/negocios'
+import { borrarNegocio, guardarNegocio, slugLibre, useRefrescarNegocios, useTodosLosNegocios } from '@/datos/negocios'
+import { pedirLinkDeIngreso, salir, useSesion } from '@/datos/sesion'
+import { hayNube } from '@/datos/supabase'
 import type { Modo, Negocio, Personalidad, RubroId } from '@/dominio/tipos'
 import { LISTA_RUBROS, RUBROS, negocioDesdePlantilla, slugDe } from '@/plantillas/rubros'
 import { colorDelLogo } from '@/tema/paleta'
@@ -36,7 +38,62 @@ async function achicarLogo(archivo: File): Promise<string> {
 /** Alta de una demo en 1 minuto: nombre, rubro, logo → app con su marca, link y QR. */
 export default function Admin() {
   useTemaNegocio(PANEL, 'SawaTek · Nueva demo')
-  const { propios, guardar, borrar } = useNegocios()
+  const sesion = useSesion()
+  if (hayNube && sesion === undefined) return null
+  if (hayNube && !sesion) return <Ingreso />
+  return <Formulario email={sesion?.user.email} />
+}
+
+/** Con Supabase, /admin pide ingresar con un link que llega al mail. */
+function Ingreso() {
+  const [email, setEmail] = useState('')
+  const [estado, setEstado] = useState<'inicio' | 'enviando' | 'enviado'>('inicio')
+  const [error, setError] = useState<string>()
+  const enviar = async (ev: React.FormEvent) => {
+    ev.preventDefault()
+    if (!/^\S+@\S+\.\S+$/.test(email)) return setError('Escribí un mail válido.')
+    setError(undefined)
+    setEstado('enviando')
+    try {
+      await pedirLinkDeIngreso(email)
+      setEstado('enviado')
+    } catch (err) {
+      setError((err as Error).message)
+      setEstado('inicio')
+    }
+  }
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 px-5">
+      <div>
+        <p className="text-sm font-bold tracking-wide text-acento-texto uppercase">SawaTek · Turnos</p>
+        <h1 className="mt-1 text-3xl">Crear demos</h1>
+        <p className="mt-2 text-suave">Ingresá con tu mail de SawaTek. Te mandamos un link para entrar, sin contraseña.</p>
+      </div>
+      {estado === 'enviado' ? (
+        <p aria-live="polite" className="flex items-start gap-3 rounded-grande bg-superficie p-4 ring-1 ring-linea">
+          <MailCheck className="mt-0.5 size-5 shrink-0 text-exito" aria-hidden />
+          <span>
+            Listo. Abrí el mail que te llegó a <b>{email}</b> y tocá el link. Si no lo ves, revisá spam.
+          </span>
+        </p>
+      ) : (
+        <form onSubmit={enviar} className="flex flex-col gap-4" noValidate>
+          <Campo etiqueta="Tu mail" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} error={error} />
+          <Boton type="submit" tamano="grande" cargando={estado === 'enviando'}>
+            Mandarme el link
+          </Boton>
+        </form>
+      )}
+      <Link to="/" className="text-center text-sm font-semibold text-acento-texto">Volver a las demos</Link>
+    </main>
+  )
+}
+
+function Formulario({ email }: { email?: string }) {
+  const { nube, propios } = useTodosLosNegocios()
+  const refrescar = useRefrescarNegocios()
+  const creadas = hayNube ? nube : propios
+  const [guardando, setGuardando] = useState(false)
 
   const [nombre, setNombre] = useState('')
   const [rubro, setRubro] = useState<RubroId>('barberia')
@@ -78,16 +135,23 @@ export default function Admin() {
     }
   }
 
-  const crear = (ev: React.FormEvent) => {
+  const crear = async (ev: React.FormEvent) => {
     ev.preventDefault()
     if (nombre.trim().length < 2) return setError('Poné el nombre del negocio.')
-    // Se puede re-guardar la demo recién creada; cualquier otro link repetido se rechaza.
-    if (!slugLibre(slug, propios.filter((p) => p.slug !== creado?.slug)))
-      return setError(`Ya existe una demo con el link /${slug}. Cambiá el link.`)
     setError(undefined)
-    const n = { ...vista, nombre: nombre.trim() }
-    guardar(n)
-    setCreado(n)
+    setGuardando(true)
+    try {
+      // Se puede re-guardar la demo recién creada; cualquier otro link repetido se rechaza.
+      if (!(await slugLibre(slug, creado?.slug))) return setError(`Ya existe una demo con el link /${slug}. Cambiá el link.`)
+      const n = { ...vista, nombre: nombre.trim() }
+      await guardarNegocio(n)
+      await refrescar()
+      setCreado(n)
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setGuardando(false)
+    }
   }
 
   const link = creado ? `${location.origin}/${creado.slug}` : ''
@@ -98,10 +162,16 @@ export default function Admin() {
         <Link to="/" className="grid size-11 place-items-center rounded-full bg-superficie ring-1 ring-linea" aria-label="Volver a las demos">
           <ArrowLeft className="size-5" aria-hidden />
         </Link>
-        <div>
+        <div className="mr-auto">
           <h1 className="text-2xl">Nueva demo</h1>
           <p className="text-sm text-suave">En un minuto, la app del negocio con su marca.</p>
         </div>
+        {email && (
+          <button type="button" onClick={() => void salir()} className="inline-flex h-10 items-center gap-2 rounded-full bg-superficie px-3.5 text-sm font-semibold ring-1 ring-linea" title={`Salir (${email})`}>
+            <LogOut className="size-4" aria-hidden />
+            <span className="hidden sm:inline">{email}</span>
+          </button>
+        )}
       </header>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_400px]">
@@ -240,7 +310,7 @@ export default function Admin() {
             />
           </Seccion>
 
-          <Boton type="submit" tamano="grande">
+          <Boton type="submit" tamano="grande" cargando={guardando}>
             <Wand2 className="size-5" aria-hidden />
             {creado ? 'Guardar cambios' : 'Crear demo'}
           </Boton>
@@ -293,18 +363,25 @@ export default function Admin() {
                     </Link>
                   ))}
                 </div>
-                <p className="text-xs text-suave">
-                  Por ahora la demo se guarda en este navegador. Cuando conectemos Supabase, el link va a funcionar en cualquier celular.
+                <p className="flex items-center gap-1.5 text-xs text-suave">
+                  {hayNube ? (
+                    <>
+                      <Cloud className="size-3.5 shrink-0" aria-hidden />
+                      Guardada en la nube: el link y el QR abren en cualquier celular.
+                    </>
+                  ) : (
+                    'Sin Supabase configurado: la demo se guarda solo en este navegador.'
+                  )}
                 </p>
               </motion.section>
             )}
           </AnimatePresence>
 
-          {propios.length > 0 && (
+          {creadas.length > 0 && (
             <section aria-labelledby="t-mias" className="rounded-grande bg-superficie p-4 ring-1 ring-linea">
               <h2 id="t-mias" className="titulo mb-2 text-base">Demos creadas</h2>
               <ul className="flex flex-col divide-y divide-linea">
-                {propios.map((p) => (
+                {creadas.map((p) => (
                   <li key={p.slug} className="flex items-center gap-3 py-2">
                     <div style={estiloTema(p)} data-personalidad={p.personalidad}>
                       <Logo negocio={p} className="size-9 text-xs" />
@@ -315,7 +392,10 @@ export default function Admin() {
                     </Link>
                     <button
                       type="button"
-                      onClick={() => confirm(`¿Borrar la demo de ${p.nombre}?`) && borrar(p.slug)}
+                      onClick={() => {
+                        if (!confirm(`¿Borrar la demo de ${p.nombre}? No se puede deshacer.`)) return
+                        void borrarNegocio(p.slug).then(refrescar).catch((err: Error) => setError(err.message))
+                      }}
                       className="grid size-10 place-items-center rounded-full text-suave hover:bg-peligro/10 hover:text-peligro"
                       aria-label={`Borrar la demo de ${p.nombre}`}
                     >

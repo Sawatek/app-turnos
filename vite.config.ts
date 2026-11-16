@@ -27,7 +27,7 @@ export default defineConfig({
           {
             // Manifest e íconos de cada negocio: los guarda la página en la caché "marcas" y el service worker
             // los sirve desde una URL real (Chrome no instala con manifests blob:/data:).
-            // Cuando haya función en Netlify para /m/*, cambiar a NetworkFirst.
+            // Si algún día /m/* lo responde el servidor, cambiar a NetworkFirst.
             urlPattern: ({ url }) => url.pathname.startsWith('/m/'),
             handler: 'CacheOnly',
             options: { cacheName: 'marcas' },
@@ -38,5 +38,8 @@ export default defineConfig({
     }),
   ],
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+  // Solo variables públicas: VITE_* y las NEXT_PUBLIC_SUPABASE_* de la integración con Vercel.
+  // Nunca exponer SUPABASE_SECRET_KEY ni SUPABASE_SERVICE_ROLE_KEY (no tienen estos prefijos).
+  envPrefix: ['VITE_', 'NEXT_PUBLIC_SUPABASE_'],
   server: { port: 5180, host: true },
 })

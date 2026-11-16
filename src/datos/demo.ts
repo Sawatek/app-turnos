@@ -40,6 +40,8 @@ interface EstadoDemo {
   cambiarEstado: (slug: string, id: string, estado: EstadoTurno) => void
   marcarRecuperado: (slug: string, tel: string) => void
   procesarRecordatorios: (n: Negocio) => void
+  /** Cambios que llegan en vivo desde otro dispositivo (no disparan sellos ni avisos). */
+  aplicarRemoto: (slug: string, cambio: { turno?: Turno; id?: string; estado?: EstadoTurno }) => void
   adelantar: (ms: number) => void
   volverAlPresente: () => void
   reiniciar: (n: Negocio) => void
@@ -173,6 +175,20 @@ export const useDemo = create<EstadoDemo>()(
             avisos: [...nuevos.map((a) => ({ ...a, id: id(), creado, visto: false })).toReversed(), ...x.avisos].slice(0, 40),
           }))
         },
+
+        aplicarRemoto: (slug, { turno, id: tid, estado }) =>
+          actualizar(slug, (e) => {
+            if (turno) {
+              if (e.turnos.some((t) => t.id === turno.id)) return {}
+              return { turnos: [...e.turnos, { ...turno, propio: false, deLaApp: true }] }
+            }
+            if (tid && estado) {
+              const actual = e.turnos.find((t) => t.id === tid)
+              if (!actual || actual.estado === estado) return {}
+              return { turnos: e.turnos.map((t) => (t.id === tid ? { ...t, estado } : t)) }
+            }
+            return {}
+          }),
 
         adelantar: (ms) => set((s) => ({ desfase: s.desfase + ms })),
         volverAlPresente: () => set({ desfase: 0 }),

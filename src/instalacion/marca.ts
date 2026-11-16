@@ -2,7 +2,7 @@
 //
 // Android/Chrome lee el manifest. Tiene que estar en una URL real del sitio (con blob:/data: el cartel de
 // instalar falla), así que la página dibuja los íconos, arma el manifest, los guarda en la caché "marcas"
-// y el service worker los sirve en /m/<negocio>/… (ver vite.config.ts). Cuando haya función en Netlify,
+// y el service worker los sirve en /m/<negocio>/… (ver vite.config.ts). Si algún día se sirve desde el servidor (Vercel),
 // esa misma URL la responde el servidor y esto queda como respaldo.
 //
 // iPhone usa el ícono de <link rel="apple-touch-icon"> y el título de <meta name="apple-mobile-web-app-title">,

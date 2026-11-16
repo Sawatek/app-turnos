@@ -50,8 +50,30 @@ No hay tiendas de apps: entra por un link (WhatsApp, bio de Instagram, QR en el 
 
 Cómo funciona: cada negocio tiene su manifest e íconos (`src/instalacion/marca.ts`), servidos por el service worker en `/m/<negocio>/…`. Verificado con Chrome: QueTul y Consultorio Lema son instalables, cada uno con su nombre. En iPhone, el ícono y el nombre salen de `apple-touch-icon` y `apple-mobile-web-app-title`.
 
-## Qué falta (próximos pasos)
+## Nube: Supabase + Vercel
 
-- **Supabase**: guardar las demos de `/admin` en la nube, para que el link y el QR funcionen en el celular del prospecto (hoy se guardan en el navegador donde se crearon), y el tiempo real entre dispositivos.
-- **Netlify**: deploy + función que responda `/m/<negocio>/…` desde el servidor (hoy lo arma el service worker en el celular; en un navegador sin service worker, la app se instalaría con la marca de SawaTek); ahí cambiar la regla de `vite.config.ts` a `NetworkFirst`.
-- Probar en iPhone y Android reales.
+Sin configurar nada, la app funciona igual pero las demos de `/admin` quedan solo en el navegador. Con Supabase:
+- las demos se guardan en la tabla `negocios` y **el link y el QR abren en cualquier celular**;
+- `/admin` pide ingresar con un link al mail, y solo pueden guardar los mails cargados en `admins`;
+- **en vivo entre dispositivos**: el prospecto reserva desde su celular y aparece en el panel de tu compu; la máquina del tiempo de tu compu le hace llegar los recordatorios a su celular.
+
+### Vercel (una sola vez)
+
+1. *Add New → Project → Import* `Sawatek/app-turnos`. **Framework Preset: Vite**, Root Directory `./`. Install, build y salida ya están en `vercel.json` (pnpm 12 vía corepack, carpeta `dist`); Node 24 sale de `package.json`.
+2. Conectar Supabase desde la integración de Vercel (*Integrations → Supabase*): carga sola `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, que la app ya lee.
+3. Deploy. Desde ahí, cada `git push` a `main` publica solo (y cada rama, una vista previa).
+
+### Supabase (una sola vez)
+
+1. **Base de datos**: con la integración de GitHub, las migraciones de `supabase/migrations/` se aplican solas al subir a `main` (*Working directory* = `.` y *Deploy to production* activado). Alternativa: pegar el SQL en el *SQL Editor*.
+2. **Admins**: en el *SQL Editor*, una vez por persona:
+   ```sql
+   insert into public.admins (email) values ('mail@sawatek.com.ar');
+   ```
+3. **Auth → URL Configuration**: *Site URL* = la URL de Vercel. En *Redirect URLs*: `https://<tu-proyecto>.vercel.app/admin` y `http://localhost:5180/admin`.
+4. **Local**: `.env.local` con las mismas variables (ver `.env.example`, o `vercel env pull .env.local`).
+
+## Qué falta
+
+- Probar en iPhone y Android reales (sobre todo la instalación en iPhone).
+- Opcional: dominio propio (ej.: `turnos.sawatek.com.ar`).

@@ -87,8 +87,10 @@ export interface Turno {
   minutos: number
   estado: EstadoTurno
   senaPagada: number
-  /** Si lo sacó el usuario de la demo (y no es dato de ejemplo). */
+  /** Si lo sacó el usuario de la demo en ESTE dispositivo (y no es dato de ejemplo). */
   propio: boolean
+  /** Lo sacó alguien desde la app en OTRO dispositivo (llegó en vivo). */
+  deLaApp?: boolean
   recordatorios: { r24?: string; r2?: string }
   creado: string
 }

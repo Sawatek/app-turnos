@@ -8,7 +8,7 @@ import { capitalizar, diaLargo, diaRelativo, horaCorta } from '@/dominio/tiempo'
 import { useTemaNegocio } from '@/tema/TemaNegocio'
 import { Logo } from '@/ui/Logo'
 import { cn } from '@/ui/cn'
-import { NoEncontrado } from '../NoEncontrado'
+import { Cargando, NoEncontrado } from '../NoEncontrado'
 
 const HORA = 3_600_000
 const CEL = { ancho: 390, alto: 844 }
@@ -20,7 +20,7 @@ const CEL = { ancho: 390, alto: 844 }
  */
 export default function Escenario() {
   const { slug } = useParams()
-  const n = useNegocio(slug)
+  const { negocio: n, cargando } = useNegocio(slug)
   useTemaNegocio(n, n ? `${n.nombre} · Escenario` : undefined)
   const e = useEstadoNegocio(n)
   const ahora = useAhora()
@@ -31,6 +31,7 @@ export default function Escenario() {
   const refCel = useRef<HTMLElement>(null)
   const escala = useEscalaCelular(refCel)
 
+  if (cargando) return <Cargando />
   if (!n) return <NoEncontrado />
 
   const t0 = ahora.getTime()

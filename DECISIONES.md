@@ -1,6 +1,6 @@
 # Demo nueva de la app de turnos: decisiones
 
-Estado: **aprobado; pasos 1 a 5 del orden de construcción hechos, más el alta en `/admin` con QR (guardada en el navegador)** (ver [README](README.md)). Faltan Supabase, Netlify y la prueba en celulares reales. Fecha: 16/11/2026.
+Estado: **aprobado; pasos 1 a 5 del orden de construcción hechos, más el alta en `/admin` con QR (guardada en el navegador)** (ver [README](README.md)). Código de Supabase (demos en la nube, login de /admin, tiempo real) y configuración de Vercel listos; falta activarlos con las cuentas y probar en celulares reales. Fecha: 16/11/2026.
 La demo anterior (un solo HTML) se reemplazó por completo por este proyecto.
 
 ## 1. Para qué es
@@ -42,7 +42,7 @@ Lo que sigue simulado (no hace falta para vender): el envío real por WhatsApp, 
 ## 3. Arquitectura
 
 ```
-Navegador (PWA)                          Netlify                     Supabase
+Navegador (PWA)                          Vercel                      Supabase
 ┌─────────────────────────────┐   ┌──────────────────────┐   ┌──────────────────────────┐
 │ /admin     alta de demos    │──▶│ sitio estático       │   │ tabla negocios (config)  │
 │ /:negocio  app del cliente  │   │ función: manifest e  │◀─▶│ storage: logos           │
@@ -54,7 +54,7 @@ Navegador (PWA)                          Netlify                     Supabase
 
 - **Una sola app para todos los negocios.** Cada negocio es un registro en Supabase, con su configuración (marca, servicios, staff, horarios, textos) y su logo. Nada de editar código para sumar un cliente.
 - **Los turnos de la demo viven en el navegador** de quien la usa, así cada prospecto juega sin pisar a otro. Lo único compartido es el canal en vivo de cada demo, que no guarda datos.
-- **Instalable con la marca del negocio.** Cada negocio tiene su propio manifest e íconos, generados por una función de Netlify a partir de su logo. Así, al instalarla, en el celular dice "QueTul" con su ícono.
+- **Instalable con la marca del negocio.** Cada negocio tiene su propio manifest e íconos, generados en el celular a partir de su logo y servidos por el service worker (no hace falta servidor). Así, al instalarla, en el celular dice "QueTul" con su ícono.
 - **Seguridad**: cualquiera puede *leer* la configuración de una demo por su link; solo SawaTek (login con email) puede crear o editar. Esto se controla con reglas en la base (RLS).
 - **Preparada para ser producto después.** Toda la lógica de turnos (horarios libres, duraciones, superposiciones) va en un módulo propio, sin pantallas, y con tests. El acceso a datos pasa por una interfaz: hoy hay una versión "demo" (navegador) y mañana una "real" (Supabase), sin rehacer las pantallas.
 
@@ -71,7 +71,7 @@ App-Turnos-SawaTek/
     ui/           componentes base (botón, hoja inferior, chips, pase...)
     pantallas/
       cliente/  panel/  escenario/  admin/
-  netlify/functions/   manifest e íconos por negocio
+  src/instalacion/     manifest e íconos por negocio
   supabase/            migraciones SQL y políticas
 ```
 
@@ -102,7 +102,6 @@ App-Turnos-SawaTek/
 | QR | qr | 0.7.2 | mantenido, sin dependencias, con tipos incluidos |
 | Tipografía | @fontsource-variable/plus-jakarta-sans | 5.3.0 | incluida en la app, sin depender de Google |
 | Tests | vitest | 5.1.0 | lógica de horarios y de paleta |
-| Funciones | @netlify/functions | 6.1.1 | |
 
 **Descartados**: `vaul` (hoja inferior; sin publicar desde dic/2024, la hacemos con Radix + motion), `qrcode` (reemplazado por `qr`), `typescript-eslint` (no soporta TS 7).
 
@@ -137,7 +136,7 @@ A partir del color del negocio se genera **toda la escala en OKLCH** (claro y os
 
 ## 6. Lo que necesito de vos para arrancar
 
-1. **Cuentas**: Supabase y Netlify (¿usamos la de netlify donde está `quetul-app-sawatek`?).
+1. **Cuentas**: Supabase y Vercel (con la integración Vercel ↔ Supabase).
 2. **Nombre y dominio del producto** para los links de demo (ej. `turnos.sawatek.com.ar/quetul`).
 3. OK para actualizar pnpm a la 12 en tu máquina.
 

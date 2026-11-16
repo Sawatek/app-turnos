@@ -3,14 +3,15 @@ import { Bell, CalendarDays, House, Plus, UserRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
 import { useAhora, useDemo, useEstadoNegocio } from '@/datos/demo'
+import { useEnVivo } from '@/datos/envivo'
 import { useNegocio } from '@/datos/negocios'
-import type { Aviso } from '@/dominio/tipos'
+import type { Aviso, Negocio } from '@/dominio/tipos'
 import { useMarcaInstalable } from '@/instalacion/marca'
 import { useTemaNegocio } from '@/tema/TemaNegocio'
 import { Logo } from '@/ui/Logo'
 import { Notificacion } from '@/ui/Notificacion'
 import { cn } from '@/ui/cn'
-import { NoEncontrado } from '../NoEncontrado'
+import { Cargando, NoEncontrado } from '../NoEncontrado'
 import { ContextoCliente, type CtxCliente, type OpcionesReserva } from './contexto'
 import { codigoDelAviso, EVENTO_CODIGO, Ingreso } from './Ingreso'
 import { Inicio } from './Inicio'
@@ -22,15 +23,17 @@ type Tab = 'inicio' | 'turnos' | 'perfil'
 
 export default function AppCliente() {
   const { slug } = useParams()
-  const n = useNegocio(slug)
+  const { negocio: n, cargando } = useNegocio(slug)
   useTemaNegocio(n)
+  if (cargando) return <Cargando />
   if (!n) return <NoEncontrado />
   return <App key={n.slug} n={n} />
 }
 
-function App({ n }: { n: NonNullable<ReturnType<typeof useNegocio>> }) {
+function App({ n }: { n: Negocio }) {
   const e = useEstadoNegocio(n)
   useMarcaInstalable(n)
+  useEnVivo(n)
   const ahora = useAhora()
   const procesar = useDemo((s) => s.procesarRecordatorios)
   const marcarVistos = useDemo((s) => s.marcarAvisosVistos)

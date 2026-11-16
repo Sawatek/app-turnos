@@ -3,6 +3,7 @@ import { BellRing, Check, CheckCheck, ExternalLink, MessageCircle, Smartphone, S
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { useAhora, useDemo, useEstadoNegocio, textoMensaje, type EstadoNegocio } from '@/datos/demo'
+import { useEnVivo } from '@/datos/envivo'
 import { useNegocio } from '@/datos/negocios'
 import { capitalizar, claveDia, diaLargo, diaRelativo, horaCorta, nombreDia, numeroDia, precio, precioCorto, sumarDias } from '@/dominio/tiempo'
 import type { Negocio, Turno } from '@/dominio/tipos'
@@ -12,13 +13,14 @@ import { Hoja } from '@/ui/Hoja'
 import { InsigniaEstado } from '@/ui/Insignia'
 import { Logo, iniciales } from '@/ui/Logo'
 import { cn } from '@/ui/cn'
-import { NoEncontrado } from '../NoEncontrado'
+import { Cargando, NoEncontrado } from '../NoEncontrado'
 import { Calculadora } from './Calculadora'
 
 export default function Panel() {
   const { slug } = useParams()
-  const n = useNegocio(slug)
+  const { negocio: n, cargando } = useNegocio(slug)
   useTemaNegocio(n, n ? `${n.nombre} · Panel` : undefined)
+  if (cargando) return <Cargando />
   if (!n) return <NoEncontrado />
   return <PanelNegocio key={n.slug} n={n} />
 }
@@ -27,6 +29,7 @@ const ocupa = (t: Turno) => t.estado !== 'cancelado'
 
 function PanelNegocio({ n }: { n: Negocio }) {
   const e = useEstadoNegocio(n)
+  useEnVivo(n)
   const ahora = useAhora()
   const [params] = useSearchParams()
   const embebido = params.has('embebido')
@@ -166,7 +169,7 @@ function useTurnoNuevo(e: EstadoNegocio) {
   useEffect(() => {
     const ids = new Set(e.turnos.map((t) => t.id))
     if (conocidos.current && e.turnos.length) {
-      const reciente = e.turnos.find((t) => t.propio && !conocidos.current!.has(t.id))
+      const reciente = e.turnos.find((t) => (t.propio || t.deLaApp) && !conocidos.current!.has(t.id))
       if (reciente) {
         setNuevo(reciente)
         const t = setTimeout(() => setNuevo(null), 9000)
@@ -226,7 +229,7 @@ function Agenda({ n, turnos, ahora, resaltado }: { n: Negocio; turnos: Turno[]; 
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-x-2 font-semibold">
                   <span className={cn(t.estado === 'cancelado' && 'line-through')}>{t.clienteNombre}</span>
-                  {t.propio && <span className="rounded-full bg-acento px-2 py-0.5 text-[10px] font-extrabold uppercase text-sobre-acento">App</span>}
+                  {(t.propio || t.deLaApp) && <span className="rounded-full bg-acento px-2 py-0.5 text-[10px] font-extrabold uppercase text-sobre-acento">App</span>}
                 </p>
                 <p className="truncate text-sm text-suave">
                   {serv?.nombre} · {prof?.nombre}

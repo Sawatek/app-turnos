@@ -1,4 +1,5 @@
 import { StrictMode, lazy, Suspense } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import './estilos.css'
@@ -10,6 +11,8 @@ const Panel = lazy(() => import('@/pantallas/panel/Panel'))
 const Escenario = lazy(() => import('@/pantallas/escenario/Escenario'))
 const Admin = lazy(() => import('@/pantallas/admin/Admin'))
 
+const consultas = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false } } })
+
 const router = createBrowserRouter([
   { path: '/', element: <Portada /> },
   { path: '/admin', element: <Admin /> },
@@ -20,9 +23,11 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('raiz')!).render(
   <StrictMode>
-    <Suspense fallback={<div className="min-h-dvh bg-fondo" />}>
-      <RouterProvider router={router} />
-    </Suspense>
+    <QueryClientProvider client={consultas}>
+      <Suspense fallback={<div className="min-h-dvh bg-fondo" />}>
+        <RouterProvider router={router} />
+      </Suspense>
+    </QueryClientProvider>
   </StrictMode>,
 )
 
