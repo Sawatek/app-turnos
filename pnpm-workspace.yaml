@@ -19,6 +19,15 @@ minimumReleaseAgeExclude:
   - '@oxlint/binding-win32-ia32-msvc@1.94.0'
   - '@oxlint/binding-win32-x64-msvc@1.94.0'
   - oxlint@1.94.0
+  - '@supabase/cli-darwin-arm64@3.2.0'
+  - '@supabase/cli-darwin-x64@3.2.0'
+  - '@supabase/cli-linux-arm64-musl@3.2.0'
+  - '@supabase/cli-linux-arm64@3.2.0'
+  - '@supabase/cli-linux-x64-musl@3.2.0'
+  - '@supabase/cli-linux-x64@3.2.0'
+  - '@supabase/cli-windows-arm64@3.2.0'
+  - '@supabase/cli-windows-x64@3.2.0'
+  - supabase@3.2.0
 
 # workbox-build (via vite-plugin-pwa) pide glob@11, que está deprecated.
 # glob@14 mantiene la misma API (globSync) que usa workbox-build.

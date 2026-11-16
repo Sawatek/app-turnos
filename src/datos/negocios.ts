@@ -11,6 +11,7 @@ import { persist } from 'zustand/middleware'
 import type { Negocio } from '@/dominio/tipos'
 import { DEMOS_FIJAS } from '@/plantillas/demos'
 import { supabase } from './supabase'
+import type { Json } from './tipos-db'
 
 interface EstadoNegocios {
   /** Demos creadas sin nube (solo en este navegador). */
@@ -43,18 +44,23 @@ const fija = (slug: string) => DEMOS_FIJAS.find((n) => n.slug === slug)
 
 // ---------- Acceso a la nube ----------
 
+// La configuración viaja como JSON en la columna `config`; acá se la trata como Negocio.
+const comoNegocio = (c: Json) => c as unknown as Negocio
+const comoJson = (n: Negocio) => n as unknown as NonNullable<Json>
+
 async function traer(slug: string): Promise<Negocio | null> {
   if (!supabase) return null
   const { data, error } = await supabase.from('negocios').select('config').eq('slug', slug).maybeSingle()
   if (error) throw error
-  return (data?.config as Negocio | undefined) ?? null
+  return data ? comoNegocio(data.config) : null
 }
 
 async function listar(): Promise<Negocio[]> {
   if (!supabase) return []
-  const { data, error } = await supabase.from('negocios').select('config').order('actualizado', { ascending: false })
+  // Solo demos: los negocios reales se administran desde su propio panel (fase 2).
+  const { data, error } = await supabase.from('negocios').select('config').eq('es_demo', true).order('actualizado', { ascending: false })
   if (error) throw error
-  return data.map((f) => f.config as Negocio)
+  return data.map((f) => comoNegocio(f.config))
 }
 
 export class SinPermiso extends Error {}
@@ -62,7 +68,7 @@ export class SinPermiso extends Error {}
 /** Guarda en la nube (si hay) o en el navegador. */
 export async function guardarNegocio(n: Negocio) {
   if (!supabase) return useNegocios.getState().guardarLocal(n)
-  const { error } = await supabase.from('negocios').upsert({ slug: n.slug, config: n })
+  const { error } = await supabase.from('negocios').upsert({ slug: n.slug, config: comoJson(n), es_demo: true })
   if (error) {
     // 42501 = bloqueado por las reglas: la cuenta no es admin.
     if (error.code === '42501') throw new SinPermiso('Tu cuenta no tiene permiso para crear demos.')

@@ -4,6 +4,7 @@
 // El vendedor marca "vino" o adelanta el tiempo en la compu → el celular del prospecto se entera
 // (y le llegan los recordatorios).
 //
+// Solo se conectan los dispositivos de la MISMA sala (ver sala.ts): sin sala, no hay tiempo real.
 // Cada dispositivo sigue teniendo su propia copia de la demo; acá solo viajan los cambios.
 // Los datos de ejemplo son iguales en todos lados (se generan igual a partir de la fecha), así que
 // los cambios de estado de esos turnos también se entienden en cualquier dispositivo.
@@ -17,14 +18,14 @@ type Mensaje =
   | { tipo: 'estado'; id: string; estado: Turno['estado'] }
   | { tipo: 'reloj'; desfase: number }
 
-export function useEnVivo(n: Negocio | undefined) {
+export function useEnVivo(n: Negocio | undefined, sala: string | null) {
   const slug = n?.slug
   useEffect(() => {
-    if (!supabase || !slug) return
+    if (!supabase || !slug || !sala) return
     const nube = supabase
     // Cambios que llegaron de afuera: no se reenvían (evita el eco).
     const recibidos = new Set<string>()
-    const canal = nube.channel(`demo:${slug}`, { config: { broadcast: { self: false } } })
+    const canal = nube.channel(`demo:${slug}:${sala}`, { config: { broadcast: { self: false } } })
 
     canal
       .on('broadcast', { event: 'cambio' }, ({ payload }) => {
@@ -67,5 +68,5 @@ export function useEnVivo(n: Negocio | undefined) {
       quitar()
       void nube.removeChannel(canal)
     }
-  }, [slug])
+  }, [slug, sala])
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { useAhora, useDemo, useEstadoNegocio, textoMensaje, type EstadoNegocio } from '@/datos/demo'
 import { useEnVivo } from '@/datos/envivo'
+import { useSala } from '@/datos/sala'
 import { useNegocio } from '@/datos/negocios'
 import { capitalizar, claveDia, diaLargo, diaRelativo, horaCorta, nombreDia, numeroDia, precio, precioCorto, sumarDias } from '@/dominio/tiempo'
 import type { Negocio, Turno } from '@/dominio/tipos'
@@ -29,7 +30,7 @@ const ocupa = (t: Turno) => t.estado !== 'cancelado'
 
 function PanelNegocio({ n }: { n: Negocio }) {
   const e = useEstadoNegocio(n)
-  useEnVivo(n)
+  useEnVivo(n, useSala(n.slug))
   const ahora = useAhora()
   const [params] = useSearchParams()
   const embebido = params.has('embebido')
