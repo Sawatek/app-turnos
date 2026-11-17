@@ -143,10 +143,15 @@ test.describe('dueño: su negocio', () => {
 })
 
 test.describe('dueño: miembros', () => {
-  test('suma y quita profesionales en A', async () => {
+  test('NO suma cuentas directo (solo por invitación), pero sí quita profesionales en A', async () => {
     const nuevo = { negocio_id: m.negocioA.id, user_id: m.usuarios.cliente2.id, rol: 'profesional' }
-    expect((await db().from('miembros').insert(nuevo)).error).toBeNull()
-    expect(await ok(servicio().from('miembros').select('rol').eq('negocio_id', m.negocioA.id).eq('user_id', m.usuarios.cliente2.id))).toEqual([{ rol: 'profesional' }])
+    // Sumar a alguien sin que acepte le daría al dueño su mail (panel_miembros): solo por invitación.
+    esperarError(await db().from('miembros').insert(nuevo))
+    esperarError(await db().from('miembros').insert({ ...nuevo, user_id: m.usuarios.duenoB.id }))
+    const mails = (await ok(db().rpc('panel_miembros', { p_negocio: m.negocioA.id }))) as { email: string | null }[]
+    expect(mails.map((f) => f.email)).not.toContain(m.usuarios.duenoB.email)
+    // Ya sumado (por invitación o por SawaTek), el dueño lo puede quitar.
+    await ok(servicio().from('miembros').insert(nuevo))
     const borrado = await db().from('miembros').delete().eq('negocio_id', m.negocioA.id).eq('user_id', m.usuarios.cliente2.id).select('user_id')
     expect(borrado.data).toHaveLength(1)
   })

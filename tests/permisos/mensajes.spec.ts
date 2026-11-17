@@ -20,7 +20,7 @@ interface FilaMensaje {
 
 const HORA = 3_600_000
 const D = () => diaAR(3)
-const TEL1 = '5491112345678' // cliente1: celular cargado en su ficha como "011 15 1234-5678"
+const TEL1 = '5491112345678' // cliente1: celular de su usuario (la ficha tiene otro escrito a mano, que no se usa)
 const TEL2 = '5491187654321' // cliente2: celular de su usuario (entra con el celular)
 
 let m: Mundo
@@ -53,12 +53,17 @@ async function reservar(db: Mundo['usuarios']['cliente1']['db'], hora: string, d
 test.beforeAll(async () => {
   m = await prepararMundo()
   const adm = servicio()
-  // cliente1 ya es cliente del negocio A, con el celular escrito "a mano" (se normaliza a 549...).
+  // cliente1 ya es cliente del negocio A. En la ficha tiene escrito otro número: como la ficha es de una
+  // cuenta, los WhatsApp salen SOLO al celular verificado de la cuenta (TEL1).
   cli1 = (
     (await ok(
-      adm.from('clientes').insert({ negocio_id: m.negocioA.id, user_id: m.usuarios.cliente1.id, nombre: 'Ana Pérez', telefono: '011 15 1234-5678' }).select('id').single(),
+      adm.from('clientes').insert({ negocio_id: m.negocioA.id, user_id: m.usuarios.cliente1.id, nombre: 'Ana Pérez', telefono: '011 15 9999-0000' }).select('id').single(),
     )) as { id: string }
   ).id
+  {
+    const { error } = await adm.auth.admin.updateUserById(m.usuarios.cliente1.id, { phone: TEL1 })
+    if (error) throw error
+  }
   // cliente2 entra con el celular: el teléfono está en su usuario, no en la ficha.
   const { error } = await adm.auth.admin.updateUserById(m.usuarios.cliente2.id, { phone: TEL2 })
   if (error) throw error

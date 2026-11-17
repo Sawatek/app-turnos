@@ -11,7 +11,7 @@ import { ENTORNO_FUNCIONES as E } from './entorno'
 test.describe.configure({ mode: 'default' })
 
 const BASE = `${process.env.SB_URL}/functions/v1`
-const TEL = '5491112345678'
+const TEL = '5491112345677' // celular verificado de la cuenta de cliente1 (único entre archivos de tests)
 
 interface FilaMensaje {
   id: string
@@ -88,7 +88,10 @@ async function esperar(cond: () => Promise<boolean>, ms = 15_000) {
 test.beforeAll(async () => {
   m = await prepararMundo()
   // cliente1 ya es cliente del negocio A, con celular.
-  await ok(servicio().from('clientes').insert({ negocio_id: m.negocioA.id, user_id: m.usuarios.cliente1.id, nombre: 'Ana', telefono: '11 1234-5678' }).select('id'))
+  // Los WhatsApp de una ficha con cuenta salen al celular verificado de la cuenta.
+  const cel = await servicio().auth.admin.updateUserById(m.usuarios.cliente1.id, { phone: TEL })
+  if (cel.error) throw cel.error
+  await ok(servicio().from('clientes').insert({ negocio_id: m.negocioA.id, user_id: m.usuarios.cliente1.id, nombre: 'Ana' }).select('id'))
 })
 test.afterAll(async () => {
   await limpiarMundo(m)

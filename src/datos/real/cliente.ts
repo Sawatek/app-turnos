@@ -91,6 +91,7 @@ const CODIGOS = [
   'turno_no_cancelable',
   'turno_no_confirmable',
   'fuera_de_plazo',
+  'demasiadas_cancelaciones',
   'profesional_no_disponible',
   'dia_invalido',
   'demasiadas_esperas',
@@ -107,6 +108,7 @@ const TEXTOS: Record<string, string> = {
   turno_no_cancelable: 'Ese turno ya no se puede cancelar.',
   turno_no_confirmable: 'Ese turno ya no se puede confirmar.',
   fuera_de_plazo: 'Ya no se puede cancelar desde la app.',
+  demasiadas_cancelaciones: 'Hoy ya cancelaste 3 turnos en este negocio. Si necesitás cancelar otro, escribile al negocio.',
   profesional_no_disponible: 'Esa persona ya no hace este servicio. Elegí otra o "Cualquiera".',
   dia_invalido: 'Elegí un día de hoy en adelante (hasta 2 meses).',
   demasiadas_esperas: 'Ya estás anotado en 5 listas de espera, que es el máximo. Borrá alguna para anotarte en otra.',
@@ -143,6 +145,14 @@ export async function verificarCodigo(e164: string, codigo: string): Promise<Use
 }
 
 export async function salirCliente() {
+  // Antes de salir (con la sesión todavía válida), este navegador deja de recibir los avisos de esta cuenta.
+  try {
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined
+    const sus = await reg?.pushManager?.getSubscription()
+    if (sus) await db().from('push_suscripciones').delete().eq('endpoint', sus.endpoint)
+  } catch {
+    // si falla, igual se sale
+  }
   await db().auth.signOut()
 }
 
