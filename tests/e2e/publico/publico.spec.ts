@@ -15,6 +15,8 @@ test.describe('Inicio (/)', () => {
     for (const titulo of [
       'Cada falta es una silla vacía que igual pagaste',
       'Tres pasos y te olvidás de confirmar a mano',
+      'Tu cliente toca “Confirmo” y listo',
+      'Tus clientes no ven otra marca: ven la tuya',
       'Todo lo que necesitás para llenar la agenda',
       'Pensada para cada tipo de negocio',
       'Un abono mensual, sin sorpresas',
@@ -45,13 +47,37 @@ test.describe('Inicio (/)', () => {
     await expect(page).toHaveURL(/\/nailed$/)
   })
 
-  test('el celular de muestra cambia de marca', async ({ page }) => {
+  test('el celular de muestra tiene la app de verdad y cambia de marca', async ({ page }) => {
     await page.goto('/')
+    const pantalla = page.locator('figure [inert]').first()
+    // Adentro está la app del cliente (los mismos componentes que /quetul), oculta para lectores de pantalla.
+    await expect(pantalla).toContainText('QueTul')
+    await expect(pantalla).toContainText('Reservar este')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
+
     const nailed = page.getByRole('button', { name: 'Nailed' })
     await expect(page.getByRole('button', { name: 'QueTul' })).toHaveAttribute('aria-pressed', 'true')
     await nailed.click()
     await expect(nailed).toHaveAttribute('aria-pressed', 'true')
+    await expect(pantalla).toContainText('Nailed')
     await expect(page.getByRole('link', { name: 'Probá la app de Nailed en vivo' })).toHaveAttribute('href', '/nailed')
+  })
+
+  test('la animación del celular se puede pausar', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Pausar la animación' }).click()
+    await expect(page.getByRole('button', { name: 'Reproducir la animación' })).toBeVisible()
+    await page.getByRole('button', { name: 'Reproducir la animación' }).click()
+    await expect(page.getByRole('button', { name: 'Pausar la animación' })).toBeVisible()
+  })
+
+  test('con "reducir movimiento" el celular arranca quieto y muestra el recordatorio', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/')
+    await expect(page.getByRole('button', { name: 'Reproducir la animación' })).toBeVisible()
+    const pantalla = page.locator('figure [inert]').first()
+    await expect(pantalla).toContainText('Confirmo')
+    await expect(pantalla).toContainText('Cambiar horario')
   })
 
   test('la calculadora usa los números del dueño', async ({ page }) => {

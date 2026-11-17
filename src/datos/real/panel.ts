@@ -16,6 +16,8 @@ export interface Acceso {
   superadmin: boolean
   /** Ficha de profesional del usuario en este negocio (si tiene). */
   profesionalId: string | null
+  /** Es del equipo pero el negocio está bloqueado por falta de pago (con su rol, para el aviso). */
+  bloqueado: RolPanel | null
 }
 
 export type Servicio = Tables<'servicios'>
@@ -152,16 +154,19 @@ const comoRango = (desde: string, hasta: string) => `[${desde},${hasta})`
 // ---------- Acceso ----------
 
 /** Acepta las invitaciones pendientes del usuario y averigua su rol en el negocio. */
+const comoRol = (x: string | null): RolPanel | null => (x === 'dueno' || x === 'profesional' ? x : null)
+
 async function traerAcceso(negocioId: string): Promise<Acceso> {
   const s = db()
   await ok(s.rpc('aceptar_invitaciones'))
-  const [rol, superadmin, prof] = await Promise.all([
+  const [rol, superadmin, prof, bloqueado] = await Promise.all([
     okNulo(s.rpc('rol_en', { p_negocio: negocioId })),
     okNulo(s.rpc('es_superadmin')),
     okNulo(s.rpc('mi_profesional', { p_negocio: negocioId })),
+    okNulo(s.rpc('rol_en_bloqueado', { p_negocio: negocioId })),
   ])
-  const r = superadmin ? 'dueno' : rol === 'dueno' || rol === 'profesional' ? rol : null
-  return { rol: r, superadmin: !!superadmin, profesionalId: prof }
+  const r = superadmin ? 'dueno' : comoRol(rol)
+  return { rol: r, superadmin: !!superadmin, profesionalId: prof, bloqueado: superadmin ? null : comoRol(bloqueado) }
 }
 
 export function useAcceso(negocioId: string, userId: string | undefined) {

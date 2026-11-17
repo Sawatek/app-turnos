@@ -24,12 +24,13 @@ import { Hoja } from '@/ui/Hoja'
 import { Etiqueta } from '@/ui/Insignia'
 import { iniciales } from '@/ui/Logo'
 import { cn } from '@/ui/cn'
+import { scrollSuave } from '@/ui/movimiento'
 import { diaLegible, linkWhatsApp, useReal, type OpcionesReserva } from './contexto'
 import { FormIngreso } from './Ingreso'
 import { Pase } from './Pase'
 
 const DIAS = 14
-const irSuave = (r: React.RefObject<HTMLElement | null>) => setTimeout(() => r.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
+const irSuave = (r: React.RefObject<HTMLElement | null>) => setTimeout(() => r.current?.scrollIntoView({ behavior: scrollSuave(), block: 'start' }), 60)
 const aISO = (s: string) => new Date(s).toISOString()
 const comoError = (err: unknown) => (err instanceof ErrorCliente ? err : new ErrorCliente('desconocido', 'Algo salió mal. Probá de nuevo en un momento.'))
 
@@ -114,7 +115,7 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
 
   const mostrarError = (texto: string) => {
     setError(texto)
-    setTimeout(() => refError.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60)
+    setTimeout(() => refError.current?.scrollIntoView({ behavior: scrollSuave(), block: 'center' }), 60)
   }
 
   /** El nombre a mandar (o null si falta y hay que pedirlo). */
@@ -133,7 +134,7 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
     setForzarNombre(true)
     if (texto) setErrorNombre(texto)
     setTimeout(() => {
-      refNombre.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      refNombre.current?.scrollIntoView({ behavior: scrollSuave(), block: 'center' })
       refNombre.current?.querySelector('input')?.focus()
     }, 80)
   }
@@ -241,7 +242,7 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
   const alEsperar = () => {
     setHora(undefined)
     alConfirmar('esperar')
-    if (!uid || pideNombre) setTimeout(() => refResumen.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 80)
+    if (!uid || pideNombre) setTimeout(() => refResumen.current?.scrollIntoView({ behavior: scrollSuave(), block: 'end' }), 80)
   }
 
   if (!tomaTurnos) {

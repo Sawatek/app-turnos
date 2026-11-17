@@ -2,7 +2,7 @@
 // Misma experiencia que la demo, pero con ingreso por celular, horarios reales y turnos de verdad.
 // Sin sesión se puede mirar todo y armar la reserva: el celular y el código se piden recién al confirmar.
 import type { Session } from '@supabase/supabase-js'
-import { AnimatePresence, motion, MotionConfig } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { CalendarDays, House, Plus, RefreshCw, Share2, UserRound } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { RESUMEN_INVITADO, salirCliente, useCatalogo, useMisTurnos, useResumen, useTurnosEnVivo } from '@/datos/real/cliente'
@@ -27,11 +27,8 @@ export default function ClienteReal({ n, meta }: PropsNegocioReal) {
   useMarcaInstalable(n)
   const sesion = useSesion()
   return (
-    // Respeta "reducir movimiento" del sistema en todas las animaciones.
-    <MotionConfig reducedMotion="user">
-      {/* Sin key por usuario: al entrar desde la hoja de reserva no se pierde lo que eligió. */}
-      {sesion === undefined ? <Cargando /> : <App n={n} negocioId={meta.id} tomaTurnos={meta.estado === 'activo'} sesion={sesion} />}
-    </MotionConfig>
+    // Sin key por usuario: al entrar desde la hoja de reserva no se pierde lo que eligió.
+    sesion === undefined ? <Cargando /> : <App n={n} negocioId={meta.id} tomaTurnos={meta.estado === 'activo'} sesion={sesion} />
   )
 }
 
@@ -44,14 +41,11 @@ function App({ n, negocioId, tomaTurnos, sesion }: { n: Negocio; negocioId: stri
   const [tab, setTab] = useState<Tab>('inicio')
   const [reserva, setReserva] = useState<{ abierta: boolean; opciones: OpcionesReserva }>({ abierta: false, opciones: {} })
   const [aviso, setAviso] = useState<Aviso | null>(null)
-  const temporizador = useRef<ReturnType<typeof setTimeout>>(undefined)
   // Turnos que acaba de tocar el cliente: el aviso en vivo no le repite lo que ya sabe.
   const propios = useRef(new Set<string>())
 
   const avisar = (texto: string) => {
-    clearTimeout(temporizador.current)
     setAviso({ id: crypto.randomUUID(), tipo: 'sistema', canal: 'push', texto, creado: new Date().toISOString(), visto: false })
-    temporizador.current = setTimeout(() => setAviso(null), 6000)
   }
 
   // En vivo: si el negocio (o el botón "Confirmo" del WhatsApp) cambia un turno propio, se ve al instante.
@@ -136,6 +130,7 @@ function App({ n, negocioId, tomaTurnos, sesion }: { n: Negocio; negocioId: stri
         remitente={n.nombre}
         logo={<Logo negocio={n} className="size-10 rounded-chico text-sm" />}
         onCerrar={() => setAviso(null)}
+        autoCerrar={6000}
       />
       <div className="mx-auto min-h-dvh max-w-lg">
         <header className="sticky top-0 z-30 flex items-center gap-3 bg-fondo/85 px-5 pt-segura pb-3 backdrop-blur-lg">

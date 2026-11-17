@@ -67,7 +67,15 @@ async function traer(slug: string): Promise<{ negocio: Negocio; meta: MetaNegoci
   if (!supabase) return null
   const { data, error } = await supabase.from('negocios').select('id, es_demo, estado, config').eq('slug', slug).maybeSingle()
   if (error) throw error
-  if (!data) return null
+  if (!data) {
+    // Un negocio bloqueado por falta de pago no se ve, pero su marca sí: para decir "no disponible"
+    // (en vez de "no existe") y para que el equipo pueda entrar al panel y ver el aviso de pago.
+    const { data: b, error: eb } = await supabase.rpc('negocio_bloqueado', { p_slug: slug })
+    if (eb) throw eb
+    if (!b) return null
+    const { id, config } = b as { id: string; config: Json }
+    return { negocio: comoNegocio(config), meta: { id, esDemo: false, estado: 'suspendido' } }
+  }
   return {
     negocio: comoNegocio(data.config),
     meta: { id: data.id, esDemo: data.es_demo, estado: data.estado as MetaNegocio['estado'] },

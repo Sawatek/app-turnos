@@ -1,4 +1,5 @@
 import { StrictMode, lazy, Suspense } from 'react'
+import { MotionConfig } from 'motion/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, Outlet, RouterProvider, ScrollRestoration } from 'react-router'
@@ -53,9 +54,12 @@ const router = createBrowserRouter([
 createRoot(document.getElementById('raiz')!).render(
   <StrictMode>
     <QueryClientProvider client={consultas}>
-      <Suspense fallback={<div className="min-h-dvh bg-fondo" />}>
-        <RouterProvider router={router} />
-      </Suspense>
+      {/* Con "reducir movimiento" en el sistema, las animaciones de motion dejan de desplazar y escalar (solo funden). */}
+      <MotionConfig reducedMotion="user">
+        <Suspense fallback={<div className="min-h-dvh bg-fondo" />}>
+          <RouterProvider router={router} />
+        </Suspense>
+      </MotionConfig>
     </QueryClientProvider>
   </StrictMode>,
 )

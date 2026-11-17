@@ -14,7 +14,12 @@ export type RolStaff = 'dueno' | 'profesional'
 export const ESTADOS: { id: EstadoNegocio; texto: string; detalle: string }[] = [
   { id: 'prueba', texto: 'En prueba', detalle: 'Configurando: todavía no toma turnos de clientes.' },
   { id: 'activo', texto: 'Activo', detalle: 'Toma turnos y manda mensajes.' },
-  { id: 'suspendido', texto: 'Suspendido', detalle: 'No toma turnos y su app no abre para los clientes.' },
+  // En la base se llama 'suspendido'; para SawaTek y el dueño es el bloqueo por falta de pago.
+  {
+    id: 'suspendido',
+    texto: 'Bloqueado',
+    detalle: 'El dueño y su equipo ven un aviso de pago pendiente en vez del panel, la app no toma turnos y no sale ningún mensaje hasta desbloquearlo.',
+  },
 ]
 
 export const PLANES = ['Sin definir', 'Prueba gratis', 'Básico', 'Pro', 'A medida'] as const

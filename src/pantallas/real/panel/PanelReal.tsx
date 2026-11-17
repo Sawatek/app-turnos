@@ -26,6 +26,7 @@ import { ErrorEnLinea, ProveedorPanel, usePanel, type CtxPanel } from './comunes
 import { Equipo } from './Equipo'
 import { Horarios } from './Horarios'
 import { Ingreso } from './Ingreso'
+import { PagoPendiente } from './PagoPendiente'
 import { Marca } from './Marca'
 import { Reportes } from './Reportes'
 import { Servicios } from './Servicios'
@@ -92,6 +93,7 @@ function ConSesion({ n, negocioId, userId, email, nombre }: { n: Negocio; negoci
       </Aviso>
     )
   const a = acceso.data
+  if (a.bloqueado) return <PagoPendiente n={n} rol={a.bloqueado} email={email} />
   if (!a.rol)
     return (
       <Aviso titulo="No tenés acceso a este negocio" texto={`Entraste como ${email}, pero esa cuenta no es parte del equipo de ${n.nombre}. Si te invitaron, pedí que te inviten con este mail.`}>

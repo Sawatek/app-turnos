@@ -186,6 +186,7 @@ function Estado({ f }: { f: FichaNegocio }) {
   const [elegido, setElegido] = useState<EstadoNegocio | null>(null)
   const a = useAccion()
   const destino = ESTADOS.find((e) => e.id === elegido)
+  const bloquear = destino?.id === 'suspendido'
 
   return (
     <Tarjeta titulo="Estado" bajada="Solo los negocios activos toman turnos.">
@@ -209,13 +210,22 @@ function Estado({ f }: { f: FichaNegocio }) {
       {destino && (
         <div role="alertdialog" aria-label="Confirmar cambio de estado" className="mt-3 flex flex-col gap-3 rounded-medio bg-superficie-2 p-3.5">
           <p className="text-sm">
-            ¿Pasar <b>{f.config.nombre}</b> a <b>{destino.texto.toLowerCase()}</b>? {destino.detalle}
+            {bloquear ? (
+              <>
+                ¿Bloquear <b>{f.config.nombre}</b> por falta de pago?
+              </>
+            ) : (
+              <>
+                ¿Pasar <b>{f.config.nombre}</b> a <b>{destino.texto.toLowerCase()}</b>?
+              </>
+            )}{' '}
+            {destino.detalle}
           </p>
           <div className="flex flex-wrap gap-2">
             <Boton
               tamano="chico"
               className="h-11"
-              variante={destino.id === 'suspendido' ? 'peligro' : 'primario'}
+              variante={bloquear ? 'peligro' : 'primario'}
               cargando={a.ocupado}
               onClick={() =>
                 void a.correr(async () => {
@@ -225,7 +235,7 @@ function Estado({ f }: { f: FichaNegocio }) {
                 })
               }
             >
-              Sí, pasar a {destino.texto.toLowerCase()}
+              {bloquear ? 'Sí, bloquear por falta de pago' : `Sí, pasar a ${destino.texto.toLowerCase()}`}
             </Boton>
             <Boton tamano="chico" className="h-11" variante="secundario" onClick={() => setElegido(null)}>
               Cancelar

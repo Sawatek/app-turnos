@@ -553,6 +553,9 @@ isOneToOne: false
               "cancelacion_horas": number,"estado": string,"fin": string,"id": string,"inicio": string,"negocio": string,"negocio_id": string,"profesional": string,"puntaje": number,"servicio": string,"slug": string
             }[]
                            },
+"negocio_bloqueado":
+{ Args: { "p_slug": string }; Returns: Json
+                           },
 "nombre_de_usuario":
 { Args: { "p_user": string }; Returns: string
                            },
@@ -611,6 +614,9 @@ isOneToOne: false
 { Args: { "p_inicio": string,"p_negocio": string,"p_nombre"?: string,"p_profesional"?: string,"p_servicio": string,"p_telefono"?: string }; Returns: string
                            },
 "rol_en":
+{ Args: { "p_negocio": string }; Returns: string
+                           },
+"rol_en_bloqueado":
 { Args: { "p_negocio": string }; Returns: string
                            },
 "sustituir_plantilla":

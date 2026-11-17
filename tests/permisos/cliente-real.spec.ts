@@ -145,11 +145,12 @@ test.describe('mi_resumen', () => {
     )
   })
 
-  test('negocio suspendido: nada para el cliente (el dueño sí lo ve); negocio inexistente: nada', async () => {
+  test('negocio suspendido: nada para el cliente (ni para su dueño, que queda bloqueado); negocio inexistente: nada', async () => {
     await cambiarNegocio(m, m.negocioA.id, { estado: 'suspendido' })
     try {
       expect((await resumen(x.db)).data).toEqual([])
-      expect((await resumen(m.usuarios.duenoA.db)).data).toHaveLength(1)
+      expect((await resumen(m.usuarios.duenoA.db)).data).toEqual([])
+      expect((await resumen(m.usuarios.superadmin.db)).data).toHaveLength(1)
     } finally {
       await cambiarNegocio(m, m.negocioA.id, { estado: 'activo' })
     }

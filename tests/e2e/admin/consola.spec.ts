@@ -1,4 +1,4 @@
-// Consola de plataforma (/admin) contra la Supabase LOCAL: secciones, estado de un negocio (y que suspendido
+// Consola de plataforma (/admin) contra la Supabase LOCAL: secciones, estado de un negocio (y que bloqueado
 // no toma turnos), cuenta de dueño creada desde la consola que entra a su panel, y registro de mensajes sin códigos.
 import type { Page } from '@playwright/test'
 import { anonimo, CLAVE, diaAR, limpiarMundo, prepararMundo, servicio, type Mundo } from '../../soporte/mundo'
@@ -65,26 +65,26 @@ test('se navega por todas las secciones de la consola', async ({ page }) => {
   }
 })
 
-test('suspender un negocio pide confirmación, deja de tomar turnos y se puede reactivar', async ({ page }) => {
+test('bloquear un negocio por falta de pago pide confirmación, deja de tomar turnos y se puede reactivar', async ({ page }) => {
   const dia = diaAR(2)
   expect((await libres(anonimo(), m.negocioA.id, m.servicios.corteA, dia)).length).toBeGreaterThan(0)
   await abrirFicha(page)
   try {
     const estado = page.getByRole('group', { name: 'Estado del negocio' })
     await expect(estado.getByRole('button', { name: 'Activo' })).toHaveAttribute('aria-pressed', 'true')
-    await estado.getByRole('button', { name: 'Suspendido' }).click()
+    await estado.getByRole('button', { name: 'Bloqueado' }).click()
     const confirmar = page.getByRole('alertdialog', { name: 'Confirmar cambio de estado' })
-    await expect(confirmar).toContainText('No toma turnos')
+    await expect(confirmar).toContainText('la app no toma turnos')
     // Cancelar no cambia nada.
     await confirmar.getByRole('button', { name: 'Cancelar' }).click()
     await expect(confirmar).toHaveCount(0)
     expect((await servicio().from('negocios').select('estado').eq('id', m.negocioA.id).single()).data).toEqual({ estado: 'activo' })
 
-    await estado.getByRole('button', { name: 'Suspendido' }).click()
-    await page.getByRole('button', { name: 'Sí, pasar a suspendido' }).click()
-    await expect(estado.getByRole('button', { name: 'Suspendido' })).toHaveAttribute('aria-pressed', 'true')
+    await estado.getByRole('button', { name: 'Bloqueado' }).click()
+    await page.getByRole('button', { name: 'Sí, bloquear por falta de pago' }).click()
+    await expect(estado.getByRole('button', { name: 'Bloqueado' })).toHaveAttribute('aria-pressed', 'true')
     await expect.poll(async () => (await servicio().from('negocios').select('estado').eq('id', m.negocioA.id).single()).data?.estado).toBe('suspendido')
-    // Suspendido: no hay horarios libres para nadie.
+    // Bloqueado: no hay horarios libres para nadie.
     expect(await libres(anonimo(), m.negocioA.id, m.servicios.corteA, dia)).toEqual([])
     expect(await libres(m.usuarios.cliente1.db, m.negocioA.id, m.servicios.corteA, dia)).toEqual([])
 

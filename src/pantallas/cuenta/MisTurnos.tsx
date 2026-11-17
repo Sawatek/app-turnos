@@ -1,6 +1,5 @@
 // "Mis turnos" de un cliente en TODOS los negocios donde reservó (/mis-turnos).
 // Con sesión por celular: próximos e historial, con confirmar, cancelar y agregar al calendario. Sin sesión: ingreso.
-import { MotionConfig } from 'motion/react'
 import { ArrowRight, CalendarPlus, CalendarX2, Clock, LogOut, Phone, RefreshCw, Store } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
@@ -28,26 +27,24 @@ export default function MisTurnosGlobal() {
   }, [])
 
   return (
-    <MotionConfig reducedMotion="user">
-      <div className="mx-auto min-h-dvh max-w-lg px-5 pt-segura pb-12">
-        <header className="pt-6 pb-5">
-          <h1 className="text-3xl">Mis turnos</h1>
-          <p className="mt-1 text-[15px] text-suave">Tus turnos en todos los negocios donde reservaste.</p>
-        </header>
-        {!supabase ? (
-          <p className="rounded-grande bg-superficie p-5 text-suave ring-1 ring-linea">Esta versión de la app no está conectada a la base.</p>
-        ) : sesion === undefined ? (
-          <Cargando />
-        ) : !sesion ? (
-          <InvitacionIngreso
-            titulo="Entrá con tu celular"
-            texto="El mismo con el que reservás. Te llega un código por WhatsApp."
-          />
-        ) : (
-          <Cuenta uid={sesion.user.id} telefono={telefonoLegible(sesion.user.phone) || sesion.user.email || ''} />
-        )}
-      </div>
-    </MotionConfig>
+    <div className="mx-auto min-h-dvh max-w-lg px-5 pt-segura pb-12">
+      <header className="pt-6 pb-5">
+        <h1 className="text-3xl">Mis turnos</h1>
+        <p className="mt-1 text-[15px] text-suave">Tus turnos en todos los negocios donde reservaste.</p>
+      </header>
+      {!supabase ? (
+        <p className="rounded-grande bg-superficie p-5 text-suave ring-1 ring-linea">Esta versión de la app no está conectada a la base.</p>
+      ) : sesion === undefined ? (
+        <Cargando />
+      ) : !sesion ? (
+        <InvitacionIngreso
+          titulo="Entrá con tu celular"
+          texto="El mismo con el que reservás. Te llega un código por WhatsApp."
+        />
+      ) : (
+        <Cuenta uid={sesion.user.id} telefono={telefonoLegible(sesion.user.phone) || sesion.user.email || ''} />
+      )}
+    </div>
   )
 }
 

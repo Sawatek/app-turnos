@@ -22,7 +22,7 @@ export function Resumen() {
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Cifra etiqueta="Activos" valor={r.negocios.activo} tono="exito" />
           <Cifra etiqueta="En prueba" valor={r.negocios.prueba} tono="aviso" />
-          <Cifra etiqueta="Suspendidos" valor={r.negocios.suspendido} tono={r.negocios.suspendido ? 'peligro' : undefined} />
+          <Cifra etiqueta="Bloqueados" valor={r.negocios.suspendido} tono={r.negocios.suspendido ? 'peligro' : undefined} />
           <Cifra etiqueta="Nuevos este mes" valor={r.negocios.nuevos} />
         </div>
       </Tarjeta>

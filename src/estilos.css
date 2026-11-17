@@ -28,6 +28,14 @@
   --color-wa: #25d366;
   --color-wa-fondo: #e7fbe9;
   --color-wa-tinta: #0b3d1f;
+  /* Conversación de WhatsApp de la landing (se ve como WhatsApp a propósito). */
+  --color-wa-chat: #efeae2;
+  --color-wa-burbuja: #d9fdd3;
+  --color-wa-texto: #111b21;
+  --color-wa-hora: #55646c;
+  --color-wa-tilde: #027eb5;
+  --color-wa-cabecera: #008069;
+  --color-wa-aviso: #fff3c2;
 
   --radius-chico: var(--p-radio-chico);
   --radius-medio: var(--p-radio-medio);
@@ -125,8 +133,13 @@
 @utility num { font-variant-numeric: tabular-nums; }
 @utility sombra-suave { box-shadow: 0 1px 2px hsl(var(--t-sombra) / 0.08), 0 8px 24px -12px hsl(var(--t-sombra) / 0.25); }
 @utility sombra-flotante { box-shadow: 0 2px 6px hsl(var(--t-sombra) / 0.12), 0 24px 48px -16px hsl(var(--t-sombra) / 0.45); }
-@utility pt-segura { padding-top: max(env(safe-area-inset-top), 12px); }
-@utility pb-segura { padding-bottom: max(env(safe-area-inset-bottom), 12px); }
+/* Safe areas del celular. --segura-arriba/--segura-abajo las fija un celular dibujado (la vitrina de la landing)
+   para simular la barra de estado y la barrita de inicio; en un celular de verdad no existen y manda env(). */
+@utility pt-segura { padding-top: max(var(--segura-arriba, env(safe-area-inset-top)), 12px); }
+@utility pb-segura { padding-bottom: max(var(--segura-abajo, env(safe-area-inset-bottom)), 12px); }
+/* Celular dibujado de la landing: sin backdrop-filter adentro (los fondos de la app ya son casi opacos y,
+   achicado con transform, el desenfoque se recalcula en cada cuadro del scroll). */
+[data-celular] * { backdrop-filter: none !important; }
 @utility sin-barra {
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
@@ -136,11 +149,12 @@
 ::view-transition-old(root),
 ::view-transition-new(root) { animation-duration: 220ms; animation-timing-function: var(--ease-suave); }
 
+/*
+  "Reducir movimiento", caso por caso (no se apaga todo de golpe: los cambios de color de botones y links siguen).
+  - Animaciones de motion (hojas, resortes, pestañas): MotionConfig reducedMotion="user" en main.tsx.
+  - Scroll programático: scrollSuave() de ui/movimiento.ts.
+  - Acá, lo que es CSS: la ruedita de carga sigue avisando que algo carga, pero gira lento.
+*/
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+  .animate-spin { animation-duration: 2.5s; }
 }

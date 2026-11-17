@@ -1,20 +1,23 @@
 // Página principal del producto: landing para dueños de negocios que viven de sus turnos.
 // Textos comerciales (nombre, slogan, contacto, precios) en ./marca.ts.
-import { MotionConfig, motion } from 'motion/react'
+import { motion } from 'motion/react'
 import {
   ArrowRight,
   BellRing,
   Brush,
   CalendarCheck,
+  ChartColumn,
   Check,
+  Clock,
   Gift,
   Hand,
   HeartPulse,
   LayoutDashboard,
+  ListChecks,
   MessageCircle,
   Palette,
   PenTool,
-  QrCode,
+  Repeat2,
   Scissors,
   Smartphone,
   Smile,
@@ -29,11 +32,15 @@ import { Link } from 'react-router'
 import { DEMOS_FIJAS } from '@/plantillas/demos'
 import { estiloTema } from '@/tema/TemaNegocio'
 import { cn } from '@/ui/cn'
+import { Logo } from '@/ui/Logo'
+import { Celular } from './Celular'
 import { CalculadoraFaltas } from './CalculadoraFaltas'
+import { ConversacionWhatsApp } from './ConversacionWhatsApp'
 import { CtaDemo, EnlaceBoton, Encabezado, Pie, SaltarAlContenido, useMarcaSitio } from './comunes'
 import { CONTACTO, DEMOS, MARCA, PLANES, linkContacto, precioPlan } from './marca'
-import { MockupCelular } from './MockupCelular'
+import { PantallaDeInicio } from './PantallaDeInicio'
 import { Preguntas, type Pregunta } from './Preguntas'
+import { VitrinaApp } from './VitrinaApp'
 
 const entrada = (retraso = 0) => ({
   initial: { opacity: 0, y: 14 },
@@ -62,10 +69,14 @@ function Seccion({ id, children, className }: { id: string; children: React.Reac
 
 function Hero() {
   return (
-    <section aria-labelledby="t-hero" className="relative overflow-hidden px-5 pt-10 pb-16 sm:pt-16 lg:pb-24">
+    <section aria-labelledby="t-hero" className="relative isolate overflow-hidden px-5 pt-10 pb-16 sm:pt-14 lg:pb-20">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(ellipse_at_top,color-mix(in_oklch,var(--t-acento)_18%,transparent),transparent_65%)]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(color-mix(in_oklch,var(--t-texto)_10%,transparent)_1px,transparent_1.5px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_70%_60%_at_70%_40%,black,transparent)]"
       />
       <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="text-center lg:text-left">
@@ -97,7 +108,7 @@ function Hero() {
           </motion.ul>
         </div>
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.15, ease: [0.2, 0, 0, 1] } }}>
-          <MockupCelular />
+          <VitrinaApp />
         </motion.div>
       </div>
     </section>
@@ -190,6 +201,105 @@ function ComoFunciona() {
   )
 }
 
+// ---------- WhatsApp ----------
+
+const MOMENTOS: { Icono: LucideIcon; cuando: string; texto: string }[] = [
+  { Icono: CalendarCheck, cuando: 'Al reservar', texto: 'Le llega la confirmación con el día, la hora, el profesional y la dirección.' },
+  { Icono: BellRing, cuando: '24 horas antes', texto: 'El recordatorio con dos botones: “Confirmo” y “Cambiar horario”.' },
+  { Icono: Clock, cuando: '2 horas antes', texto: 'El último aviso, con la dirección para llegar sin vueltas.' },
+  { Icono: Repeat2, cuando: 'Si no puede ir', texto: 'Cambia el horario desde el mismo mensaje y ese lugar se libera para otro.' },
+]
+
+function SeccionWhatsApp() {
+  return (
+    <Seccion id="whatsapp">
+      <div className="grid items-center gap-12 lg:grid-cols-[1fr_0.9fr] lg:gap-16">
+        <div>
+          <Titulo
+            id="t-whatsapp"
+            antetitulo="Recordatorios por WhatsApp"
+            titulo="Tu cliente toca “Confirmo” y listo"
+            bajada="Los mensajes salen solos, por el WhatsApp oficial y con el nombre de tu negocio. Vos no mandás nada ni ponés tu número."
+          />
+          <ol className="relative mt-10 flex flex-col gap-6 before:absolute before:top-2 before:bottom-2 before:left-[21px] before:w-px before:bg-linea">
+            {MOMENTOS.map(({ Icono, cuando, texto }) => (
+              <li key={cuando} className="relative flex gap-4">
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-fondo text-acento-texto ring-1 ring-acento-borde">
+                  <Icono className="size-5" aria-hidden />
+                </span>
+                <div className="pt-1">
+                  <h3 className="text-base">{cuando}</h3>
+                  <p className="text-suave">{texto}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <ConversacionWhatsApp className="mx-auto w-full max-w-md" />
+      </div>
+    </Seccion>
+  )
+}
+
+// ---------- Tu marca, instalable ----------
+
+const VENTAJAS_PWA = [
+  { Icono: Palette, texto: 'Tu logo, tu color y tu estilo en cada pantalla. Los colores se ajustan solos para que todo se lea bien.' },
+  { Icono: Smartphone, texto: 'Se instala desde el link o un QR, con tu ícono en el inicio. En iPhone y en Android, sin tiendas.' },
+  { Icono: BellRing, texto: 'Con la app instalada también reciben avisos, como cuando se libera un turno.' },
+]
+
+function SeccionTuMarca() {
+  return (
+    <Seccion id="tu-marca" className="overflow-hidden bg-superficie/50">
+      <div className="grid items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="order-last flex justify-center lg:order-first">
+          <Celular className="w-[min(74vw,300px)] lg:w-[320px] lg:-rotate-3">
+            <PantallaDeInicio negocios={DEMOS_FIJAS} />
+          </Celular>
+          <p className="sr-only">
+            La pantalla de inicio de un celular con las apps de {DEMOS_FIJAS.map((n) => n.nombre).join(', ')} instaladas, cada una con su logo y su color, y
+            un aviso de que se liberó un turno.
+          </p>
+        </div>
+        <div>
+          <Titulo
+            id="t-tu-marca"
+            antetitulo="Tu marca"
+            titulo="Tus clientes no ven otra marca: ven la tuya"
+            bajada="Cada negocio tiene su propia app, con su nombre y su link. Tus clientes la usan como cualquier otra app del celular."
+          />
+          <ul className="mt-8 flex flex-col gap-4">
+            {VENTAJAS_PWA.map(({ Icono, texto }) => (
+              <li key={texto} className="flex gap-4">
+                <span className="grid size-11 shrink-0 place-items-center rounded-medio bg-acento-suave text-acento-texto ring-1 ring-acento-borde">
+                  <Icono className="size-5" aria-hidden />
+                </span>
+                <p className="pt-2">{texto}</p>
+              </li>
+            ))}
+          </ul>
+          <ul className="mt-8 flex flex-wrap gap-2" aria-label="Demos de ejemplo">
+            {DEMOS_FIJAS.map((n) => (
+              <li key={n.slug}>
+                <Link
+                  to={`/${n.slug}`}
+                  style={estiloTema(n)}
+                  data-personalidad={n.personalidad}
+                  className="inline-flex h-11 items-center gap-2 rounded-full bg-fondo pr-4 pl-1.5 text-sm font-bold text-texto ring-1 ring-linea transition-transform hover:-translate-y-0.5"
+                >
+                  <Logo negocio={n} className="size-8 rounded-full text-[11px]" />
+                  {n.nombre}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </Seccion>
+  )
+}
+
 // ---------- Funciones ----------
 
 function Funcion({ Icono, titulo, children, className, extra }: { Icono: LucideIcon; titulo: string; children: React.ReactNode; className?: string; extra?: React.ReactNode }) {
@@ -213,32 +323,7 @@ function Funciones() {
         bajada="Sin planillas, sin cuaderno y sin contestar el mismo mensaje veinte veces por día."
       />
       <ul className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        <Funcion
-          Icono={Palette}
-          titulo="Tu app, con tu marca"
-          className="lg:col-span-2"
-          extra={
-            <div className="mt-5 flex flex-wrap gap-2" aria-hidden>
-              {DEMOS_FIJAS.map((n) => (
-                <span
-                  key={n.slug}
-                  style={estiloTema(n)}
-                  className="inline-flex h-9 items-center gap-2 rounded-full bg-fondo px-3 text-sm font-bold text-texto ring-1 ring-linea"
-                >
-                  <span className="size-3.5 rounded-full bg-acento" />
-                  {n.nombre}
-                </span>
-              ))}
-            </div>
-          }
-        >
-          Tu nombre, tu logo y tus colores. Tus clientes no ven otra marca: ven la tuya, en el celular y en el ícono cuando la instalan. Los colores se
-          ajustan solos para que todo se lea bien.
-        </Funcion>
-        <Funcion Icono={MessageCircle} titulo="Recordatorios por WhatsApp">
-          24 horas y 2 horas antes. Con un botón de “Confirmo” que confirma el turno en tu agenda, sin que hagas nada.
-        </Funcion>
-        <Funcion Icono={LayoutDashboard} titulo="Panel y agenda en vivo">
+        <Funcion Icono={LayoutDashboard} titulo="Panel y agenda en vivo" className="lg:col-span-2">
           Cada reserva aparece al instante. Marcás quién vino y quién no, cargás turnos a mano y bloqueás francos o feriados.
         </Funcion>
         <Funcion Icono={Users} titulo="Tu equipo, cada uno con lo suyo">
@@ -247,11 +332,13 @@ function Funciones() {
         <Funcion Icono={Gift} titulo="Clientes y fidelidad">
           Historial, notas privadas y tarjeta de sellos. Y una lista de quienes hace rato que no vienen, con el mensaje listo para mandar.
         </Funcion>
-        <Funcion Icono={QrCode} titulo="Instalable, sin tiendas" className="md:col-span-2 lg:col-span-1">
-          Tus clientes entran por un link o un QR y reservan sin descargar nada. Si quieren, la agregan al inicio del celular con tu ícono, en Android y en
-          iPhone.
+        <Funcion Icono={ListChecks} titulo="Lista de espera">
+          Si un horario está lleno, se anotan. Cuando alguien cancela, les avisa solo y el primero que lo toma, lo reserva.
         </Funcion>
-        <li className="flex flex-col justify-center gap-3 rounded-grande border border-dashed border-linea p-6 sm:flex-row sm:items-center sm:justify-start md:col-span-2 lg:col-span-2">
+        <Funcion Icono={ChartColumn} titulo="Reportes simples">
+          Turnos, faltas, cuántos confirman, facturación estimada y los días y horarios más pedidos. Para decidir con números, no a ojo.
+        </Funcion>
+        <li className="flex flex-col justify-center gap-3 rounded-grande border border-dashed border-linea p-6 sm:flex-row sm:items-center sm:justify-start md:col-span-2 lg:col-span-3">
           <Wallet className="size-7 shrink-0 text-suave" aria-hidden />
           <div>
             <h3 className="flex flex-wrap items-center gap-2 text-lg">
@@ -492,13 +579,15 @@ export default function InicioPublico() {
     else window.scrollTo(0, 0)
   }, [])
   return (
-    <MotionConfig reducedMotion="user">
+    <>
       <SaltarAlContenido />
       <Encabezado secciones />
       <main id="contenido" tabIndex={-1} className="outline-none">
         <Hero />
         <Problema />
         <ComoFunciona />
+        <SeccionWhatsApp />
+        <SeccionTuMarca />
         <Funciones />
         <Rubros />
         <Precios />
@@ -506,6 +595,6 @@ export default function InicioPublico() {
         <CtaFinal />
       </main>
       <Pie />
-    </MotionConfig>
+    </>
   )
 }
