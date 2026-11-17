@@ -110,10 +110,10 @@ test.describe('mensajes de un negocio bloqueado', () => {
   test.beforeEach(() => vaciarAgenda(m))
 
   test('esperan en la cola mientras está bloqueado y salen al desbloquear', async () => {
-    // Ficha con celular: sin teléfono no se encola ningún WhatsApp.
-    await ok(
-      servicio().from('clientes').insert({ negocio_id: m.negocioA.id, user_id: m.usuarios.cliente1.id, nombre: 'Ana Pérez', telefono: '11 1234-5678' }),
-    )
+    // Cuenta con celular verificado: sin teléfono no se encola ningún WhatsApp.
+    const cel = await servicio().auth.admin.updateUserById(m.usuarios.cliente1.id, { phone: '5491112345670' })
+    if (cel.error) throw cel.error
+    await ok(servicio().from('clientes').insert({ negocio_id: m.negocioA.id, user_id: m.usuarios.cliente1.id, nombre: 'Ana Pérez' }))
     const r = await m.usuarios.cliente1.db.rpc('reservar_turno', {
       p_negocio: m.negocioA.id,
       p_servicio: m.servicios.corteA,

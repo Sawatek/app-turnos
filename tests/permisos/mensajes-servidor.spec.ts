@@ -22,7 +22,7 @@ interface FilaMensaje {
 }
 
 const D = () => diaAR(3)
-const TEL1 = '5491112345678'
+const TEL1 = '5491112345679' // celular de la cuenta de cliente1 (distinto al de otros archivos: el celular es único)
 
 let m: Mundo
 let cli1: string
@@ -55,11 +55,14 @@ test.beforeAll(async () => {
     (await ok(
       servicio()
         .from('clientes')
-        .insert({ negocio_id: m.negocioA.id, user_id: m.usuarios.cliente1.id, nombre: 'Ana Pérez', telefono: '11 1234-5678' })
+        .insert({ negocio_id: m.negocioA.id, user_id: m.usuarios.cliente1.id, nombre: 'Ana Pérez', telefono: '11 1234-5679' })
         .select('id')
         .single(),
     )) as { id: string }
   ).id
+  // Los WhatsApp de una ficha con cuenta salen al celular verificado de la cuenta.
+  const { error } = await servicio().auth.admin.updateUserById(m.usuarios.cliente1.id, { phone: TEL1 })
+  if (error) throw error
 })
 test.afterAll(async () => {
   await limpiarMundo(m)
@@ -163,7 +166,7 @@ test.describe('confirmación y cambio desde WhatsApp', () => {
     expect(await ok(adm.rpc('confirmar_por_whatsapp', { p_turno: turno, p_telefono: '5491199999999' }))).toBe('telefono_no_coincide')
     expect((await leer<{ estado: string }>('turnos', turno, 'estado')).estado).toBe('pendiente')
 
-    expect(await ok(adm.rpc('confirmar_por_whatsapp', { p_turno: turno, p_telefono: '+54 9 11 1234-5678' }))).toBe('confirmado')
+    expect(await ok(adm.rpc('confirmar_por_whatsapp', { p_turno: turno, p_telefono: '+54 9 11 1234-5679' }))).toBe('confirmado')
     expect((await leer<{ estado: string }>('turnos', turno, 'estado')).estado).toBe('confirmado')
     const avisos = (await mensajesDe(turno)).filter((f) => f.tipo === 'aviso')
     expect(avisos).toHaveLength(1)

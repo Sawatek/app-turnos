@@ -19,7 +19,7 @@ Qué falta para que SawaTek Turnos deje de ser una demo de venta y la usen negoc
 | Login de clientes | ❌ Simulado (el código no se manda de verdad) |
 
 ### Pendientes inmediatos (antes de seguir)
-- [ ] Crear los usuarios de SawaTek en Supabase (*Authentication → Users*, con "Auto Confirm User") y cargarlos en `admins`.
+- [ ] Crear los usuarios de SawaTek en Supabase (*Authentication → Users*, con "Auto Confirm User") y cargar sus mails en `superadmins` (`insert into public.superadmins (email) values ('...');` en el SQL Editor). Hacerlo después de mergear a `main`, cuando la base ya tenga las migraciones.
 - [ ] Que el compañero acepte la invitación a la organización de Supabase y tenga acceso al repo.
 - [ ] Probar la demo completa en un **iPhone** y un **Android** reales (sobre todo "Agregar a inicio" en iPhone).
 - [ ] Revisar en Supabase → *Integrations → GitHub* que las migraciones se apliquen solas (*Working directory* `.`, *Deploy to production* activado).
