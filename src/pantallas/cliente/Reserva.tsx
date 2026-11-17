@@ -9,12 +9,13 @@ import { Boton } from '@/ui/Boton'
 import { Hoja } from '@/ui/Hoja'
 import { Etiqueta } from '@/ui/Insignia'
 import { cn } from '@/ui/cn'
+import { scrollSuave } from '@/ui/movimiento'
 import { iniciales } from '@/ui/Logo'
 import { profesionalDe, servicioDe, useCliente, type OpcionesReserva } from './contexto'
 import { Pase } from './Pase'
 
 const DIAS = 14
-const irSuave = (r: React.RefObject<HTMLElement | null>) => setTimeout(() => r.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
+const irSuave = (r: React.RefObject<HTMLElement | null>) => setTimeout(() => r.current?.scrollIntoView({ behavior: scrollSuave(), block: 'start' }), 60)
 
 interface Props {
   abierta: boolean

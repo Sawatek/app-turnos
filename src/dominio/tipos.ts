@@ -60,6 +60,8 @@ export interface Negocio {
   sena: number
   promosTitulo: string
   promos: Promo[]
+  /** Avisos del negocio para sus clientes (opcional; se muestran en la app real). */
+  avisos?: { titulo: string; detalle?: string }[]
   fidelidad: { meta: number; texto: string; premio: string }
   textos: {
     pregunta: string

@@ -6,19 +6,33 @@ Qué falta para que sea un producto real: [`HOJA-DE-RUTA.md`](HOJA-DE-RUTA.md).
 
 ## Levantarla
 
+Requisitos: **Node 24+** y **Docker Desktop** abierto (para la base local). `pnpm` se baja solo la versión que pide el proyecto.
+
 ```bash
-pnpm install
-pnpm dev        # http://localhost:5180
+pnpm install          # dependencias
+pnpm db:local         # Supabase local en Docker con todas las migraciones (la primera vez tarda: baja imágenes)
+pnpm local:semilla    # usuarios y un negocio real de prueba (se puede repetir)
+pnpm dev:local        # la app en http://localhost:5180, conectada a la base LOCAL
 ```
 
-`pnpm` se baja solo la versión 12.21 que pide el proyecto (`devEngines`). Necesita Node 24 o más (recomendado: Node 26 LTS).
+Usuarios de prueba (contraseña `sawatek-local-123`):
+
+| Rol | Usuario | Dónde |
+|---|---|---|
+| SawaTek | `admin@sawatek.local` | `/admin` |
+| Dueño | `dueno@sawatek.local` | `/barberia-de-prueba/panel` |
+| Profesional | `profesional@sawatek.local` | `/barberia-de-prueba/panel` |
+| Cliente | cualquier celular | `/barberia-de-prueba` → el código: `pnpm local:codigo` |
+
+Las demos (`/quetul`, `/lema`, `/nailed`) andan siempre, con o sin base.
 
 | Comando | Qué hace |
 |---|---|
-| `pnpm dev` | servidor de desarrollo |
-| `pnpm build` | chequeo de tipos + build de producción con PWA (`dist/`) |
-| `pnpm test` | tests de horarios, datos de ejemplo y contraste de colores |
+| `pnpm dev` | La app contra la base de `.env.local` (la **real**: todavía sin las tablas de las fases 1–4 hasta mergear) |
+| `pnpm dev:local` | La app contra la base local |
+| `pnpm build` | Chequeo de tipos + build de producción con PWA (`dist/`) |
 | `pnpm lint` | oxlint |
+| `pnpm exec supabase stop` | Apaga la base local (los datos quedan para la próxima) |
 
 ## Tests
 
@@ -26,6 +40,7 @@ pnpm dev        # http://localhost:5180
 |---|---|
 | `pnpm test` | Lógica pura: horarios, datos de ejemplo, contraste de colores, instalación (Vitest) |
 | `pnpm test:e2e` | Permisos de cada rol en la base y la app en el navegador (Playwright) |
+| `pnpm exec playwright test -c tests/funciones` | Edge Functions de mensajes (levanta `supabase functions serve` solo) |
 
 `pnpm test:e2e` corre contra una **copia local de Supabase** (Docker), nunca contra la base real:
 
@@ -52,6 +67,18 @@ Tablas: `negocios` (con `es_demo`, `estado`, reglas de reserva), `miembros`, `pr
 La clave secreta y el SQL Editor de Supabase no pasan por las protecciones de la app: son herramientas de SawaTek. Un mail en `superadmins` solo da permisos si la cuenta está confirmada.
 
 Funciones para la app del cliente: `horarios_libres` (cálculo en el servidor), `reservar_turno`, `confirmar_turno`, `cancelar_turno`.
+
+## Negocios reales (fases 2 a 4)
+
+Además de las demos, la app maneja **negocios reales**: con base de datos, panel para el dueño y su equipo, y clientes que entran con el celular.
+
+**Alta (SawaTek):**
+1. En `/admin` → *3. Publicación* → **Negocio real**, con el mail del dueño. La plantilla del rubro carga servicios, equipo y horarios (`crear_negocio_real`), y queda una invitación para ese mail.
+2. En `/admin` → **Cuentas** → *Crear cuenta*: crea la cuenta del dueño con contraseña (se muestra una sola vez para pasársela). No depende del mail.
+3. El dueño entra a `/<negocio>/panel`: la invitación se acepta sola y queda como dueño. Desde ahí ajusta servicios, precios, horarios e invita a su equipo.
+
+**Clientes:** entran a `/<negocio>` con su celular y un código. El código no lo manda un proveedor de SMS: lo deja un hook de Supabase en la cola `mensajes` y de ahí sale por WhatsApp (fase 4, ver [`docs/WHATSAPP.md`](docs/WHATSAPP.md)).
+En producción hay que activar: *Authentication → Sign In / Providers → Phone* y *Authentication → Hooks → Send SMS → Postgres* `public.hook_enviar_codigo`.
 
 ## Pantallas
 

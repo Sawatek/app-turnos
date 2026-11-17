@@ -62,7 +62,7 @@ export default function Escenario() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-linea bg-superficie px-4 py-3">
-        <Link to="/" className="grid size-10 place-items-center rounded-full hover:bg-superficie-2" aria-label="Volver a las demos">
+        <Link to="/demos" className="grid size-10 place-items-center rounded-full hover:bg-superficie-2" aria-label="Volver a las demos">
           <Home className="size-5" aria-hidden />
         </Link>
         <Logo negocio={n} className="size-9 text-xs" />

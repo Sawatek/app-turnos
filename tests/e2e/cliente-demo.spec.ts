@@ -1,6 +1,6 @@
 // App del cliente en la demo fija /quetul: ingreso, reserva con seña, oferta de instalar y cancelación.
 // Los turnos de la demo viven en el localStorage de cada contexto: cada test arranca limpio.
-import { estadoDemo, expect, ingresarCliente, reservarProximoLibre, test } from './ayudantes'
+import { CLAVE_DEMO, estadoDemo, expect, ingresarCliente, reservarProximoLibre, test } from './ayudantes'
 
 test.describe('Demo del cliente (/quetul)', () => {
   test('ingresa con el código que llega en la notificación de WhatsApp', async ({ page }) => {
@@ -88,10 +88,37 @@ test.describe('Demo del cliente (/quetul)', () => {
     estado = await estadoDemo(page)
     expect(estado!.negocios.quetul!.turnos.find((t) => t.id === propios[0]!.id)!.estado).toBe('cancelado')
   })
+
+  test('el aviso se cierra con la X, y si tiene el foco adentro no se cierra solo', async ({ page }) => {
+    await ingresarCliente(page, 'quetul')
+    // Un aviso común (de los que se cierran solos a los 6,5 s), cargado directo en el estado guardado de la demo.
+    await page.evaluate((clave) => {
+      const guardado = JSON.parse(localStorage.getItem(clave)!)
+      guardado.state.negocios.quetul.avisos.unshift({
+        id: 'aviso-prueba', tipo: 'promo', canal: 'whatsapp', texto: 'Esta semana, 2x1 en barba.', creado: new Date().toISOString(), visto: false,
+      })
+      localStorage.setItem(clave, JSON.stringify(guardado))
+    }, CLAVE_DEMO)
+    await page.reload()
+
+    const texto = page.getByText('Esta semana, 2x1 en barba.')
+    const cerrar = page.getByRole('button', { name: 'Cerrar aviso' })
+    await expect(texto).toBeVisible()
+    await cerrar.focus()
+    await page.waitForTimeout(8000)
+    await expect(texto).toBeVisible() // con el foco adentro, el cierre automático espera
+    await page.keyboard.press('Enter')
+    await expect(texto).toBeHidden()
+
+    // La campanita lo vuelve a mostrar y, sin foco adentro, se cierra solo.
+    await page.getByRole('button', { name: /^Avisos/ }).click()
+    await expect(texto).toBeVisible()
+    await expect(texto).toBeHidden({ timeout: 9000 })
+  })
 })
 
 test('una ruta inexistente muestra "No encontramos este negocio"', async ({ page }) => {
   await page.goto('/no-existe-xyz')
   await expect(page.getByRole('heading', { name: 'No encontramos este negocio' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Ver las demos' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Ir al inicio' })).toBeVisible()
 })

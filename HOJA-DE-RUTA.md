@@ -1,7 +1,7 @@
 # Hoja de ruta: de demo a producto
 
 Qué falta para que SawaTek Turnos deje de ser una demo de venta y la usen negocios reales todos los días.
-Última actualización: 17/11/2026.
+Última actualización: 18/11/2026.
 
 ---
 
@@ -25,6 +25,21 @@ Qué falta para que SawaTek Turnos deje de ser una demo de venta y la usen negoc
 - [ ] Revisar en Supabase → *Integrations → GitHub* que las migraciones se apliquen solas (*Working directory* `.`, *Deploy to production* activado).
 
 ---
+
+## Para probar mañana (estado al 17/11/2026, rama `dev`)
+
+**Error intermitente a revisar**
+- `tests/e2e/cliente-real/invitado.spec.ts` › "invitado con cuenta (ya tiene nombre): entra al confirmar y reserva sin que le pidan nada más" falló **1 vez** en la suite completa (263/264, el test tardó 13,2 s). Pasó solo (6/6) y en la corrida completa siguiente (264/264). No quedó el detalle del error. Sospechas: carga de la suite en paralelo (timeout) o el límite local de códigos de ingreso por hora/frecuencia (`[auth.sms] max_frequency`, ~30 códigos por hora). Para reproducir: `pnpm exec playwright test --repeat-each=5 tests/e2e/cliente-real/invitado.spec.ts` y la suite completa varias veces; si es el límite de códigos, que los tests reusen sesiones como hace el resto de `cliente-real`.
+
+**Estado de las pruebas:** 264 de Playwright (permisos, panel, app del cliente, consola, sitio público y demo) + 8 de Edge Functions + 50 de Vitest, contra una Supabase local armada de cero con las 13 migraciones.
+
+**Para probar a mano:** `pnpm db:local`, `pnpm local:semilla`, `pnpm dev:local` (ver README).
+
+**Pendientes que dejaron los agentes**
+- Sitio público (`src/pantallas/publico/marca.ts`): completar contacto (WhatsApp/mail), precios, nombre comercial, datos de la empresa (razón social, CUIT, domicilio, RNBD) y regenerar `public/compartir.jpg` si cambia el nombre. Los legales son **borradores para revisar con un abogado**.
+- WhatsApp: hay 7 plantillas para aprobar en Meta (incluye la nueva `turno_liberado` de la lista de espera). Ver `docs/WHATSAPP.md`.
+- Producción: desplegar también la función `admin-usuarios` (`supabase functions deploy admin-usuarios`), además de `enviar-mensajes` y `whatsapp-webhook`.
+- No se avisa al cliente cuando el dueño le mueve el turno (falta una plantilla).
 
 ## 2. Roles
 
@@ -58,29 +73,33 @@ Después de las fases 1 a 3 ya se puede probar con **un negocio amigo** (con rec
 
 **Listo cuando:** un dueño de prueba solo puede ver y tocar su negocio, y dos reservas simultáneas al mismo horario dejan solo una. ✅ Verificado por los tests.
 
-### Fase 2: Panel del dueño real (~2 semanas)
-- [ ] Configurar el negocio: servicios, precios, staff, horarios, francos, seña, política de cancelación (ej.: hasta 24 h antes).
-- [ ] Agenda real; cargar turnos a mano (teléfono / mostrador); bloquear horarios.
-- [ ] Clientes e historial; recordatorios enviados; métricas reales.
-- [ ] Invitar a sus profesionales.
+### Fase 2: Panel del dueño real ✅ hecha (rama `dev`)
+- [x] Ingreso del equipo con mail y contraseña; las invitaciones se aceptan solas al entrar. El profesional ve solo su agenda y sus bloqueos.
+- [x] Agenda en vivo por día y profesional, con resumen (turnos, confirmados, faltas del mes, facturación estimada); vino / no vino / confirmar / cancelar; carga manual de turnos con aviso si choca; bloqueos de horario.
+- [x] Clientes con historial y notas privadas; alta manual.
+- [x] Servicios, equipo (qué hace cada uno, invitaciones por mail), horarios semanales con franjas y francos, ajustes de reserva y contacto.
+- [x] SawaTek da de alta negocios reales desde `/admin` con la plantilla del rubro e invita al dueño.
 
-**Listo cuando:** un dueño configura su negocio de cero sin ayuda y maneja una semana de agenda.
+### Fase 3: Cliente real ✅ hecha (rama `dev`)
+- [x] **Ingreso con el celular y un código** (Supabase Auth por teléfono; el código va a la cola de mensajes y sale por WhatsApp). Decisión 1 resuelta: WhatsApp, sin depender de un proveedor de SMS.
+- [x] Reserva real (servicio → profesional → día con disponibilidad → hora), Mis turnos (confirmar, cancelar respetando el plazo, cambiar de horario), fidelidad real, perfil, instalación con la marca y notificaciones.
 
-### Fase 3: Cliente real (1–2 semanas)
-- [ ] Login real con el celular (ver decisión 1).
-- [ ] Reservar contra la base; ver, cancelar y reprogramar respetando las reglas del negocio.
-- [ ] Fidelidad real (sellos al marcar "vino").
+### Fase 4: WhatsApp y recordatorios ✅ código hecho (rama `dev`) · ⏳ falta activar con Meta
+- [x] Cola única de mensajes: confirmación al reservar, recordatorios de 24 h y 2 h, aviso de cancelación; se reprograman o cancelan solos.
+- [x] Despachador (Edge Function `enviar-mensajes`) cada minuto con pg_cron, reintentos y proveedor `consola` (desarrollo) o `whatsapp` (API oficial de Meta).
+- [x] Webhook (`whatsapp-webhook`) con firma verificada: el botón **"Confirmo"** confirma el turno solo; "Cambiar horario" manda el link.
+- [x] Notificaciones push (VAPID) para el recordatorio de 2 h.
+- [ ] **Trámite con Meta** y aprobación de las 6 plantillas: paso a paso en [`docs/WHATSAPP.md`](docs/WHATSAPP.md).
+- [ ] Mails con servicio propio (Resend) y dominio verificado: sigue pendiente.
 
-**Listo cuando:** un cliente real saca, cambia y cancela un turno, y el dueño lo ve al instante.
+**Para activar las fases 2 a 4 en producción** (además de mergear, que aplica las migraciones):
+1. Supabase → *Authentication → Sign In / Providers → Phone*: activado.
+2. Supabase → *Authentication → Hooks → Send SMS*: Postgres → `public.hook_enviar_codigo`.
+3. Desplegar las funciones (`supabase functions deploy enviar-mensajes whatsapp-webhook`) y cargar sus secretos (`supabase secrets set …`, lista en `docs/WHATSAPP.md`). Mientras Meta no apruebe: `MENSAJES_PROVEEDOR=consola`.
+4. Vault: `mensajes_url` y `mensajes_secreto` para el cron.
+5. Vercel: `VITE_VAPID_PUBLIC_KEY` para las push.
 
-### Fase 4: WhatsApp y recordatorios (~2 semanas + espera de Meta)
-- [ ] Verificar la empresa en Meta y aprobar las plantillas de mensajes (puede tardar días o semanas: **arrancar el trámite temprano**).
-- [ ] Recordatorios automáticos a las 24 h y 2 h desde el servidor (aunque nadie tenga la app abierta).
-- [ ] Botón **"Confirmo"** del WhatsApp que actualiza el turno solo.
-- [ ] Notificaciones push reales.
-- [ ] Mails con servicio propio (Resend) y dominio verificado (`@sawatek.com.ar`).
-
-**Listo cuando:** un turno sacado hoy para mañana recibe el recordatorio y se confirma desde WhatsApp sin intervención.
+**Tests:** 182 de Playwright (permisos de cada rol, reservas simultáneas, cola de mensajes, panel, app del cliente y demo) + 8 de las funciones del servidor + 50 de lógica. Todo contra una Supabase local.
 
 ### Fase 5: Señas con Mercado Pago (1–2 semanas)
 - [ ] Cada negocio conecta **su** cuenta de Mercado Pago (la plata le llega directo).
@@ -103,9 +122,9 @@ Después de las fases 1 a 3 ya se puede probar con **un negocio amigo** (con rec
 
 | # | Decisión | Opciones | Recomendación |
 |---|---|---|---|
-| 1 | **Cómo entra el cliente** | WhatsApp (costo por mensaje, requiere aprobación de Meta) · SMS (costo por mensaje) · Google o mail (gratis, más fricción) | Arrancar con uno barato y sumar WhatsApp en la fase 4 |
+| 1 | ~~**Cómo entra el cliente**~~ ✅ con el celular y un código por WhatsApp (fase 3) | WhatsApp (costo por mensaje, requiere aprobación de Meta) · SMS (costo por mensaje) · Google o mail (gratis, más fricción) | Arrancar con uno barato y sumar WhatsApp en la fase 4 |
 | 2 | **Desde qué número salen los WhatsApp** | Un número de SawaTek que manda en nombre de cada negocio · El número de cada negocio | Número de SawaTek para empezar |
-| 3 | **Rol de profesional desde el inicio** | Sí · Más adelante | Sí, en la fase 1 (sumarlo después obliga a rehacer permisos) |
+| 3 | ~~**Rol de profesional desde el inicio**~~ ✅ incluido | Sí · Más adelante | Sí, en la fase 1 (sumarlo después obliga a rehacer permisos) |
 | 4 | **Dirección de cada negocio** | `app.sawatek.com.ar/quetul` · `quetul.sawatek.com.ar` · dominio propio del negocio | Ruta (`/quetul`) ahora; subdominio con Vercel Pro |
 | 5 | **Precio y planes de SawaTek** | Mensual fijo · por profesional · por volumen de turnos | Definir antes de la fase 6 |
 

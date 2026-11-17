@@ -5,7 +5,11 @@
 //
 // Las claves de la copia local se leen de `supabase status` (son las de desarrollo, iguales en todas las compus).
 import { execSync } from 'node:child_process'
+import { writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { defineConfig, devices } from '@playwright/test'
+import { ENTORNO_FUNCIONES } from './tests/funciones/entorno'
 
 function supabaseLocal() {
   try {
@@ -22,6 +26,10 @@ process.env.SB_PUBLISHABLE_KEY = sb.PUBLISHABLE_KEY
 process.env.SB_SECRET_KEY = sb.SECRET_KEY
 
 const PUERTO = 5190
+
+// Edge Functions locales (mensajes, webhook de WhatsApp, cuentas de la consola) con secretos de mentira.
+const archivoEnv = join(tmpdir(), 'sawatek-funciones-test.env')
+writeFileSync(archivoEnv, Object.entries(ENTORNO_FUNCIONES).map(([k, v]) => `${k}=${v}`).join('\n') + '\n')
 
 export default defineConfig({
   testDir: 'tests',
@@ -41,11 +49,21 @@ export default defineConfig({
       use: { ...devices['Pixel 7'], baseURL: `http://localhost:${PUERTO}` },
     },
   ],
-  webServer: {
-    command: `pnpm exec vite --port ${PUERTO} --strictPort`,
-    url: `http://localhost:${PUERTO}`,
-    reuseExistingServer: !process.env.CI,
-    // VITE_* tiene prioridad sobre NEXT_PUBLIC_* de .env.local: la app de los tests usa la base local.
-    env: { VITE_SUPABASE_URL: sb.API_URL, VITE_SUPABASE_PUBLISHABLE_KEY: sb.PUBLISHABLE_KEY },
-  },
+  webServer: [
+    {
+      command: `pnpm exec vite --port ${PUERTO} --strictPort`,
+      url: `http://localhost:${PUERTO}`,
+      reuseExistingServer: !process.env.CI,
+      // VITE_* tiene prioridad sobre NEXT_PUBLIC_* de .env.local: la app de los tests usa la base local.
+      env: { VITE_SUPABASE_URL: sb.API_URL, VITE_SUPABASE_PUBLISHABLE_KEY: sb.PUBLISHABLE_KEY },
+    },
+    {
+      command: `pnpm exec supabase functions serve --no-verify-jwt --env-file ${archivoEnv}`,
+      // Sin parámetros responde 403: alcanza para saber que el edge runtime ya atiende.
+      url: `${sb.API_URL}/functions/v1/whatsapp-webhook`,
+      reuseExistingServer: true,
+      timeout: 240_000,
+      stdout: 'ignore',
+    },
+  ],
 })

@@ -65,7 +65,7 @@ export function OfertaInstalar({ n, variante = 'tarjeta', className }: Props) {
           </Boton>
         </motion.section>
       ) : (
-        <Boton tamano="chico" onClick={() => void accion()} className={className}>
+        <Boton tamano="medio" onClick={() => void accion()} className={className}>
           {textoBoton}
         </Boton>
       )}

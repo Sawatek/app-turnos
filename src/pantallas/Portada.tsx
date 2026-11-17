@@ -1,26 +1,30 @@
 import { motion } from 'motion/react'
-import { LayoutDashboard, MonitorSmartphone, Plus, Smartphone } from 'lucide-react'
+import { ArrowLeft, LayoutDashboard, MonitorSmartphone, Plus, Smartphone } from 'lucide-react'
 import { Link } from 'react-router'
 import { useTodosLosNegocios } from '@/datos/negocios'
 import { RUBROS } from '@/plantillas/rubros'
+import { MARCA } from '@/pantallas/publico/marca'
 import { useTemaNegocio, estiloTema } from '@/tema/TemaNegocio'
 import { Logo } from '@/ui/Logo'
 
-const SAWATEK = { nombre: 'SawaTek', color: '#e0b352', modo: 'oscuro', personalidad: 'moderna' } as const
-
-/** Portada interna para el vendedor: todas las demos a mano. */
+/** Lista de demos (/demos): para el vendedor en una reunión y para el que quiere ver cómo queda en su rubro. */
 export default function Portada() {
-  useTemaNegocio(SAWATEK, 'SawaTek · Demos de turnos')
+  useTemaNegocio(MARCA, `Demos · ${MARCA.nombre}`)
   const { lista: negocios } = useTodosLosNegocios()
 
   return (
     <main className="mx-auto min-h-dvh max-w-5xl px-5 pt-segura pb-16">
-      <header className="flex flex-wrap items-end justify-between gap-4 pt-8 pb-8">
+      <Link to="/" className="mt-4 -ml-2 inline-flex h-11 items-center gap-1.5 rounded-chico px-2 text-sm font-semibold text-suave transition-colors hover:text-texto">
+        <ArrowLeft className="size-4" aria-hidden />
+        Volver al inicio
+      </Link>
+      <header className="flex flex-wrap items-end justify-between gap-4 pt-4 pb-8">
         <div>
-          <p className="text-sm font-bold tracking-wide text-acento-texto uppercase">SawaTek · Turnos</p>
-          <h1 className="mt-1 text-4xl">Demos para mostrar</h1>
-          <p className="mt-2 max-w-lg text-suave">
-            Cada demo es la app de un negocio con su marca. Abrila en el celular del cliente, en el panel del dueño, o las dos juntas en modo escenario.
+          <p className="text-sm font-bold tracking-wide text-acento-texto uppercase">{MARCA.nombre}</p>
+          <h1 className="mt-1 text-4xl">Demos de apps de turnos</h1>
+          <p className="mt-2 max-w-xl text-suave">
+            Cada demo es la app de un negocio de ejemplo, con su marca. Mirala como la ve el cliente, entrá al panel del dueño, o abrí las dos juntas en modo escenario
+            (ideal en la compu). Los datos son de ejemplo: tocá lo que quieras.
           </p>
         </div>
         <Link to="/admin" className="inline-flex h-12 items-center gap-2 rounded-medio bg-acento px-5 font-bold text-sobre-acento">

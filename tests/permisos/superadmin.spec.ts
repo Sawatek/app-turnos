@@ -70,8 +70,8 @@ test.describe('superadmin', () => {
     try {
       expect(await ok(sa().from('negocios').select('id').eq('id', m.negocioB.id))).toHaveLength(1)
       esperarNada(await m.usuarios.duenoA.db.from('negocios').select('id').eq('id', m.negocioB.id))
-      // El dueño de B sí ve su negocio suspendido (es staff).
-      expect(await ok(m.usuarios.duenoB.db.from('negocios').select('id').eq('id', m.negocioB.id))).toHaveLength(1)
+      // Suspendido = bloqueado por falta de pago: ni su dueño lo ve (ver bloqueo.spec.ts).
+      esperarNada(await m.usuarios.duenoB.db.from('negocios').select('id').eq('id', m.negocioB.id))
     } finally {
       await ok(sa().from('negocios').update({ estado: 'activo' }).eq('id', m.negocioB.id))
     }
