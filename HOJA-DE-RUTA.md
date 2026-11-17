@@ -26,6 +26,21 @@ Qué falta para que SawaTek Turnos deje de ser una demo de venta y la usen negoc
 
 ---
 
+## Para probar mañana (estado al 17/11/2026, rama `dev`)
+
+**Error intermitente a revisar**
+- `tests/e2e/cliente-real/invitado.spec.ts` › "invitado con cuenta (ya tiene nombre): entra al confirmar y reserva sin que le pidan nada más" falló **1 vez** en la suite completa (263/264, el test tardó 13,2 s). Pasó solo (6/6) y en la corrida completa siguiente (264/264). No quedó el detalle del error. Sospechas: carga de la suite en paralelo (timeout) o el límite local de códigos de ingreso por hora/frecuencia (`[auth.sms] max_frequency`, ~30 códigos por hora). Para reproducir: `pnpm exec playwright test --repeat-each=5 tests/e2e/cliente-real/invitado.spec.ts` y la suite completa varias veces; si es el límite de códigos, que los tests reusen sesiones como hace el resto de `cliente-real`.
+
+**Estado de las pruebas:** 264 de Playwright (permisos, panel, app del cliente, consola, sitio público y demo) + 8 de Edge Functions + 50 de Vitest, contra una Supabase local armada de cero con las 13 migraciones.
+
+**Para probar a mano:** `pnpm db:local`, `pnpm local:semilla`, `pnpm dev:local` (ver README).
+
+**Pendientes que dejaron los agentes**
+- Sitio público (`src/pantallas/publico/marca.ts`): completar contacto (WhatsApp/mail), precios, nombre comercial, datos de la empresa (razón social, CUIT, domicilio, RNBD) y regenerar `public/compartir.jpg` si cambia el nombre. Los legales son **borradores para revisar con un abogado**.
+- WhatsApp: hay 7 plantillas para aprobar en Meta (incluye la nueva `turno_liberado` de la lista de espera). Ver `docs/WHATSAPP.md`.
+- Producción: desplegar también la función `admin-usuarios` (`supabase functions deploy admin-usuarios`), además de `enviar-mensajes` y `whatsapp-webhook`.
+- No se avisa al cliente cuando el dueño le mueve el turno (falta una plantilla).
+
 ## 2. Roles
 
 | Rol | Quién | Qué puede hacer |

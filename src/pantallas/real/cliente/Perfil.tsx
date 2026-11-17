@@ -3,9 +3,11 @@ import { useEffect, useRef, useState } from 'react'
 import { activarPush, pushSoportado, type ResultadoPush } from '@/datos/real/push'
 import { ErrorCliente, guardarNombre, salirCliente, useRefrescar } from '@/datos/real/cliente'
 import { OfertaInstalar } from '@/instalacion/OfertaInstalar'
+import { guardarMiNombre } from '@/datos/sesion'
 import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
 import { useReal } from './contexto'
+import { InvitacionIngreso } from './Ingreso'
 
 const permisoInicial = (): ResultadoPush | 'pendiente' => {
   if (!pushSoportado()) return 'no-soportado'
@@ -13,6 +15,32 @@ const permisoInicial = (): ResultadoPush | 'pendiente' => {
 }
 
 export function Perfil() {
+  const { n, uid } = useReal()
+  if (!uid) {
+    return (
+      <div className="flex flex-col gap-4">
+        <h1 className="pt-1 text-3xl">Perfil</h1>
+        <InvitacionIngreso
+          titulo={`Entrá a ${n.nombre}`}
+          texto="Para reservar más rápido, ver tus turnos, sumar sellos y recibir los recordatorios."
+        />
+        <section aria-label="Ajustes" className="flex items-center justify-between gap-3 rounded-grande bg-superficie p-4 ring-1 ring-linea">
+          <div className="flex items-center gap-3">
+            <Download className="size-5 shrink-0 text-acento-texto" aria-hidden />
+            <div>
+              <p className="font-semibold">Tener {n.nombre} como app</p>
+              <p className="text-sm text-suave">Un toque y la abrís desde tu inicio.</p>
+            </div>
+          </div>
+          <OfertaInstalar n={n} variante="fila" className="shrink-0" />
+        </section>
+      </div>
+    )
+  }
+  return <MiPerfil />
+}
+
+function MiPerfil() {
   const { n, negocioId, resumen, telefono, avisar } = useReal()
   const refrescar = useRefrescar(negocioId)
   const [editando, setEditando] = useState(false)
@@ -38,6 +66,7 @@ export function Perfil() {
     setGuardando(true)
     try {
       await guardarNombre(resumen.clienteId, nombre)
+      await guardarMiNombre(nombre).catch(() => undefined)
       await refrescar()
       setEditando(false)
       avisar('Listo: guardamos tu nombre.')

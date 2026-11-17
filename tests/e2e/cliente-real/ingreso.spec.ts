@@ -1,4 +1,5 @@
 // App del cliente REAL: ingreso con el celular y el código que deja el hook de Auth en `mensajes`.
+// Sin sesión se ve el negocio; el ingreso está en Perfil y Mis turnos (y en la reserva, al confirmar: ver invitado.spec.ts).
 import { limpiarMundo, prepararMundo, servicio, type Mundo } from '../../soporte/mundo'
 import { expect, test } from '../ayudantes'
 import { borrarCelular, ERROR_HTTP, nuevoTelefono, ultimoCodigo } from './ayuda'
@@ -22,9 +23,12 @@ test('entra con el código real que llega "por WhatsApp" (un código mal puesto 
   telefonos.push(tel.e164)
   await page.goto(`/${m.negocioA.slug}`)
 
-  // Bienvenida con la marca del negocio.
+  // Sin sesión ve el negocio con su marca (no le piden el celular de entrada).
   await expect(page.getByRole('heading', { level: 1, name: 'Negocio A' })).toBeVisible()
   await expect(page.getByText('Negocio de prueba')).toBeVisible()
+  await expect(page.getByLabel('Tu celular')).toHaveCount(0)
+  await page.getByRole('navigation', { name: 'Principal' }).getByRole('button', { name: 'Perfil' }).click()
+  await expect(page.getByRole('heading', { name: 'Entrá a Negocio A' })).toBeVisible()
 
   // Lo escribe con el 0 y el 15: igual se entiende.
   const campo = page.getByLabel('Tu celular')
@@ -43,15 +47,11 @@ test('entra con el código real que llega "por WhatsApp" (un código mal puesto 
   // Uno equivocado: error al lado del campo y sigue afuera.
   await input.fill(codigo === '000000' ? '111111' : '000000')
   await expect(page.getByText('El código no coincide o ya venció.', { exact: false })).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Principal' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Salir' })).toHaveCount(0)
 
-  // El bueno: adentro.
+  // El bueno: adentro, en el mismo Perfil.
   await input.fill(codigo)
-  await expect(page.getByRole('navigation', { name: 'Principal' })).toBeVisible()
-  await expect(page.getByRole('heading', { level: 1, name: '¡Hola!' })).toBeVisible()
-
-  // Perfil: muestra su celular y puede salir.
-  await page.getByRole('navigation', { name: 'Principal' }).getByRole('button', { name: 'Perfil' }).click()
+  await expect(page.getByRole('button', { name: 'Salir' })).toBeVisible()
   await expect(page.getByText(tel.nacional)).toBeVisible()
   await expect(page.getByText('Tu nombre te lo pedimos cuando saques tu primer turno.')).toBeVisible()
   await page.getByRole('button', { name: 'Salir' }).click()
@@ -64,6 +64,8 @@ test('entra con el código real que llega "por WhatsApp" (un código mal puesto 
 
 test('un número mal escrito muestra el error al lado del campo y no manda nada', async ({ page }) => {
   await page.goto(`/${m.negocioA.slug}`)
+  await page.getByRole('navigation', { name: 'Principal' }).getByRole('button', { name: 'Mis turnos' }).click()
+  await expect(page.getByRole('heading', { name: 'Entrá para ver tus turnos' })).toBeVisible()
   const campo = page.getByLabel('Tu celular')
   const boton = page.getByRole('button', { name: 'Recibir código por WhatsApp' })
 

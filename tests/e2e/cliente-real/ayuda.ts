@@ -80,3 +80,37 @@ export function botonDia(dia: string) {
 
 /** Los 400 que devuelve la base cuando una función rechaza algo (la app los muestra bien). */
 export const ERROR_HTTP = /Failed to load resource: the server responded with a status of 4\d\d/
+
+/** Ficha de cliente en un negocio para un usuario (como si ya hubiera reservado antes). Devuelve su id. */
+export async function fichaEn(negocioId: string, userId: string, nombre: string, telefono?: string) {
+  const { data, error } = await servicio()
+    .from('clientes')
+    .insert({ negocio_id: negocioId, user_id: userId, nombre, telefono: telefono ?? null })
+    .select('id')
+    .single()
+  if (error) throw error
+  return data.id as string
+}
+
+/** Turno cargado directo en la base (para preparar casos: en el pasado, ya asistido, etc.). */
+export async function turnoDirecto(t: {
+  negocioId: string
+  clienteId: string
+  profesionalId: string
+  servicioId: string
+  inicio: string
+  minutos?: number
+  estado?: string
+}) {
+  const fin = new Date(Date.parse(t.inicio) + (t.minutos ?? 30) * 60_000).toISOString()
+  const { data, error } = await servicio()
+    .from('turnos')
+    .insert({
+      negocio_id: t.negocioId, cliente_id: t.clienteId, profesional_id: t.profesionalId, servicio_id: t.servicioId,
+      inicio: t.inicio, fin, estado: t.estado ?? 'pendiente',
+    })
+    .select('id')
+    .single()
+  if (error) throw error
+  return data.id as string
+}

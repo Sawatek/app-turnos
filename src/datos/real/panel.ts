@@ -2,7 +2,7 @@
 // Todo pasa por la base: los permisos los hacen cumplir las reglas RLS y las funciones panel_*.
 // Las consultas usan react-query; las claves empiezan con ['panel', negocioId, ...] para refrescar por negocio.
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { enHora, sumarDias } from '@/dominio/tiempo'
 import type { EstadoTurno } from '@/dominio/tipos'
 import { supabase } from '../supabase'
@@ -60,6 +60,8 @@ export interface Resumen {
 export interface Miembro {
   userId: string
   email: string
+  /** Nombre de la cuenta (o el de su ficha de profesional). */
+  nombre: string | null
   rol: RolPanel
   profesionalId: string | null
   profesional: string | null
@@ -90,6 +92,15 @@ const MENSAJES: Record<string, string> = {
   solo_superadmin: 'El link, el estado y si es demo solo los cambia SawaTek.',
   solo_estado: 'Solo podés cambiar el estado de tus turnos.',
   carga_invalida: 'Un profesional carga turnos sin seña, pendientes o confirmados.',
+  usuario_no_es_miembro: 'Esa persona todavía no es parte del equipo. Primero invitala.',
+  recuperar_reciente: 'A este cliente ya le mandaste el mensaje en los últimos 30 días.',
+  sin_telefono: 'Este cliente no tiene un celular cargado.',
+  negocio_demo: 'En una demo no se mandan mensajes de verdad.',
+  rango_invalido: 'Revisá las fechas: "hasta" tiene que ser después de "desde" y el período, de un año como máximo.',
+  profesional_no_encontrado: 'Esa ficha de profesional ya no existe.',
+  profesional_con_usuario: 'Esa ficha ya es la agenda de otra persona del equipo.',
+  profesional_invitado: 'Esa ficha tiene una invitación pendiente. Cancelala primero en "Con acceso al panel".',
+  config_muy_grande: 'La configuración quedó muy pesada. Probá con un logo más liviano.',
 }
 
 /** Traduce un error de la base a un mensaje entendible. */
@@ -106,20 +117,20 @@ export function mensajeDe(e: unknown): string {
   return msg || 'Algo salió mal. Probá de nuevo.'
 }
 
-function db() {
+export function db() {
   if (!supabase) throw new ErrorPanel('La app no está conectada a la base.')
   return supabase
 }
 
 /** Corre una operación y tira ErrorPanel si falla. */
-async function ok<T>(p: PromiseLike<{ data: T; error: ErrorDb | null }>): Promise<NonNullable<T>> {
+export async function ok<T>(p: PromiseLike<{ data: T; error: ErrorDb | null }>): Promise<NonNullable<T>> {
   const { data, error } = await p
   if (error) throw new ErrorPanel(mensajeDe(error))
   return data as NonNullable<T>
 }
 
 /** Igual que ok, pero el resultado puede ser null (maybeSingle, funciones que devuelven null). */
-async function okNulo<T>(p: PromiseLike<{ data: T; error: ErrorDb | null }>): Promise<T | null> {
+export async function okNulo<T>(p: PromiseLike<{ data: T; error: ErrorDb | null }>): Promise<T | null> {
   const { data, error } = await p
   if (error) throw new ErrorPanel(mensajeDe(error))
   return data ?? null
@@ -249,9 +260,9 @@ export async function borrarBloqueo(id: string) {
 
 // ---------- Turnos ----------
 
-const SELECT_TURNO = 'id, inicio, fin, estado, sena, origen, notas, cliente_id, servicio_id, profesional_id, clientes(nombre, telefono), servicios(nombre, precio), profesionales(nombre)'
+export const SELECT_TURNO = 'id, inicio, fin, estado, sena, origen, notas, cliente_id, servicio_id, profesional_id, clientes(nombre, telefono), servicios(nombre, precio), profesionales(nombre)'
 
-interface FilaTurno {
+export interface FilaTurno {
   id: string
   inicio: string
   fin: string
@@ -267,7 +278,7 @@ interface FilaTurno {
   profesionales: { nombre: string } | null
 }
 
-const aTurno = (f: FilaTurno): TurnoPanel => ({
+export const aTurno = (f: FilaTurno): TurnoPanel => ({
   id: f.id,
   inicio: f.inicio,
   fin: f.fin,
@@ -428,6 +439,7 @@ export function useMiembros(negocioId: string) {
       return filas.map((f) => ({
         userId: f.user_id,
         email: f.email,
+        nombre: f.nombre ?? null,
         rol: f.rol as RolPanel,
         profesionalId: f.profesional_id ?? null,
         profesional: f.profesional ?? null,
@@ -470,7 +482,6 @@ export interface Ajustes {
   intervalo_min: number
   anticipacion_min: number
   cancelacion_horas: number
-  claim: string
   direccion: string
   whatsapp: string
 }
@@ -479,7 +490,7 @@ export interface Ajustes {
 export async function guardarAjustes(negocioId: string, a: Ajustes) {
   const s = db()
   const actual = await ok(s.from('negocios').select('config').eq('id', negocioId).single())
-  const config = { ...(actual.config as Record<string, Json>), claim: a.claim.trim(), direccion: a.direccion.trim(), whatsapp: a.whatsapp.trim() }
+  const config = { ...(actual.config as Record<string, Json>), direccion: a.direccion.trim(), whatsapp: a.whatsapp.trim() }
   const filas = await ok(
     s
       .from('negocios')
@@ -492,23 +503,43 @@ export async function guardarAjustes(negocioId: string, a: Ajustes) {
 
 // ---------- En vivo ----------
 
-/** Escucha los cambios de turnos del negocio y refresca la agenda y el resumen. */
-export function useTurnosEnVivo(negocioId: string) {
+/**
+ * Escucha los cambios de turnos del negocio y refresca la agenda y el resumen.
+ * `onNuevo`: se llama con cada turno que ENTRA mientras el panel está abierto, salvo los que cargó
+ * el propio usuario (`userId`) o los que ya pasaron.
+ */
+export function useTurnosEnVivo(negocioId: string, userId?: string, onNuevo?: (t: TurnoPanel) => void) {
   const qc = useQueryClient()
+  const aviso = useRef(onNuevo)
+  useEffect(() => {
+    aviso.current = onNuevo
+  })
   useEffect(() => {
     const s = supabase
     if (!s) return
     // Nombre único por montaje: en modo estricto React monta dos veces y no hay que reusar un canal cerrado.
     const canal = s
       .channel(`panel-turnos-${negocioId}-${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'turnos', filter: `negocio_id=eq.${negocioId}` }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'turnos', filter: `negocio_id=eq.${negocioId}` }, (cambio) => {
         void qc.invalidateQueries({ queryKey: ['panel', negocioId, 'turnos'] })
+        if (cambio.eventType !== 'INSERT' || !aviso.current) return
+        const nuevo = cambio.new as { id?: string; creado_por?: string | null; estado?: string; inicio?: string }
+        if (!nuevo.id || (userId && nuevo.creado_por === userId) || nuevo.estado === 'cancelado') return
+        if (nuevo.inicio && Date.parse(nuevo.inicio) < Date.now()) return
+        void s
+          .from('turnos')
+          .select(SELECT_TURNO)
+          .eq('id', nuevo.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data) aviso.current?.(aTurno(data as unknown as FilaTurno))
+          })
       })
       .subscribe()
     return () => {
       void s.removeChannel(canal)
     }
-  }, [negocioId, qc])
+  }, [negocioId, userId, qc])
 }
 
 /** Refresca todo lo de un negocio que empiece con la clave dada. */

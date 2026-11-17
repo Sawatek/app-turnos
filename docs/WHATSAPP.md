@@ -85,6 +85,11 @@ Sin botones. Ejemplos: Ana · Corte · jueves 19/11 · 10:30 · Barbería Don Ju
 
 Ejemplos: Ana · Barbería Don Juan.
 
+### `turno_liberado` — Utilidad (lista de espera)
+> Hola {{1}}, se liberó un turno de {{2}} el {{3}} a las {{4}} en {{5}}. Si lo querés, reservalo desde la app antes de que lo tome otra persona.
+
+Botón de URL dinámica `Reservar` → `https://<tu-dominio>/{{1}}` (el parámetro es el link del negocio, ej. `barberia-don-juan`). Ejemplos: Ana · Corte · jueves 19/11 · 10:30 · Barbería Don Juan. Variable: `WHATSAPP_PLANTILLA_LISTA_ESPERA` (por defecto `turno_liberado`).
+
 > Los botones mandan, sin que el cliente lo vea, `CONFIRMAR:<id del turno>` o `CAMBIAR:<id del turno>`. Al tocar uno, el cliente abre la ventana de 24 h: por eso la respuesta ("¡Gracias!", o el link para cambiar el horario) sale como texto libre (`aviso`), sin plantilla.
 
 ## 3. Variables de entorno de las funciones

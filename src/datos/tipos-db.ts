@@ -92,14 +92,14 @@ isOneToOne: false
                   ]
                 },"invitaciones": {
                   Row: {
-                    "aceptada": string | null,"creado": string,"creado_por": string | null,"email": string,"id": string,"negocio_id": string,"profesional_id": string | null,"rol": string
+                    "aceptada": string | null,"creado": string,"creado_por": string | null,"email": string,"id": string,"negocio_id": string,"nombre": string | null,"profesional_id": string | null,"rol": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "aceptada"?: string | null,"creado"?: string,"creado_por"?: string | null,"email": string,"id"?: string,"negocio_id": string,"profesional_id"?: string | null,"rol": string
+                    "aceptada"?: string | null,"creado"?: string,"creado_por"?: string | null,"email": string,"id"?: string,"negocio_id": string,"nombre"?: string | null,"profesional_id"?: string | null,"rol": string
                   }
                   Update: {
-                    "aceptada"?: string | null,"creado"?: string,"creado_por"?: string | null,"email"?: string,"id"?: string,"negocio_id"?: string,"profesional_id"?: string | null,"rol"?: string
+                    "aceptada"?: string | null,"creado"?: string,"creado_por"?: string | null,"email"?: string,"id"?: string,"negocio_id"?: string,"nombre"?: string | null,"profesional_id"?: string | null,"rol"?: string
                   }
                   Relationships: [
                     {
@@ -113,6 +113,44 @@ isOneToOne: false
       columns: ["negocio_id","profesional_id"]
 isOneToOne: false
       referencedRelation: "profesionales"
+      referencedColumns: ["negocio_id","id"]
+    }
+                  ]
+                },"lista_espera": {
+                  Row: {
+                    "avisado": string | null,"cliente_id": string,"creado": string,"dia": string,"id": string,"negocio_id": string,"profesional_id": string | null,"servicio_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "avisado"?: string | null,"cliente_id": string,"creado"?: string,"dia": string,"id"?: string,"negocio_id": string,"profesional_id"?: string | null,"servicio_id": string
+                  }
+                  Update: {
+                    "avisado"?: string | null,"cliente_id"?: string,"creado"?: string,"dia"?: string,"id"?: string,"negocio_id"?: string,"profesional_id"?: string | null,"servicio_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "lista_espera_negocio_id_cliente_id_fkey"
+      columns: ["negocio_id","cliente_id"]
+isOneToOne: false
+      referencedRelation: "clientes"
+      referencedColumns: ["negocio_id","id"]
+    },{
+      foreignKeyName: "lista_espera_negocio_id_fkey"
+      columns: ["negocio_id"]
+isOneToOne: false
+      referencedRelation: "negocios"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "lista_espera_negocio_id_profesional_id_fkey"
+      columns: ["negocio_id","profesional_id"]
+isOneToOne: false
+      referencedRelation: "profesionales"
+      referencedColumns: ["negocio_id","id"]
+    },{
+      foreignKeyName: "lista_espera_negocio_id_servicio_id_fkey"
+      columns: ["negocio_id","servicio_id"]
+isOneToOne: false
+      referencedRelation: "servicios"
       referencedColumns: ["negocio_id","id"]
     }
                   ]
@@ -170,17 +208,37 @@ isOneToOne: false
                   ]
                 },"negocios": {
                   Row: {
-                    "actualizado": string,"anticipacion_min": number,"cancelacion_horas": number,"config": NonNullable<Json>,"creado": string,"creado_por": string | null,"es_demo": boolean,"estado": string,"id": string,"intervalo_min": number,"slug": string,"zona_horaria": string
+                    "actualizado": string,"anticipacion_min": number,"cancelacion_horas": number,"config": NonNullable<Json>,"creado": string,"creado_por": string | null,"es_demo": boolean,"estado": string,"id": string,"intervalo_min": number,"plan": string | null,"slug": string,"zona_horaria": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "actualizado"?: string,"anticipacion_min"?: number,"cancelacion_horas"?: number,"config": NonNullable<Json>,"creado"?: string,"creado_por"?: string | null,"es_demo"?: boolean,"estado"?: string,"id"?: string,"intervalo_min"?: number,"slug": string,"zona_horaria"?: string
+                    "actualizado"?: string,"anticipacion_min"?: number,"cancelacion_horas"?: number,"config": NonNullable<Json>,"creado"?: string,"creado_por"?: string | null,"es_demo"?: boolean,"estado"?: string,"id"?: string,"intervalo_min"?: number,"plan"?: string | null,"slug": string,"zona_horaria"?: string
                   }
                   Update: {
-                    "actualizado"?: string,"anticipacion_min"?: number,"cancelacion_horas"?: number,"config"?: NonNullable<Json>,"creado"?: string,"creado_por"?: string | null,"es_demo"?: boolean,"estado"?: string,"id"?: string,"intervalo_min"?: number,"slug"?: string,"zona_horaria"?: string
+                    "actualizado"?: string,"anticipacion_min"?: number,"cancelacion_horas"?: number,"config"?: NonNullable<Json>,"creado"?: string,"creado_por"?: string | null,"es_demo"?: boolean,"estado"?: string,"id"?: string,"intervalo_min"?: number,"plan"?: string | null,"slug"?: string,"zona_horaria"?: string
                   }
                   Relationships: [
                     
+                  ]
+                },"negocios_internos": {
+                  Row: {
+                    "actualizado": string,"actualizado_por": string | null,"negocio_id": string,"notas_internas": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actualizado"?: string,"actualizado_por"?: string | null,"negocio_id": string,"notas_internas"?: string
+                  }
+                  Update: {
+                    "actualizado"?: string,"actualizado_por"?: string | null,"negocio_id"?: string,"notas_internas"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "negocios_internos_negocio_id_fkey"
+      columns: ["negocio_id"]
+isOneToOne: true
+      referencedRelation: "negocios"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"notas_clientes": {
                   Row: {
@@ -268,6 +326,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"resenas": {
+                  Row: {
+                    "cliente_id": string,"comentario": string | null,"creado": string,"id": string,"negocio_id": string,"puntaje": number,"turno_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cliente_id": string,"comentario"?: string | null,"creado"?: string,"id"?: string,"negocio_id": string,"puntaje": number,"turno_id": string
+                  }
+                  Update: {
+                    "cliente_id"?: string,"comentario"?: string | null,"creado"?: string,"id"?: string,"negocio_id"?: string,"puntaje"?: number,"turno_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "resenas_cliente_id_fkey"
+      columns: ["cliente_id"]
+isOneToOne: false
+      referencedRelation: "clientes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "resenas_negocio_id_fkey"
+      columns: ["negocio_id"]
+isOneToOne: false
+      referencedRelation: "negocios"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "resenas_turno_id_fkey"
+      columns: ["turno_id"]
+isOneToOne: true
+      referencedRelation: "turnos"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"servicios": {
                   Row: {
                     "activo": boolean,"detalle": string | null,"etiqueta": string | null,"id": string,"minutos": number,"negocio_id": string,"nombre": string,"orden": number,"precio": number
@@ -349,6 +439,41 @@ isOneToOne: false
             "aceptar_invitaciones":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"admin_actualizar_negocio":
+{ Args: { "p_cambios": Json,"p_negocio": string }; Returns: undefined
+                           },
+"admin_cuentas":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "confirmada": boolean,"creado": string,"email": string,"es_superadmin": boolean,"negocios": Json,"nombre": string,"ultimo_ingreso": string,"user_id": string
+            }[]
+                           },
+"admin_mensajes":
+{ Args: { "p_antes"?: string,"p_estado"?: string,"p_limite"?: number,"p_negocio"?: string,"p_tipo"?: string }; Returns: {
+              "canal": string,"creado": string,"destino": string,"enviado": string,"error": string,"estado": string,"id": string,"intentos": number,"negocio": string,"negocio_id": string,"programado": string,"texto": string,"tipo": string
+            }[]
+                           },
+"admin_negocio":
+{ Args: { "p_negocio": string }; Returns: Json
+                           },
+"admin_negocios":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "actualizado": string,"clientes": number,"color": string,"creado": string,"duenos": Json,"equipo": number,"estado": string,"id": string,"invitaciones_pendientes": number,"nombre": string,"plan": string,"slug": string,"turnos_mes": number
+            }[]
+                           },
+"admin_resumen":
+{ Args: { "p_mes"?: string }; Returns: Json
+                           },
+"admin_sumar_miembro":
+{ Args: { "p_negocio": string,"p_profesional"?: string,"p_rol": string,"p_user": string }; Returns: undefined
+                           },
+"anotarme_lista_espera":
+{ Args: { "p_dia": string,"p_negocio": string,"p_nombre"?: string,"p_profesional"?: string,"p_servicio": string }; Returns: string
+                           },
+"calificacion_negocio":
+{ Args: { "p_negocio": string }; Returns: {
+              "cantidad": number,"promedio": number
+            }[]
+                           },
 "cancelar_turno":
 { Args: { "p_turno": string }; Returns: undefined
                            },
@@ -362,7 +487,7 @@ isOneToOne: false
 { Args: { "p_tipo": string,"p_turno": string }; Returns: Json
                            },
 "crear_negocio_real":
-{ Args: { "p_config": Json,"p_email_dueno": string,"p_slug": string }; Returns: string
+{ Args: { "p_config": Json,"p_email_dueno": string,"p_nombre_dueno"?: string,"p_slug": string }; Returns: string
                            },
 "datos_turno":
 { Args: { "p_turno": string }; Returns: Json
@@ -396,6 +521,9 @@ isOneToOne: false
 "es_usuario_app":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"estado_mensaje":
+{ Args: { "p_entregado": string,"p_estado": string,"p_leido": string }; Returns: string
+                           },
 "guardar_push":
 { Args: { "p_auth": string,"p_endpoint": string,"p_negocio": string,"p_p256dh": string }; Returns: string
                            },
@@ -420,8 +548,19 @@ isOneToOne: false
               "es_demo": boolean,"estado": string,"id": string,"nombre": string,"rol": string,"slug": string
             }[]
                            },
+"mis_turnos_global":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "cancelacion_horas": number,"estado": string,"fin": string,"id": string,"inicio": string,"negocio": string,"negocio_id": string,"profesional": string,"puntaje": number,"servicio": string,"slug": string
+            }[]
+                           },
+"nombre_de_usuario":
+{ Args: { "p_user": string }; Returns: string
+                           },
 "normalizar_telefono":
 { Args: { "p": string }; Returns: string
+                           },
+"panel_atiendo_yo":
+{ Args: { "p_negocio": string,"p_profesional"?: string }; Returns: string
                            },
 "panel_guardar_horarios":
 { Args: { "p_franjas": Json,"p_profesional": string }; Returns: undefined
@@ -431,11 +570,22 @@ isOneToOne: false
                            },
 "panel_miembros":
 { Args: { "p_negocio": string }; Returns: {
-              "creado": string,"email": string,"profesional": string,"profesional_id": string,"rol": string,"user_id": string
+              "creado": string,"email": string,"nombre": string,"profesional": string,"profesional_id": string,"rol": string,"user_id": string
+            }[]
+                           },
+"panel_para_recuperar":
+{ Args: { "p_dias"?: number,"p_negocio": string }; Returns: {
+              "cliente_id": string,"con_celular": boolean,"nombre": string,"recuperar_enviado": string,"recuperar_estado": string,"telefono": string,"ultima_visita": string,"ultimo_servicio": string,"visitas": number
             }[]
                            },
 "panel_quitar_miembro":
 { Args: { "p_negocio": string,"p_user": string }; Returns: undefined
+                           },
+"panel_recuperar_cliente":
+{ Args: { "p_cliente": string }; Returns: string
+                           },
+"panel_reporte":
+{ Args: { "p_desde": string,"p_hasta": string,"p_negocio": string,"p_profesional"?: string }; Returns: Json
                            },
 "panel_resumen":
 { Args: { "p_dia": string,"p_negocio": string,"p_profesional"?: string }; Returns: {
@@ -450,6 +600,9 @@ isOneToOne: false
                            },
 "programar_recordatorios":
 { Args: { "p_turno": string }; Returns: undefined
+                           },
+"puede_calificar":
+{ Args: { "p_cliente": string,"p_negocio": string,"p_turno": string }; Returns: boolean
                            },
 "registrar_envio":
 { Args: { "p_error"?: string,"p_id": string,"p_proveedor_id"?: string,"p_resultado": string }; Returns: undefined

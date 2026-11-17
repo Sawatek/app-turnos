@@ -1,4 +1,4 @@
-// /admin contra la Supabase LOCAL: ingreso, alta de una demo por un superadmin, permisos y borrado.
+// /admin/demos contra la Supabase LOCAL: ingreso, alta de una demo por un superadmin, permisos y borrado.
 // Corre en serie: el borrado usa la demo que crea el test anterior.
 import type { Page } from '@playwright/test'
 import { CLAVE, crearUsuario, servicio, type Usuario } from '../soporte/mundo'
@@ -29,8 +29,8 @@ test.afterAll(async () => {
 })
 
 async function entrar(page: Page, email: string, contrasena: string) {
-  await page.goto('/admin')
-  await expect(page.getByRole('heading', { name: 'Crear demos' })).toBeVisible()
+  await page.goto('/admin/demos')
+  await expect(page.getByRole('heading', { name: 'Consola de SawaTek' })).toBeVisible()
   await page.getByLabel('Tu mail').fill(email)
   await page.getByLabel('Contraseña').fill(contrasena)
   await page.getByRole('button', { name: 'Entrar' }).click()
@@ -84,16 +84,18 @@ test('un superadmin crea una demo, queda en la nube y abre en otro dispositivo s
   }
 })
 
-test('un usuario logueado que NO es superadmin no puede crear demos', async ({ page, errores }) => {
-  // La base rechaza el alta (403 por RLS): el navegador lo loguea, la app muestra el mensaje.
-  errores.permitir(/status of 403/)
+test('un usuario logueado que NO es superadmin no entra a la consola ni puede crear demos', async ({ page }) => {
   await entrar(page, comun.email, CLAVE)
-  await expect(page.getByRole('heading', { name: 'Nueva demo' })).toBeVisible()
-  await page.getByLabel('Nombre', { exact: true }).fill(nombreSinPermiso)
-  await page.getByRole('button', { name: 'Crear demo' }).click()
-  await expect(page.getByText('Tu cuenta no tiene permiso para crear demos.')).toBeVisible()
-  await expect(page.getByText('¡Demo lista!')).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Esta cuenta no es de SawaTek' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Nueva demo' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Crear demo' })).toHaveCount(0)
+  // Aunque se saltee la pantalla, la base rechaza el alta (RLS).
+  const r = await comun.db.from('negocios').insert({ slug: slugSinPermiso, config: { slug: slugSinPermiso, nombre: nombreSinPermiso }, es_demo: true })
+  expect(r.error).not.toBeNull()
   expect(await filaDemo(slugSinPermiso)).toBeNull()
+  // Y puede salir.
+  await page.getByRole('button', { name: 'Salir' }).click()
+  await expect(page.getByRole('heading', { name: 'Consola de SawaTek' })).toBeVisible()
 })
 
 test('el superadmin borra la demo desde "Demos creadas" y desaparece de la base', async ({ page }) => {

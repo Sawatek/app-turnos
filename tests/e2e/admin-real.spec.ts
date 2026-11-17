@@ -1,4 +1,4 @@
-// /admin: SawaTek da de alta un negocio REAL (no demo) con la plantilla del rubro e invita al dueño.
+// /admin/nuevo: SawaTek da de alta un negocio REAL (no demo) con la plantilla del rubro e invita al dueño.
 import { CLAVE, crearUsuario, servicio, type Usuario } from '../soporte/mundo'
 import { expect, test } from './ayudantes'
 
@@ -25,25 +25,25 @@ test.afterAll(async () => {
 })
 
 test('SawaTek crea un negocio real: queda con servicios, equipo, horarios e invitación al dueño', async ({ page }) => {
-  await page.goto('/admin')
+  await page.goto('/admin/nuevo')
   await page.getByLabel('Tu mail').fill(superadmin.email)
   await page.getByLabel('Contraseña').fill(CLAVE)
   await page.getByRole('button', { name: 'Entrar' }).click()
-  await expect(page.getByRole('heading', { name: 'Nueva demo' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Nuevo negocio real' })).toBeVisible()
 
   await page.getByLabel('Nombre', { exact: true }).fill(nombre)
   await page.getByRole('button', { name: 'Peluquería / estética', exact: true }).click()
-  await page.getByRole('button', { name: /Negocio real/ }).click()
   await page.getByLabel('Mail del dueño').fill(mailDueno)
   await expect(page.getByLabel('Dirección del negocio')).toHaveValue(slug)
   await page.getByRole('button', { name: 'Crear negocio real' }).click()
 
   await expect(page.getByText('¡Negocio creado!')).toBeVisible()
   await expect(page.getByText(mailDueno)).toBeVisible()
-  // Aparece en la lista de negocios reales, con acceso al panel.
+  // Aparece en la lista de negocios reales (sección Negocios), con acceso al panel.
+  await page.getByRole('navigation', { name: 'Secciones de la consola' }).getByRole('link', { name: 'Negocios' }).click()
   const lista = page.getByRole('region', { name: 'Negocios reales' })
   await expect(lista.getByText(nombre)).toBeVisible()
-  await expect(lista.getByRole('link', { name: 'Panel' })).toHaveAttribute('href', `/${slug}/panel`)
+  await expect(lista.getByRole('listitem').filter({ hasText: nombre }).getByRole('link', { name: 'Panel' })).toHaveAttribute('href', `/${slug}/panel`)
 
   const adm = servicio()
   const neg = (await adm.from('negocios').select('id, es_demo').eq('slug', slug).single()).data!

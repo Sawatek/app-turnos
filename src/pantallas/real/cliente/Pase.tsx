@@ -5,6 +5,7 @@ import type { Negocio } from '@/dominio/tipos'
 import { InsigniaEstado } from '@/ui/Insignia'
 import { Logo } from '@/ui/Logo'
 import { cn } from '@/ui/cn'
+import { agregarAlCalendario } from './calendario'
 
 export function faltaPara(inicio: string, ahora: Date) {
   const min = Math.round((Date.parse(inicio) - ahora.getTime()) / 60_000)
@@ -14,24 +15,6 @@ export function faltaPara(inicio: string, ahora: Date) {
   if (h < 24) return `Faltan ${h} h ${min % 60 ? `${min % 60} min` : ''}`.trim()
   const d = Math.round(h / 24)
   return `Faltan ${d} ${d === 1 ? 'día' : 'días'}`
-}
-
-const f = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-
-/** Descarga el turno como evento de calendario (.ics), con alarma 2 horas antes. */
-function alCalendario(n: Negocio, t: TurnoReal) {
-  const ics = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SawaTek//Turnos//ES', 'BEGIN:VEVENT',
-    `UID:${t.id}@sawatek`, `DTSTAMP:${f(new Date())}`, `DTSTART:${f(new Date(t.inicio))}`, `DTEND:${f(new Date(t.fin))}`,
-    `SUMMARY:${t.servicio} en ${n.nombre}`, ...(n.direccion ? [`LOCATION:${n.direccion}`] : []),
-    'BEGIN:VALARM', 'TRIGGER:-PT2H', 'ACTION:DISPLAY', `DESCRIPTION:${t.servicio} en ${n.nombre}`, 'END:VALARM',
-    'END:VEVENT', 'END:VCALENDAR',
-  ].join('\r\n')
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }))
-  a.download = `turno-${n.slug}.ics`
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
 }
 
 interface Props {
@@ -115,11 +98,13 @@ export function Pase({ n, t, ahora, acciones, compacto, nota, className }: Props
             {futuro && activo && !compacto && (
               <button
                 type="button"
-                onClick={() => alCalendario(n, t)}
+                onClick={() =>
+                  agregarAlCalendario({ id: t.id, inicio: t.inicio, fin: t.fin, titulo: `${t.servicio} en ${n.nombre}`, lugar: n.direccion, archivo: `turno-${n.slug}` })
+                }
                 className="inline-flex h-11 items-center gap-1.5 rounded-medio px-3 text-sm font-semibold text-acento-texto hover:bg-acento-suave"
               >
                 <CalendarPlus className="size-4" aria-hidden />
-                Al calendario
+                Agregar al calendario
               </button>
             )}
           </div>

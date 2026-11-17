@@ -100,9 +100,9 @@ export async function guardarNegocio(n: Negocio) {
  * Alta de un negocio REAL (solo SawaTek): crea negocio, servicios, equipo y horarios desde la plantilla
  * del rubro (que viaja en la configuración) e invita al dueño por mail. Todo o nada, en la base.
  */
-export async function crearNegocioReal(n: Negocio, emailDueno: string): Promise<string> {
+export async function crearNegocioReal(n: Negocio, emailDueno: string, nombreDueno?: string): Promise<string> {
   if (!supabase) throw new Error('Para crear negocios reales hace falta Supabase configurado.')
-  const { data, error } = await supabase.rpc('crear_negocio_real', { p_slug: n.slug, p_config: comoJson(n), p_email_dueno: emailDueno })
+  const { data, error } = await supabase.rpc('crear_negocio_real', { p_slug: n.slug, p_config: comoJson(n), p_email_dueno: emailDueno, p_nombre_dueno: nombreDueno?.trim() || undefined })
   if (error) {
     if (error.message.includes('solo_superadmin')) throw new SinPermiso('Solo SawaTek puede crear negocios reales.')
     if (error.message.includes('mail_invalido')) throw new Error('Revisá el mail del dueño.')
@@ -132,8 +132,15 @@ export async function borrarNegocio(slug: string) {
   useNegocios.getState().borrarLocal(slug)
 }
 
-/** ¿Está libre este link? Revisa las demos fijas, las del navegador y las de la nube. */
+/** Links que usa la plataforma: ningún negocio puede llamarse así. */
+export const SLUGS_RESERVADOS = new Set([
+  'admin', 'demos', 'terminos', 'privacidad', 'mis-turnos', 'm', 'assets', 'api', 'panel', 'login', 'ingresar',
+  'precios', 'ayuda', 'contacto', 'sawatek', 'app', 'www', 'icono', 'manifest', 'sw', 'workbox',
+])
+
+/** ¿Está libre este link? Revisa las reservadas, las demos fijas, las del navegador y las de la nube. */
 export async function slugLibre(slug: string, ignorar?: string) {
+  if (SLUGS_RESERVADOS.has(slug)) return false
   if (slug === ignorar) return true
   if (fija(slug) || useNegocios.getState().propios.some((p) => p.slug === slug)) return false
   return supabase ? (await traer(slug)) === null : true

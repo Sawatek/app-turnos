@@ -1,8 +1,9 @@
 // Agenda del día: resumen, selector de día, filtro por profesional, turnos y bloqueos.
 // Se actualiza sola cuando cambia un turno (useTurnosEnVivo en PanelReal).
 import { motion } from 'motion/react'
-import { CalendarPlus, Check, ChevronLeft, ChevronRight, Lock, UserX, X } from 'lucide-react'
+import { CalendarPlus, ChartColumn, Check, ChevronLeft, ChevronRight, Lock, UserX, X } from 'lucide-react'
 import { useState } from 'react'
+import { Link, useSearchParams } from 'react-router'
 import {
   cambiarEstadoTurno,
   rangoDia,
@@ -23,6 +24,7 @@ import { iniciales } from '@/ui/Logo'
 import { cn } from '@/ui/cn'
 import { FilaBloqueo, HojaBloqueo } from './Bloqueos'
 import { BotonConfirmar, Cargando, ErrorEnLinea, FalloCarga, Vacio, useAccion, usePanel } from './comunes'
+import { HistorialMensajes } from './Mensajes'
 import { HojaTurnoManual } from './TurnoManual'
 
 export function Agenda() {
@@ -33,9 +35,13 @@ export function Agenda() {
 }
 
 function AgendaDia() {
-  const { negocioId, esDueno, acceso } = usePanel()
+  const { n, negocioId, esDueno, acceso } = usePanel()
   const [hoy] = useState(() => claveDia(new Date()))
-  const [dia, setDia] = useState(hoy)
+  // El día va en el link (?dia=AAAA-MM-DD): así el aviso de turno nuevo puede abrir la agenda en ese día.
+  const [params, setParams] = useSearchParams()
+  const pedido = params.get('dia')
+  const dia = pedido && /^\d{4}-\d{2}-\d{2}$/.test(pedido) ? pedido : hoy
+  const setDia = (d: string) => setParams(d === hoy ? {} : { dia: d }, { replace: true })
   const [filtro, setFiltro] = useState<string | null>(null)
   const [hoja, setHoja] = useState<'turno' | 'bloqueo' | null>(null)
   const [elegido, setElegido] = useState<string | null>(null)
@@ -81,6 +87,7 @@ function AgendaDia() {
               )}
             >
               {p.nombre}
+              {p.id && p.id === acceso.profesionalId && ' (vos)'}
             </button>
           ))}
         </fieldset>
@@ -95,6 +102,15 @@ function AgendaDia() {
           <Lock className="size-4" aria-hidden />
           Bloquear
         </Boton>
+        {!esDueno && (
+          <Link
+            to={`/${n.slug}/panel/reportes`}
+            className="col-span-2 inline-flex h-12 items-center justify-center gap-2 rounded-medio px-5 text-[15px] font-semibold text-acento-texto hover:bg-acento-suave sm:col-span-1"
+          >
+            <ChartColumn className="size-4" aria-hidden />
+            Mis números
+          </Link>
+        )}
       </div>
 
       {agenda.isPending ? (
@@ -327,6 +343,7 @@ function DetalleTurno({ t, onListo }: { t: TurnoPanel; onListo: () => void }) {
       )}
       {activo && <BotonConfirmar ancho texto="Cancelar turno" confirmar="Sí, cancelar" cargando={accion.ocupado && hecho === 'cancelado'} onConfirmar={() => cambiar('cancelado')} />}
       <ErrorEnLinea texto={accion.error} />
+      <HistorialMensajes turnoId={t.id} />
     </div>
   )
 }

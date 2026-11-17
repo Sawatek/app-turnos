@@ -1,8 +1,9 @@
 import { motion } from 'motion/react'
-import { ArrowRight, Check, Gift, Info, MapPin, MessageCircle, Repeat2, Zap } from 'lucide-react'
-import { useProximoLibre, vigente } from '@/datos/real/cliente'
+import { ArrowRight, Check, Gift, Info, MapPin, MessageCircle, Repeat2, Star, Zap } from 'lucide-react'
+import { useCalificacion, useProximoLibre, vigente } from '@/datos/real/cliente'
 import { capitalizar, diaRelativo, horaCorta, precio } from '@/dominio/tiempo'
 import { Etiqueta } from '@/ui/Insignia'
+import { Logo } from '@/ui/Logo'
 import { cn } from '@/ui/cn'
 import { linkMapa, linkWhatsApp, useReal } from './contexto'
 import { Pase } from './Pase'
@@ -21,9 +22,25 @@ function avisosDe(config: unknown): { titulo: string; detalle?: string }[] {
     .filter((a): a is { titulo: string; detalle?: string } => typeof a.titulo === 'string' && a.titulo.trim() !== '')
 }
 
+/** Mínimo de calificaciones para mostrar el promedio (con menos, un solo voto pesa demasiado). */
+const MINIMO_CALIFICACIONES = 3
+
+function Estrellas({ negocioId }: { negocioId: string }) {
+  const c = useCalificacion(negocioId).data
+  if (!c?.promedio || c.cantidad < MINIMO_CALIFICACIONES) return null
+  const promedio = c.promedio.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  return (
+    <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold" aria-label={`Calificación: ${promedio} de 5, con ${c.cantidad} opiniones`}>
+      <Star className="size-4 fill-current text-acento-texto" aria-hidden />
+      <span className="num">{promedio}</span>
+      <span className="font-normal text-suave">· {c.cantidad} opiniones</span>
+    </p>
+  )
+}
+
 export function Inicio() {
-  const { n, negocioId, tomaTurnos, catalogo, resumen, turnos, ahora, abrirReserva, irA } = useReal()
-  const nombre = resumen.nombre?.trim().split(' ')[0]
+  const { n, negocioId, tomaTurnos, catalogo, resumen, turnos, ahora, abrirReserva, irA, nombreCuenta, uid, cargandoCuenta } = useReal()
+  const nombre = (resumen.nombre ?? nombreCuenta)?.trim().split(' ')[0]
 
   const proximo = turnos.filter((t) => vigente(t, ahora.getTime())).toSorted((a, b) => Date.parse(a.inicio) - Date.parse(b.inicio))[0]
   const ultimo = turnos.find((t) => t.estado !== 'cancelado') // vienen del más nuevo al más viejo
@@ -48,10 +65,27 @@ export function Inicio() {
 
   return (
     <div className="flex flex-col gap-4">
-      <motion.header {...entrada(0)} className="pt-1">
-        <p className="text-sm font-semibold text-suave">{saludo}{nombre ? ',' : ''}</p>
-        <h1 className="text-3xl">{nombre ?? '¡Hola!'}</h1>
-      </motion.header>
+      {!uid ? (
+        // Sin sesión: la vidriera del negocio.
+        <motion.header {...entrada(0)} className="flex flex-col items-center pt-3 pb-1 text-center">
+          <Logo negocio={n} className="size-20 text-3xl sombra-suave" />
+          <h1 className="mt-4 text-3xl">{n.nombre}</h1>
+          {n.bajada && <p className="mt-1 text-sm font-semibold text-acento-texto">{n.bajada}</p>}
+          {n.claim && <p className="mt-2 max-w-xs text-[15px] text-suave">{n.claim}</p>}
+          <Estrellas negocioId={negocioId} />
+        </motion.header>
+      ) : cargandoCuenta ? (
+        <header className="flex flex-col gap-2 pt-1" aria-busy="true" aria-label="Cargando tu cuenta">
+          <div className="h-4 w-24 animate-pulse rounded-chico bg-superficie-2" />
+          <div className="h-8 w-40 animate-pulse rounded-chico bg-superficie-2" />
+        </header>
+      ) : (
+        <motion.header {...entrada(0)} className="pt-1">
+          <p className="text-sm font-semibold text-suave">{saludo}{nombre ? ',' : ''}</p>
+          <h1 className="text-3xl">{nombre ?? '¡Hola!'}</h1>
+          <Estrellas negocioId={negocioId} />
+        </motion.header>
+      )}
 
       {!tomaTurnos && (
         <motion.p {...entrada(1)} className="flex items-start gap-2 rounded-grande bg-aviso/15 p-4 text-sm font-semibold text-aviso">
@@ -154,7 +188,7 @@ export function Inicio() {
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        {meta > 0 && (
+        {meta > 0 && uid && (
           <motion.section {...entrada(4)} aria-labelledby="t-fid" className="col-span-2 rounded-grande bg-superficie p-4 ring-1 ring-linea">
             <div className="flex items-baseline justify-between gap-2">
               <h2 id="t-fid" className="titulo text-base">Tu tarjeta</h2>

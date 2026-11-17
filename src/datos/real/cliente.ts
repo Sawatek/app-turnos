@@ -1,5 +1,6 @@
 // Datos de la app del cliente para un negocio REAL (fase 3).
 // Todo pasa por las reglas de la base (RLS + funciones): acá solo se piden datos y se traducen los errores.
+import type { User } from '@supabase/supabase-js'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useEffectEvent } from 'react'
 import { supabase } from '../supabase'
@@ -90,6 +91,9 @@ const CODIGOS = [
   'turno_no_cancelable',
   'turno_no_confirmable',
   'fuera_de_plazo',
+  'profesional_no_disponible',
+  'dia_invalido',
+  'demasiadas_esperas',
 ] as const
 
 const TEXTOS: Record<string, string> = {
@@ -103,6 +107,9 @@ const TEXTOS: Record<string, string> = {
   turno_no_cancelable: 'Ese turno ya no se puede cancelar.',
   turno_no_confirmable: 'Ese turno ya no se puede confirmar.',
   fuera_de_plazo: 'Ya no se puede cancelar desde la app.',
+  profesional_no_disponible: 'Esa persona ya no hace este servicio. Elegí otra o "Cualquiera".',
+  dia_invalido: 'Elegí un día de hoy en adelante (hasta 2 meses).',
+  demasiadas_esperas: 'Ya estás anotado en 5 listas de espera, que es el máximo. Borrá alguna para anotarte en otra.',
 }
 
 /** Traduce el error de Supabase a uno con código y texto claro. */
@@ -126,10 +133,11 @@ export async function pedirCodigo(e164: string) {
   throw new ErrorCliente('codigo', 'No pudimos mandarte el código. Revisá el número y probá de nuevo.')
 }
 
-/** Verifica el código. Si está bien, Supabase guarda la sesión y la app pasa sola al inicio. */
-export async function verificarCodigo(e164: string, codigo: string) {
-  const { error } = await db().auth.verifyOtp({ phone: e164, token: codigo, type: 'sms' })
-  if (!error) return
+/** Verifica el código. Si está bien, Supabase guarda la sesión (la app se entera sola) y devuelve el usuario. */
+export async function verificarCodigo(e164: string, codigo: string): Promise<User> {
+  const { data, error } = await db().auth.verifyOtp({ phone: e164, token: codigo, type: 'sms' })
+  if (!error && data.user) return data.user
+  if (!error) throw new ErrorCliente('codigo', 'El código no coincide o ya venció. Fijate el último mensaje, o pedí uno nuevo.')
   if (error.status === 429) throw new ErrorCliente('espera', 'Demasiados intentos. Esperá un minuto y probá de nuevo.')
   throw new ErrorCliente('codigo', 'El código no coincide o ya venció. Fijate el último mensaje, o pedí uno nuevo.')
 }
@@ -171,28 +179,37 @@ export function useCatalogo(negocio: string) {
 export const profesionalesPara = (c: Catalogo, servicioId: string) =>
   c.profesionales.filter((p) => !c.hace.has(p.id) || c.hace.get(p.id)!.has(servicioId))
 
-export function useResumen(negocio: string, uid: string) {
+/** Lo que se sabe de alguien que todavía no entró (o mientras carga su ficha). */
+export const RESUMEN_INVITADO: Resumen = { clienteId: null, nombre: null, telefono: null, sellos: 0, activos: 0, cancelacionHoras: 2 }
+
+/** La ficha del usuario logueado en el negocio (si nunca reservó, clienteId viene en null). */
+export async function traerResumen(negocio: string): Promise<Resumen> {
+  const { data, error } = await db().rpc('mi_resumen', { p_negocio: negocio })
+  if (error) throw traducir(error)
+  const f = data?.[0]
+  return {
+    clienteId: f?.cliente_id ?? null,
+    nombre: f?.nombre ?? null,
+    telefono: f?.telefono ?? null,
+    sellos: f?.sellos ?? 0,
+    activos: f?.activos ?? 0,
+    cancelacionHoras: f?.cancelacion_horas ?? 2,
+  }
+}
+
+/** uid null = sin sesión: no se pide nada. */
+export function useResumen(negocio: string, uid: string | null) {
   return useQuery({
-    queryKey: clave.resumen(negocio, uid),
-    queryFn: async (): Promise<Resumen> => {
-      const { data, error } = await db().rpc('mi_resumen', { p_negocio: negocio })
-      if (error) throw traducir(error)
-      const f = data?.[0]
-      return {
-        clienteId: f?.cliente_id ?? null,
-        nombre: f?.nombre ?? null,
-        telefono: f?.telefono ?? null,
-        sellos: f?.sellos ?? 0,
-        activos: f?.activos ?? 0,
-        cancelacionHoras: f?.cancelacion_horas ?? 2,
-      }
-    },
+    queryKey: clave.resumen(negocio, uid ?? ''),
+    enabled: !!uid,
+    queryFn: () => traerResumen(negocio),
   })
 }
 
-export function useMisTurnos(negocio: string, uid: string) {
+export function useMisTurnos(negocio: string, uid: string | null) {
   return useQuery({
-    queryKey: clave.turnos(negocio, uid),
+    queryKey: clave.turnos(negocio, uid ?? ''),
+    enabled: !!uid,
     queryFn: async (): Promise<TurnoReal[]> => {
       // RLS: el cliente solo ve sus turnos.
       const { data, error } = await db()
@@ -217,7 +234,7 @@ export function useMisTurnos(negocio: string, uid: string) {
   })
 }
 
-export const vigente = (t: TurnoReal, ahora = Date.now()) => (t.estado === 'pendiente' || t.estado === 'confirmado') && Date.parse(t.fin) > ahora
+export const vigente = (t: Pick<TurnoReal, 'estado' | 'fin'>, ahora = Date.now()) => (t.estado === 'pendiente' || t.estado === 'confirmado') && Date.parse(t.fin) > ahora
 
 /** Disponibilidad de los próximos días (cuántos horarios libres tiene cada uno). */
 export function useDisponibilidad(negocio: string, servicioId: string | undefined, profesionalId: string | null | undefined, dias = 14) {
@@ -357,4 +374,111 @@ export function useTurnosEnVivo(negocio: string, clienteId: string | null, alCam
       void supabase?.removeChannel(canal)
     }
   }, [negocio, clienteId, qc])
+}
+
+// ---------- Calificaciones ----------
+
+export interface Calificacion {
+  promedio: number | null
+  cantidad: number
+}
+
+/** Promedio y cantidad de calificaciones del negocio (público). */
+export function useCalificacion(negocio: string) {
+  return useQuery({
+    queryKey: ['cliente-real', negocio, 'calificacion'],
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<Calificacion> => {
+      const { data, error } = await db().rpc('calificacion_negocio', { p_negocio: negocio })
+      if (error) throw traducir(error)
+      const f = data?.[0]
+      return { promedio: f?.promedio ?? null, cantidad: f?.cantidad ?? 0 }
+    },
+  })
+}
+
+/** Mis calificaciones en el negocio: turno → puntaje (RLS: solo las propias). */
+export function useMisResenas(negocio: string, uid: string | null) {
+  return useQuery({
+    queryKey: ['cliente-real', negocio, 'resenas', uid ?? ''],
+    enabled: !!uid,
+    queryFn: async (): Promise<Map<string, number>> => {
+      const { data, error } = await db().from('resenas').select('turno_id, puntaje').eq('negocio_id', negocio)
+      if (error) throw traducir(error)
+      return new Map((data ?? []).map((r) => [r.turno_id, r.puntaje]))
+    },
+  })
+}
+
+/** Califica un turno al que vino (una sola vez por turno: lo hace cumplir la base). */
+export async function calificarTurno(negocio: string, clienteId: string, turnoId: string, puntaje: number, comentario: string) {
+  const texto = comentario.trim()
+  if (texto.length > 500) throw new ErrorCliente('comentario_largo', 'El comentario es muy largo (hasta 500 letras).')
+  const { error } = await db()
+    .from('resenas')
+    .insert({ negocio_id: negocio, cliente_id: clienteId, turno_id: turnoId, puntaje, comentario: texto || null })
+  if (!error) return
+  if (error.code === '23505') throw new ErrorCliente('ya_calificado', 'Ya calificaste este turno. ¡Gracias!')
+  if (error.code === '42501') throw new ErrorCliente('no_calificable', 'Este turno todavía no se puede calificar.')
+  throw traducir(error)
+}
+
+// ---------- Lista de espera ----------
+
+export interface Espera {
+  id: string
+  dia: string
+  servicioId: string
+  servicio: string
+  profesionalId: string | null
+  profesional: string | null
+  avisado: string | null
+}
+
+/** Mis anotaciones de hoy en adelante (RLS: solo las propias). */
+export function useMisEsperas(negocio: string, uid: string | null, hoy: string) {
+  return useQuery({
+    queryKey: ['cliente-real', negocio, 'esperas', uid ?? '', hoy],
+    enabled: !!uid,
+    queryFn: async (): Promise<Espera[]> => {
+      const { data, error } = await db()
+        .from('lista_espera')
+        .select('id, dia, servicio_id, profesional_id, avisado, servicios(nombre), profesionales(nombre)')
+        .eq('negocio_id', negocio)
+        .gte('dia', hoy)
+        .order('dia')
+      if (error) throw traducir(error)
+      return (data ?? []).map((e) => ({
+        id: e.id,
+        dia: e.dia,
+        servicioId: e.servicio_id,
+        servicio: (e.servicios as { nombre: string } | null)?.nombre ?? 'Turno',
+        profesionalId: e.profesional_id,
+        profesional: (e.profesionales as { nombre: string } | null)?.nombre ?? null,
+        avisado: e.avisado,
+      }))
+    },
+  })
+}
+
+/** Se anota para que le avisen si se libera un horario ese día (si ya estaba anotado, no pasa nada). */
+export async function anotarmeEnEspera(
+  negocio: string,
+  d: { servicioId: string; dia: string; profesionalId: string | null; nombre?: string },
+): Promise<string> {
+  const { data, error } = await db().rpc('anotarme_lista_espera', {
+    p_negocio: negocio,
+    p_servicio: d.servicioId,
+    p_dia: d.dia,
+    ...(d.profesionalId ? { p_profesional: d.profesionalId } : {}),
+    ...(d.nombre ? { p_nombre: d.nombre } : {}),
+  })
+  if (error) throw traducir(error)
+  return data
+}
+
+export async function borrarEspera(id: string) {
+  const { data, error } = await db().from('lista_espera').delete().eq('id', id).select('id')
+  if (error) throw traducir(error)
+  if (!data?.length) throw new ErrorCliente('espera_no_encontrada', 'Esa anotación ya no estaba.')
 }

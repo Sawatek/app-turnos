@@ -29,7 +29,10 @@
     "db:local": "supabase start -x storage-api,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor,postgres-meta",
     "db:reset": "supabase db reset",
     "test:e2e": "playwright test",
-    "db:tipos": "supabase gen types typescript --local > src/datos/tipos-db.ts"
+    "db:tipos": "supabase gen types typescript --local > src/datos/tipos-db.ts",
+    "dev:local": "node scripts/local.mjs dev",
+    "local:semilla": "node scripts/local.mjs semilla",
+    "local:codigo": "node scripts/local.mjs codigo"
   },
   "dependencies": {
     "@date-fns/tz": "1.5.0",

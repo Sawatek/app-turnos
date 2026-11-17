@@ -1,12 +1,15 @@
+import type { User } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, MessageCircle, RefreshCw, Sparkles, Store, TriangleAlert, Users } from 'lucide-react'
+import { BellRing, Check, MessageCircle, RefreshCw, Sparkles, Store, TriangleAlert, Users } from 'lucide-react'
 import { useRef, useState } from 'react'
 import {
+  anotarmeEnEspera,
   ErrorCliente,
   profesionalesPara,
   reprogramar,
   reservar,
+  traerResumen,
   useDisponibilidad,
   useHorarios,
   useRefrescar,
@@ -16,16 +19,27 @@ import { capitalizar, claveDia, diaRelativo, enAR, horaCorta, mesCorto, nombreDi
 import { OfertaInstalar } from '@/instalacion/OfertaInstalar'
 import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
+import { guardarMiNombre, nombreDeUsuario } from '@/datos/sesion'
 import { Hoja } from '@/ui/Hoja'
 import { Etiqueta } from '@/ui/Insignia'
 import { iniciales } from '@/ui/Logo'
 import { cn } from '@/ui/cn'
-import { linkWhatsApp, useReal, type OpcionesReserva } from './contexto'
+import { diaLegible, linkWhatsApp, useReal, type OpcionesReserva } from './contexto'
+import { FormIngreso } from './Ingreso'
 import { Pase } from './Pase'
 
 const DIAS = 14
 const irSuave = (r: React.RefObject<HTMLElement | null>) => setTimeout(() => r.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
 const aISO = (s: string) => new Date(s).toISOString()
+const comoError = (err: unknown) => (err instanceof ErrorCliente ? err : new ErrorCliente('desconocido', 'Algo salió mal. Probá de nuevo en un momento.'))
+
+/** Lo que hace el botón de abajo: reservar el horario elegido, o anotarse en la lista de espera del día. */
+type Accion = 'reservar' | 'esperar'
+/** Datos que llegan recién al entrar con el celular (la sesión del contexto todavía no se actualizó). */
+interface Extra {
+  nombre?: string
+  telefono?: string | null
+}
 
 interface Props {
   abierta: boolean
@@ -43,7 +57,7 @@ export function Reserva({ abierta, opciones, onCerrar }: Props) {
 }
 
 function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar: () => void }) {
-  const { n, negocioId, tomaTurnos, catalogo, resumen, turnos, ahora, irA, marcarPropio, telefonoE164 } = useReal()
+  const { n, negocioId, tomaTurnos, catalogo, resumen, turnos, ahora, irA, marcarPropio, telefonoE164, nombreCuenta, uid, cargandoCuenta } = useReal()
   const qc = useQueryClient()
   const refrescar = useRefrescar(negocioId)
   const viejo = opciones.reprograma
@@ -53,17 +67,25 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
   const [dia, setDia] = useState<string | undefined>(opciones.inicio ? claveDia(opciones.inicio) : undefined)
   const [hora, setHora] = useState<string | undefined>(opciones.inicio ? aISO(opciones.inicio) : undefined)
   const [error, setError] = useState<string>()
-  const [nombre, setNombre] = useState('')
+  const [nombre, setNombre] = useState(nombreCuenta ?? '')
   const [errorNombre, setErrorNombre] = useState<string>()
-  const [pideNombre, setPideNombre] = useState(!resumen.clienteId)
+  // El nombre se pide solo la primera vez en el negocio, y si la cuenta todavía no tiene uno.
+  const [forzarNombre, setForzarNombre] = useState(false)
+  const pideNombre = forzarNombre || (!!uid && !cargandoCuenta && !resumen.clienteId && !nombreCuenta)
   const [enviando, setEnviando] = useState(false)
   const [listo, setListo] = useState<{ id: string; viejoSinCancelar: boolean }>()
+  const [accion, setAccion] = useState<Accion>('reservar')
+  /** Sin sesión: al confirmar se le pide el celular acá mismo, sin perder lo elegido. */
+  const [ingresando, setIngresando] = useState(false)
+  const [anotado, setAnotado] = useState<string>()
+  const refNombre = useRef<HTMLDivElement>(null)
 
   const refProf = useRef<HTMLElement>(null)
   const refDia = useRef<HTMLElement>(null)
   const refHora = useRef<HTMLElement>(null)
   const refError = useRef<HTMLParagraphElement>(null)
   const refListo = useRef<HTMLDivElement>(null)
+  const refResumen = useRef<HTMLDivElement>(null)
 
   const servicio = catalogo.servicios.find((s) => s.id === servicioId)
   const staffPosible = servicioId ? profesionalesPara(catalogo, servicioId) : []
@@ -73,8 +95,9 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
   const disponibilidad = useDisponibilidad(negocioId, servicio?.id, profElegido, DIAS)
   const dias = disponibilidad.data ?? []
   const hoy = claveDia(ahora)
-  // Si el día elegido no tiene lugar (o no se eligió), se muestra el primero con lugar.
-  const diaElegido = dia && dias.some((d) => d.dia === dia && d.libres > 0) ? dia : dias.find((d) => d.libres > 0)?.dia
+  // Se puede elegir un día lleno (para anotarse en la lista de espera). Si no eligió, el primero con lugar.
+  const diaElegido = dia && dias.some((d) => d.dia === dia && d.capacidad > 0) ? dia : dias.find((d) => d.libres > 0)?.dia
+  const diaLleno = !!diaElegido && dias.find((d) => d.dia === diaElegido)?.libres === 0
   const horarios = useHorarios(negocioId, servicio?.id, diaElegido, profElegido)
   const libres = (horarios.data ?? []).filter((h) => Date.parse(h.inicio) > ahora.getTime())
   const elegido = hora ? libres.find((h) => h.inicio === hora) : undefined
@@ -94,20 +117,40 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
     setTimeout(() => refError.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60)
   }
 
-  const confirmar = async () => {
-    if (!servicio || !elegido || enviando) return
-    if (pideNombre && nombre.trim().length < 2) {
+  /** El nombre a mandar (o null si falta y hay que pedirlo). */
+  const nombreParaEnviar = (extra: Extra): string | undefined | null => {
+    if (extra.nombre) return extra.nombre
+    if (!pideNombre) return undefined
+    if (nombre.trim().length < 2) {
       setErrorNombre('Poné tu nombre así te reconocen en el local.')
-      return
+      return null
     }
+    return nombre.trim()
+  }
+
+  /** Si falta el nombre, se lo pide (y se lleva el foco al campo). */
+  const pedirNombre = (texto?: string) => {
+    setForzarNombre(true)
+    if (texto) setErrorNombre(texto)
+    setTimeout(() => {
+      refNombre.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      refNombre.current?.querySelector('input')?.focus()
+    }, 80)
+  }
+
+  const confirmar = async (extra: Extra = {}) => {
+    if (!servicio || !elegido || enviando) return
+    const nombreEnviado = nombreParaEnviar(extra)
+    if (nombreEnviado === null) return
     setEnviando(true)
     setError(undefined)
+    const tel = extra.telefono ?? telefonoE164
     const datos = {
       servicioId: servicio.id,
       inicio: elegido.inicio,
       profesionalId: profElegido ?? null,
-      ...(pideNombre ? { nombre: nombre.trim() } : {}),
-      ...(telefonoE164 ? { telefono: telefonoE164 } : {}),
+      ...(nombreEnviado ? { nombre: nombreEnviado } : {}),
+      ...(tel ? { telefono: tel } : {}),
     }
     try {
       let id: string
@@ -121,27 +164,84 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
         id = await reservar(negocioId, datos)
       }
       marcarPropio(id)
+      // El nombre que escribió queda también en su cuenta (para saludarlo y para la próxima).
+      if (nombreEnviado && !extra.nombre && !nombreCuenta) void guardarMiNombre(nombreEnviado).catch(() => undefined)
       await refrescar()
       setListo({ id, viejoSinCancelar })
       // La hoja venía scrolleada hasta el horario: se vuelve arriba para ver el "¡Listo!".
       setTimeout(() => refListo.current?.scrollIntoView({ block: 'start' }), 0)
     } catch (err) {
-      const e = err instanceof ErrorCliente ? err : new ErrorCliente('desconocido', 'Algo salió mal. Probá de nuevo en un momento.')
+      const e = comoError(err)
       if (e.codigo === 'horario_no_disponible') {
         // Alguien lo tomó antes: se refrescan los horarios y se pide otro.
         setHora(undefined)
         void qc.invalidateQueries({ queryKey: ['cliente-real', negocioId, 'agenda'] })
         irSuave(refHora)
       }
-      if (e.codigo === 'falta_nombre') {
-        setPideNombre(true)
-        setErrorNombre(e.message)
-      } else {
-        mostrarError(e.message)
-      }
+      if (e.codigo === 'falta_nombre') pedirNombre(e.message)
+      else mostrarError(e.message)
     } finally {
       setEnviando(false)
     }
+  }
+
+  /** Lista de espera: "Avisame si se libera" un horario el día elegido. */
+  const anotarme = async (extra: Extra = {}) => {
+    if (!servicio || !diaElegido || enviando) return
+    const nombreEnviado = nombreParaEnviar(extra)
+    if (nombreEnviado === null) return
+    setEnviando(true)
+    setError(undefined)
+    try {
+      await anotarmeEnEspera(negocioId, {
+        servicioId: servicio.id,
+        dia: diaElegido,
+        profesionalId: profElegido ?? null,
+        ...(nombreEnviado ? { nombre: nombreEnviado } : {}),
+      })
+      if (nombreEnviado && !extra.nombre && !nombreCuenta) void guardarMiNombre(nombreEnviado).catch(() => undefined)
+      await refrescar()
+      setAnotado(diaElegido)
+      setTimeout(() => refListo.current?.scrollIntoView({ block: 'start' }), 0)
+    } catch (err) {
+      const e = comoError(err)
+      if (e.codigo === 'falta_nombre') pedirNombre(e.message)
+      else mostrarError(e.message)
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  const ejecutar = (a: Accion, extra: Extra = {}) => (a === 'reservar' ? confirmar(extra) : anotarme(extra))
+
+  /** El botón de abajo: sin sesión, primero el celular; con sesión, directo. */
+  const alConfirmar = (a: Accion) => {
+    setAccion(a)
+    setError(undefined)
+    if (!uid) {
+      setIngresando(true)
+      return
+    }
+    void ejecutar(a)
+  }
+
+  /** Entró con el código desde acá: si ya es cliente (o su cuenta tiene nombre), sigue solo; si no, pide el nombre. */
+  const alEntrar = async (usuario: User) => {
+    const nombreUsuario = nombreDeUsuario(usuario) ?? undefined
+    const telefono = usuario.phone ? `+${usuario.phone.replace(/^\+/, '')}` : null
+    const ficha = await traerResumen(negocioId).catch(() => null)
+    setIngresando(false)
+    if (!ficha?.clienteId && !nombreUsuario) {
+      pedirNombre()
+      return
+    }
+    await ejecutar(accion, { nombre: ficha?.clienteId ? undefined : nombreUsuario, telefono })
+  }
+
+  const alEsperar = () => {
+    setHora(undefined)
+    alConfirmar('esperar')
+    if (!uid || pideNombre) setTimeout(() => refResumen.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 80)
   }
 
   if (!tomaTurnos) {
@@ -156,6 +256,30 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
             Escribir por WhatsApp
           </a>
         )}
+      </div>
+    )
+  }
+
+  if (anotado) {
+    return (
+      <div ref={refListo} className="flex scroll-mt-4 flex-col items-center pt-2 pb-4 text-center">
+        <motion.div
+          className="grid size-20 place-items-center rounded-full bg-acento-suave text-acento-texto"
+          initial={{ scale: 0.4, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 380, damping: 18 }}
+        >
+          <BellRing className="size-9" aria-hidden />
+        </motion.div>
+        <h3 className="titulo mt-4 text-2xl">¡Te anotamos!</h3>
+        <p className="mt-1 text-[15px] text-suave">
+          Si se libera un horario de {servicio?.nombre ?? 'tu servicio'} el {diaLegible(anotado, ahora)}
+          {profElegido ? ` con ${nombreDe(profElegido)}` : ''}, te avisamos por WhatsApp. Lo reserva el primero que llega.
+        </p>
+        <div className="mt-5 grid w-full grid-cols-2 gap-2">
+          <Boton variante="secundario" onClick={() => { onCerrar(); irA('turnos') }}>Mis turnos</Boton>
+          <Boton onClick={onCerrar}>Listo</Boton>
+        </div>
       </div>
     )
   }
@@ -312,27 +436,36 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
             <div className="-mx-5 flex gap-2 overflow-hidden px-5" aria-busy="true" aria-label="Buscando días con lugar">
               {Array.from({ length: 6 }, (_, i) => <div key={i} className="h-20 w-15 shrink-0 animate-pulse rounded-medio bg-superficie-2" />)}
             </div>
-          ) : !dias.some((d) => d.libres > 0) ? (
+          ) : !dias.some((d) => d.capacidad > 0) ? (
             <p className="rounded-medio bg-superficie p-4 text-sm text-suave">
-              No quedan horarios en los próximos {DIAS} días{profElegido ? ' con esta persona. Probá con "Cualquiera"' : ''}.
+              No hay días de atención en los próximos {DIAS} días{profElegido ? ' con esta persona. Probá con "Cualquiera"' : ''}.
             </p>
           ) : (
-            <div className="sin-barra -mx-5 flex snap-x gap-2 overflow-x-auto px-5 pb-1">
-              {dias.map((d) => (
-                <BotonDia
-                  key={d.dia}
-                  d={d}
-                  hoy={hoy}
-                  ahora={ahora}
-                  activo={d.dia === diaElegido}
-                  onClick={() => {
-                    setDia(d.dia)
-                    setHora(undefined)
-                    irSuave(refHora)
-                  }}
-                />
-              ))}
-            </div>
+            <>
+              <div className="sin-barra -mx-5 flex snap-x gap-2 overflow-x-auto px-5 pb-1">
+                {dias.map((d) => (
+                  <BotonDia
+                    key={d.dia}
+                    d={d}
+                    hoy={hoy}
+                    ahora={ahora}
+                    activo={d.dia === diaElegido}
+                    onClick={() => {
+                      setDia(d.dia)
+                      setHora(undefined)
+                      setAccion('reservar')
+                      setIngresando(false)
+                      irSuave(refHora)
+                    }}
+                  />
+                ))}
+              </div>
+              {!dias.some((d) => d.libres > 0) && (
+                <p className="mt-3 rounded-medio bg-superficie p-4 text-sm text-suave">
+                  No quedan horarios en los próximos {DIAS} días{profElegido ? ' con esta persona (probá con "Cualquiera")' : ''}. Elegí un día y te avisamos si se libera alguno.
+                </p>
+              )}
+            </>
           )}
         </motion.section>
       )}
@@ -347,8 +480,16 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
             <div className="grid grid-cols-4 gap-2" aria-busy="true" aria-label="Buscando horarios">
               {Array.from({ length: 8 }, (_, i) => <div key={i} className="h-12 animate-pulse rounded-chico bg-superficie-2" />)}
             </div>
-          ) : grupos.length === 0 ? (
-            <p className="rounded-medio bg-superficie p-4 text-sm text-suave">No quedan horarios este día. Probá otro.</p>
+          ) : diaLleno || grupos.length === 0 ? (
+            <div className="flex flex-col items-start gap-3 rounded-medio bg-superficie p-4 ring-1 ring-linea">
+              <p className="text-sm">
+                <b>No quedan horarios este día.</b> <span className="text-suave">Si alguien cancela, te avisamos por WhatsApp.</span>
+              </p>
+              <Boton variante="secundario" aria-pressed={accion === 'esperar'} onClick={alEsperar}>
+                <BellRing className="size-4" aria-hidden />
+                Avisame si se libera
+              </Boton>
+            </div>
           ) : (
             <div className="flex flex-col gap-4">
               {grupos.map((g) => (
@@ -365,6 +506,7 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
                           whileTap={{ scale: 0.94 }}
                           onClick={() => {
                             setHora(h.inicio)
+                            setAccion('reservar')
                             setError(undefined)
                           }}
                           className={cn(
@@ -379,51 +521,89 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
                   </div>
                 </fieldset>
               ))}
+              <Boton variante="fantasma" className="self-start px-2" onClick={alEsperar}>
+                <BellRing className="size-4" aria-hidden />
+                ¿Querés uno antes? Avisame si se libera
+              </Boton>
             </div>
           )}
         </motion.section>
       )}
 
-      {/* Resumen + confirmar */}
+      {/* Resumen + confirmar (o anotarse en la lista de espera) */}
       <AnimatePresence>
-        {servicio && elegido && (
+        {servicio && (accion === 'esperar' ? !!diaElegido : !!elegido) && (
           <motion.div
-            className="sticky bottom-0 -mx-5 flex flex-col gap-3 border-t border-linea bg-fondo/95 px-5 pt-3 pb-1 backdrop-blur"
+            ref={refResumen}
+            className="sticky -bottom-4 -mx-5 flex flex-col gap-3 border-t border-linea bg-fondo/95 px-5 pt-3 pb-5 backdrop-blur"
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 40, opacity: 0 }}
           >
-            <p className="text-sm">
-              <b>{capitalizar(diaRelativo(elegido.inicio, ahora))} {horaCorta(elegido.inicio)}</b>
-              <span className="text-suave">
-                {' '}· {servicio.nombre} con {nombreDe(elegido.profesionalId)}
-                {servicio.precio ? ` · ${precio(servicio.precio)}` : ''}
-              </span>
-            </p>
-            {conSena && (
+            {accion === 'esperar' && diaElegido ? (
+              <p className="text-sm">
+                <b>Avisame si se libera</b>
+                <span className="text-suave">
+                  {' '}· {servicio.nombre} el {diaLegible(diaElegido, ahora)}
+                  {profElegido ? ` con ${nombreDe(profElegido)}` : ''}
+                </span>
+              </p>
+            ) : (
+              elegido && (
+                <p className="text-sm">
+                  <b>{capitalizar(diaRelativo(elegido.inicio, ahora))} {horaCorta(elegido.inicio)}</b>
+                  <span className="text-suave">
+                    {' '}· {servicio.nombre} con {nombreDe(elegido.profesionalId)}
+                    {servicio.precio ? ` · ${precio(servicio.precio)}` : ''}
+                  </span>
+                </p>
+              )
+            )}
+            {conSena && accion === 'reservar' && (
               <p className="rounded-chico bg-acento-suave px-3 py-2 text-xs font-semibold text-acento-texto">
                 Este turno lleva una seña de {precio(n.sena)}. La seña se paga en el local.
               </p>
             )}
-            {pideNombre && (
-              <Campo
-                etiqueta="Tu nombre"
-                autoComplete="name"
-                placeholder="Ej.: Martina"
-                value={nombre}
-                maxLength={80}
-                onChange={(e) => {
-                  setNombre(e.target.value)
-                  setErrorNombre(undefined)
-                }}
-                ayuda="Es la primera vez: así te reconocen en el local."
-                error={errorNombre}
-              />
+            {ingresando && !uid ? (
+              <div className="flex flex-col gap-3 pt-1">
+                <p className="text-[15px] font-semibold">
+                  {accion === 'reservar' ? 'Para reservar, entrá con tu celular.' : 'Para avisarte, entrá con tu celular.'}{' '}
+                  <span className="font-normal text-suave">No perdés lo que elegiste.</span>
+                </p>
+                <FormIngreso onEntrar={alEntrar} />
+              </div>
+            ) : (
+              <>
+                {pideNombre && (
+                  <div ref={refNombre}>
+                    <Campo
+                      etiqueta="Tu nombre"
+                      autoComplete="name"
+                      placeholder="Ej.: Martina"
+                      value={nombre}
+                      maxLength={80}
+                      onChange={(e) => {
+                        setNombre(e.target.value)
+                        setErrorNombre(undefined)
+                      }}
+                      ayuda="Es la primera vez: así te reconocen en el local."
+                      error={errorNombre}
+                    />
+                  </div>
+                )}
+                {accion === 'esperar' ? (
+                  <Boton tamano="grande" ancho cargando={enviando} onClick={() => alConfirmar('esperar')}>
+                    <BellRing className="size-4" aria-hidden />
+                    Avisame si se libera
+                  </Boton>
+                ) : (
+                  <Boton tamano="grande" ancho cargando={enviando} onClick={() => alConfirmar('reservar')}>
+                    {viejo ? 'Cambiar a este horario' : 'Confirmar turno'}
+                    <Sparkles className="size-4" aria-hidden />
+                  </Boton>
+                )}
+              </>
             )}
-            <Boton tamano="grande" ancho cargando={enviando} onClick={() => void confirmar()}>
-              {viejo ? 'Cambiar a este horario' : 'Confirmar turno'}
-              <Sparkles className="size-4" aria-hidden />
-            </Boton>
           </motion.div>
         )}
       </AnimatePresence>
@@ -442,12 +622,13 @@ function BotonDia({ d, hoy, ahora, activo, onClick }: { d: DiaDisponible; hoy: s
     <button
       type="button"
       aria-pressed={activo}
-      disabled={cerrado || lleno}
+      disabled={cerrado}
       aria-label={`${nombre}: ${cerrado ? 'cerrado' : lleno ? 'sin lugar' : `${d.libres} ${d.libres === 1 ? 'horario' : 'horarios'}`}`}
       onClick={onClick}
       className={cn(
         'flex h-20 w-15 shrink-0 snap-start flex-col items-center justify-center gap-0.5 rounded-medio border-2 transition-colors disabled:opacity-40',
         activo ? 'border-acento bg-acento text-sobre-acento' : 'border-transparent bg-superficie ring-1 ring-linea',
+        lleno && !activo && 'opacity-60',
       )}
     >
       <span className="text-[11px] font-bold uppercase">{d.dia === hoy ? 'Hoy' : nombreDia(fecha)}</span>

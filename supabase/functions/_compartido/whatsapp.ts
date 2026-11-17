@@ -37,6 +37,23 @@ export function armarPedido(m: Mensaje, texto: string): Datos {
   const base = { messaging_product: 'whatsapp', recipient_type: 'individual', to: m.destino }
   const idioma = { code: env('WHATSAPP_IDIOMA', 'es_AR') }
 
+  // Aviso de lista de espera: llega horas o días después de que el cliente se anotó, fuera de la ventana
+  // de 24 h de WhatsApp, así que va como plantilla (con botón al link del negocio), no como texto libre.
+  if (m.tipo === 'aviso' && c.motivo === 'lista_espera') {
+    return {
+      ...base,
+      type: 'template',
+      template: {
+        name: env('WHATSAPP_PLANTILLA_LISTA_ESPERA', 'turno_liberado'),
+        language: idioma,
+        components: [
+          { type: 'body', parameters: ['nombre', 'servicio', 'dia', 'hora', 'negocio'].map((k) => ({ type: 'text', text: limpiar(c[k]) })) },
+          { type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: limpiar(c.slug) }] },
+        ],
+      },
+    }
+  }
+
   if (m.tipo === 'aviso') {
     return { ...base, type: 'text', text: { preview_url: true, body: texto } }
   }

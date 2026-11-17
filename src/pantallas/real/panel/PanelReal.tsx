@@ -1,40 +1,49 @@
 // Fase 2: panel del dueño y del profesional para un negocio REAL (conectado a la base).
 //   · Ingreso con mail y contraseña → se aceptan las invitaciones pendientes → rol en ESTE negocio.
-//   · Dueño (o SawaTek): agenda, clientes, servicios, equipo, horarios y ajustes.
-//   · Profesional: solo su agenda (y sus bloqueos).
+//   · Dueño (o SawaTek): agenda, clientes (y para recuperar), reportes, servicios, equipo, horarios, marca y ajustes.
+//   · Profesional: su agenda (y sus bloqueos) y sus números.
+//   · Aviso en vivo cuando entra un turno nuevo (salvo los que cargó el propio usuario).
 // Los permisos los hace cumplir la base; acá solo se muestra lo que corresponde a cada rol.
-import { CalendarDays, Clock, LogOut, Scissors, Settings, Smartphone, UserRound, Users, type LucideIcon } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowLeft, CalendarDays, ChartColumn, Clock, LogOut, Palette, Scissors, Settings, Smartphone, UserRound, Users, type LucideIcon } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { useAcceso, useTurnosEnVivo } from '@/datos/real/panel'
-import { salir, useSesion } from '@/datos/sesion'
+import { useAcceso, useTurnosEnVivo, type TurnoPanel } from '@/datos/real/panel'
+import { nombreDeUsuario, salir, useSesion } from '@/datos/sesion'
 import { supabase } from '@/datos/supabase'
 import { capitalizar, diaLargo } from '@/dominio/tiempo'
 import type { Negocio } from '@/dominio/tipos'
 import { Boton } from '@/ui/Boton'
 import { Logo } from '@/ui/Logo'
 import { cn } from '@/ui/cn'
+import { BotonMiCuenta, PedirNombre } from './MiCuenta'
 import { Cargando } from '../../NoEncontrado'
 import type { PropsNegocioReal } from '../tipos'
 import { Agenda } from './Agenda'
+import { AvisosEnVivo } from './AvisoEnVivo'
 import { Ajustes } from './Ajustes'
 import { Clientes } from './Clientes'
 import { ErrorEnLinea, ProveedorPanel, usePanel, type CtxPanel } from './comunes'
 import { Equipo } from './Equipo'
 import { Horarios } from './Horarios'
 import { Ingreso } from './Ingreso'
+import { Marca } from './Marca'
+import { Reportes } from './Reportes'
 import { Servicios } from './Servicios'
 
-type IdSeccion = 'agenda' | 'clientes' | 'servicios' | 'equipo' | 'horarios' | 'ajustes'
+type IdSeccion = 'agenda' | 'clientes' | 'reportes' | 'servicios' | 'equipo' | 'horarios' | 'marca' | 'ajustes'
 
 const SECCIONES: { id: IdSeccion; texto: string; Icono: LucideIcon }[] = [
   { id: 'agenda', texto: 'Agenda', Icono: CalendarDays },
   { id: 'clientes', texto: 'Clientes', Icono: UserRound },
+  { id: 'reportes', texto: 'Reportes', Icono: ChartColumn },
   { id: 'servicios', texto: 'Servicios', Icono: Scissors },
   { id: 'equipo', texto: 'Equipo', Icono: Users },
   { id: 'horarios', texto: 'Horarios', Icono: Clock },
+  { id: 'marca', texto: 'Marca', Icono: Palette },
   { id: 'ajustes', texto: 'Ajustes', Icono: Settings },
 ]
+/** El profesional no tiene navegación: entra a su agenda y, desde ahí, a sus números. */
+const DEL_PROFESIONAL: IdSeccion[] = ['agenda', 'reportes']
 
 export default function PanelReal({ n, meta }: PropsNegocioReal) {
   const sesion = useSesion()
@@ -45,7 +54,16 @@ export default function PanelReal({ n, meta }: PropsNegocioReal) {
   }
   if (sesion === undefined) return <Cargando />
   if (!sesion) return <Ingreso n={n} />
-  return <ConSesion key={sesion.user.id} n={n} negocioId={meta.id} userId={sesion.user.id} email={sesion.user.email ?? ''} />
+  return (
+    <ConSesion
+      key={sesion.user.id}
+      n={n}
+      negocioId={meta.id}
+      userId={sesion.user.id}
+      email={sesion.user.email ?? ''}
+      nombre={nombreDeUsuario(sesion.user)}
+    />
+  )
 }
 
 function Aviso({ titulo, texto, children }: { titulo: string; texto: string; children?: React.ReactNode }) {
@@ -58,7 +76,7 @@ function Aviso({ titulo, texto, children }: { titulo: string; texto: string; chi
   )
 }
 
-function ConSesion({ n, negocioId, userId, email }: { n: Negocio; negocioId: string; userId: string; email: string }) {
+function ConSesion({ n, negocioId, userId, email, nombre }: { n: Negocio; negocioId: string; userId: string; email: string; nombre: string | null }) {
   const acceso = useAcceso(negocioId, userId)
   if (acceso.isPending) return <Cargando />
   if (acceso.isError)
@@ -83,21 +101,23 @@ function ConSesion({ n, negocioId, userId, email }: { n: Negocio; negocioId: str
         </Boton>
       </Aviso>
     )
-  const ctx: CtxPanel = { n, negocioId, acceso: { ...a, rol: a.rol }, esDueno: a.rol === 'dueno' }
+  const ctx: CtxPanel = { n, negocioId, acceso: { ...a, rol: a.rol }, esDueno: a.rol === 'dueno', userId, nombre }
   return (
     <ProveedorPanel value={ctx}>
-      <Estructura email={email} />
+      <Estructura email={email} nombre={nombre} />
     </ProveedorPanel>
   )
 }
 
-function Estructura({ email }: { email: string }) {
+function Estructura({ email, nombre }: { email: string; nombre: string | null }) {
   const { seccion } = useParams()
-  const { n, negocioId, esDueno, acceso } = usePanel()
+  const { n, negocioId, esDueno, acceso, userId } = usePanel()
   const [hoy] = useState(() => capitalizar(diaLargo(new Date())))
-  useTurnosEnVivo(negocioId)
+  const [nuevos, setNuevos] = useState<TurnoPanel[]>([])
+  useTurnosEnVivo(negocioId, userId, (t) => setNuevos((l) => [t, ...l.filter((x) => x.id !== t.id)].slice(0, 3)))
   const visibles = esDueno ? SECCIONES : SECCIONES.filter((s) => s.id === 'agenda')
-  const actual: IdSeccion = visibles.some((s) => s.id === seccion) ? (seccion as IdSeccion) : 'agenda'
+  const permitidas = esDueno ? SECCIONES.map((s) => s.id) : DEL_PROFESIONAL
+  const actual: IdSeccion = permitidas.includes(seccion as IdSeccion) ? (seccion as IdSeccion) : 'agenda'
   const rolTexto = acceso.superadmin ? 'SawaTek (como dueño)' : esDueno ? 'Dueño' : 'Profesional'
 
   return (
@@ -122,6 +142,7 @@ function Estructura({ email }: { email: string }) {
             <div className="min-w-0">
               <h1 className="truncate text-xl leading-tight">{esDueno ? n.nombre : 'Tu agenda'}</h1>
               <p className="truncate text-sm text-suave">
+                {nombre ? `Hola, ${nombre.split(' ')[0]} · ` : ''}
                 {rolTexto} · {hoy}
               </p>
             </div>
@@ -134,22 +155,32 @@ function Estructura({ email }: { email: string }) {
               <Smartphone className="size-4" aria-hidden />
               Ver la app
             </Link>
-            <Boton variante="secundario" tamano="chico" className="h-11" onClick={() => void salir()} title={`Salir (${email})`}>
-              <LogOut className="size-4" aria-hidden />
-              Salir
-            </Boton>
+            <BotonMiCuenta nombre={nombre} email={email} rol={rolTexto} />
           </div>
         </header>
+
+        {!nombre && <PedirNombre />}
+
+        {!esDueno && actual === 'reportes' && (
+          <Link to={`/${n.slug}/panel`} className="mb-3 inline-flex h-11 items-center gap-2 rounded-medio px-1 text-sm font-semibold text-acento-texto">
+            <ArrowLeft className="size-4" aria-hidden />
+            Volver a la agenda
+          </Link>
+        )}
 
         <main>
           {actual === 'agenda' && <Agenda />}
           {actual === 'clientes' && <Clientes />}
+          {actual === 'reportes' && <Reportes />}
           {actual === 'servicios' && <Servicios />}
           {actual === 'equipo' && <Equipo />}
           {actual === 'horarios' && <Horarios />}
+          {actual === 'marca' && <Marca />}
           {actual === 'ajustes' && <Ajustes />}
         </main>
       </div>
+
+      <AvisosEnVivo turnos={nuevos} onCerrar={(id) => setNuevos((l) => l.filter((x) => x.id !== id))} />
 
       {/* Barra inferior (celular) */}
       {visibles.length > 1 && (
@@ -162,16 +193,23 @@ function Estructura({ email }: { email: string }) {
 }
 
 function Navegacion({ visibles, actual, slug, lateral }: { visibles: typeof SECCIONES; actual: IdSeccion; slug: string; lateral?: boolean }) {
+  // En el celular la barra se desliza de costado: la sección actual siempre queda a la vista.
+  const lista = useRef<HTMLUListElement>(null)
+  useEffect(() => {
+    if (lateral) return
+    lista.current?.querySelector(`[data-seccion="${actual}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [actual, lateral])
   return (
     <nav aria-label="Secciones del panel">
-      <ul className={lateral ? 'flex flex-col gap-1' : 'mx-auto grid max-w-lg grid-cols-6'}>
+      <ul ref={lista} className={lateral ? 'flex flex-col gap-1' : 'sin-barra mx-auto flex max-w-2xl snap-x overflow-x-auto'}>
         {visibles.map(({ id, texto, Icono }) => {
           const activo = id === actual
           return (
-            <li key={id}>
+            <li key={id} className={lateral ? undefined : 'min-w-[3.9rem] flex-1 snap-start'}>
               <Link
                 to={id === 'agenda' ? `/${slug}/panel` : `/${slug}/panel/${id}`}
                 aria-current={activo ? 'page' : undefined}
+                data-seccion={id}
                 className={cn(
                   'flex items-center font-semibold transition-colors',
                   lateral

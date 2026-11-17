@@ -14,6 +14,9 @@ export interface CtxPanel {
   negocioId: string
   acceso: Acceso & { rol: NonNullable<Acceso['rol']> }
   esDueno: boolean
+  /** Usuario logueado y su nombre (si lo cargó). */
+  userId: string
+  nombre: string | null
 }
 
 const Contexto = createContext<CtxPanel | null>(null)

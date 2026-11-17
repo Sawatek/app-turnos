@@ -93,5 +93,5 @@ test.describe('Demo del cliente (/quetul)', () => {
 test('una ruta inexistente muestra "No encontramos este negocio"', async ({ page }) => {
   await page.goto('/no-existe-xyz')
   await expect(page.getByRole('heading', { name: 'No encontramos este negocio' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Ver las demos' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Ir al inicio' })).toBeVisible()
 })

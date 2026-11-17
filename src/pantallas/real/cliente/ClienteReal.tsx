@@ -1,12 +1,13 @@
 // Fase 3: app del cliente para un negocio REAL (conectada a la base).
 // Misma experiencia que la demo, pero con ingreso por celular, horarios reales y turnos de verdad.
+// Sin sesión se puede mirar todo y armar la reserva: el celular y el código se piden recién al confirmar.
 import type { Session } from '@supabase/supabase-js'
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
-import { CalendarDays, House, Plus, RefreshCw, UserRound } from 'lucide-react'
+import { CalendarDays, House, Plus, RefreshCw, Share2, UserRound } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { salirCliente, useCatalogo, useMisTurnos, useResumen, useTurnosEnVivo } from '@/datos/real/cliente'
+import { RESUMEN_INVITADO, salirCliente, useCatalogo, useMisTurnos, useResumen, useTurnosEnVivo } from '@/datos/real/cliente'
 import { telefonoLegible } from '@/datos/real/cliente-telefono'
-import { useSesion } from '@/datos/sesion'
+import { nombreDeUsuario, useSesion } from '@/datos/sesion'
 import { diaRelativo, horaCorta } from '@/dominio/tiempo'
 import type { Aviso, Negocio } from '@/dominio/tipos'
 import { useMarcaInstalable } from '@/instalacion/marca'
@@ -16,8 +17,7 @@ import { Notificacion } from '@/ui/Notificacion'
 import { cn } from '@/ui/cn'
 import { Cargando } from '../../NoEncontrado'
 import type { PropsNegocioReal } from '../tipos'
-import { ContextoReal, useAhora, type CtxReal, type OpcionesReserva, type Tab } from './contexto'
-import { Ingreso } from './Ingreso'
+import { compartirLink, ContextoReal, useAhora, type CtxReal, type OpcionesReserva, type Tab } from './contexto'
 import { Inicio } from './Inicio'
 import { MisTurnos } from './MisTurnos'
 import { Perfil } from './Perfil'
@@ -29,19 +29,14 @@ export default function ClienteReal({ n, meta }: PropsNegocioReal) {
   return (
     // Respeta "reducir movimiento" del sistema en todas las animaciones.
     <MotionConfig reducedMotion="user">
-      {sesion === undefined ? (
-        <Cargando />
-      ) : !sesion ? (
-        <Ingreso n={n} />
-      ) : (
-        <App key={sesion.user.id} n={n} negocioId={meta.id} tomaTurnos={meta.estado === 'activo'} sesion={sesion} />
-      )}
+      {/* Sin key por usuario: al entrar desde la hoja de reserva no se pierde lo que eligió. */}
+      {sesion === undefined ? <Cargando /> : <App n={n} negocioId={meta.id} tomaTurnos={meta.estado === 'activo'} sesion={sesion} />}
     </MotionConfig>
   )
 }
 
-function App({ n, negocioId, tomaTurnos, sesion }: { n: Negocio; negocioId: string; tomaTurnos: boolean; sesion: Session }) {
-  const uid = sesion.user.id
+function App({ n, negocioId, tomaTurnos, sesion }: { n: Negocio; negocioId: string; tomaTurnos: boolean; sesion: Session | null }) {
+  const uid = sesion?.user.id ?? null
   const catalogo = useCatalogo(negocioId)
   const resumen = useResumen(negocioId, uid)
   const turnos = useMisTurnos(negocioId, uid)
@@ -69,41 +64,51 @@ function App({ n, negocioId, tomaTurnos, sesion }: { n: Negocio; negocioId: stri
     else if (nuevo.estado === 'cancelado') avisar(`Se canceló tu turno de ${cuando}. Si no fuiste vos, escribinos.`)
   })
 
-  if (catalogo.isError || resumen.isError || turnos.isError) {
+  const errorCuenta = !!uid && (resumen.isError || turnos.isError)
+  if (catalogo.isError || errorCuenta) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-3 px-6 text-center">
         <Logo negocio={n} className="size-16 text-2xl" />
-        <h1 className="mt-2 text-2xl">No pudimos cargar tus turnos</h1>
+        <h1 className="mt-2 text-2xl">{errorCuenta ? 'No pudimos cargar tus turnos' : `No pudimos abrir ${n.nombre}`}</h1>
         <p className="text-suave">Revisá tu conexión y probá de nuevo.</p>
         <Boton
           className="mt-2"
           onClick={() => {
             void catalogo.refetch()
-            void resumen.refetch()
-            void turnos.refetch()
+            if (uid) {
+              void resumen.refetch()
+              void turnos.refetch()
+            }
           }}
         >
           <RefreshCw className="size-4" aria-hidden />
           Reintentar
         </Boton>
-        <Boton variante="fantasma" onClick={() => void salirCliente()}>
-          Salir y volver a entrar
-        </Boton>
+        {errorCuenta && (
+          <Boton variante="fantasma" onClick={() => void salirCliente()}>
+            Salir y volver a entrar
+          </Boton>
+        )}
       </main>
     )
   }
-  if (!catalogo.data || !resumen.data || !turnos.data) return <Cargando />
+  // Solo se espera el catálogo: la ficha y los turnos cargan después, sin desarmar la pantalla
+  // (así, si entra desde la hoja de reserva, sigue donde estaba).
+  if (!catalogo.data) return <Cargando />
 
+  const usuario = sesion?.user
   const ctx: CtxReal = {
     n,
     negocioId,
     tomaTurnos,
     uid,
-    telefono: telefonoLegible(sesion.user.phone) || sesion.user.email || '',
-    telefonoE164: sesion.user.phone ? `+${sesion.user.phone.replace(/^\+/, '')}` : null,
+    cargandoCuenta: !!uid && (!resumen.data || !turnos.data),
+    nombreCuenta: nombreDeUsuario(usuario),
+    telefono: telefonoLegible(usuario?.phone) || usuario?.email || '',
+    telefonoE164: usuario?.phone ? `+${usuario.phone.replace(/^\+/, '')}` : null,
     catalogo: catalogo.data,
-    resumen: resumen.data,
-    turnos: turnos.data,
+    resumen: (uid && resumen.data) || RESUMEN_INVITADO,
+    turnos: (uid && turnos.data) || [],
     ahora,
     abrirReserva: (opciones = {}) => setReserva({ abierta: true, opciones }),
     irA: (t) => {
@@ -112,6 +117,16 @@ function App({ n, negocioId, tomaTurnos, sesion }: { n: Negocio; negocioId: stri
     },
     avisar,
     marcarPropio: (id) => void propios.current.add(id),
+    compartir: () => {
+      void compartirLink({
+        titulo: n.nombre,
+        texto: `Sacá turno en ${n.nombre}`,
+        url: `${location.origin}/${n.slug}`,
+      }).then((r) => {
+        if (r === 'copiado') avisar('Copiamos el link. Pegalo donde quieras compartirlo.')
+        else if (r === 'error') avisar(`No pudimos copiar el link. Es ${location.host}/${n.slug}`)
+      })
+    },
   }
 
   return (
@@ -125,10 +140,18 @@ function App({ n, negocioId, tomaTurnos, sesion }: { n: Negocio; negocioId: stri
       <div className="mx-auto min-h-dvh max-w-lg">
         <header className="sticky top-0 z-30 flex items-center gap-3 bg-fondo/85 px-5 pt-segura pb-3 backdrop-blur-lg">
           <Logo negocio={n} className="size-10 rounded-chico text-sm" />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate font-bold leading-tight">{n.nombre}</p>
             {n.bajada && <p className="truncate text-xs text-suave">{n.bajada}</p>}
           </div>
+          <button
+            type="button"
+            onClick={ctx.compartir}
+            aria-label={`Compartir ${n.nombre}`}
+            className="grid size-11 shrink-0 place-items-center rounded-full text-suave transition-colors hover:bg-superficie-2 hover:text-texto"
+          >
+            <Share2 className="size-5" aria-hidden />
+          </button>
         </header>
 
         <main className="px-5 pt-2 pb-32">

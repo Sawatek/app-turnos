@@ -39,7 +39,7 @@ test('el dueño crea un servicio, edita un horario, carga un turno manual y lo m
 
   await entrar(page, m.usuarios.duenoA.email)
   await expect(page.getByRole('heading', { level: 1, name: 'Negocio A' })).toBeVisible()
-  await expect(nav(page).getByRole('link')).toHaveText(['Agenda', 'Clientes', 'Servicios', 'Equipo', 'Horarios', 'Ajustes'])
+  await expect(nav(page).getByRole('link')).toHaveText(['Agenda', 'Clientes', 'Reportes', 'Servicios', 'Equipo', 'Horarios', 'Marca', 'Ajustes'])
 
   // --- Servicio nuevo ---
   await nav(page).getByRole('link', { name: 'Servicios' }).click()

@@ -1,18 +1,60 @@
-import { CalendarPlus, CalendarX2, Clock, MessageCircle } from 'lucide-react'
+import { ArrowRight, BellRing, CalendarPlus, CalendarX2, Clock, LoaderCircle, MessageCircle, Star, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { cancelarTurno, confirmarTurno, ErrorCliente, useRefrescar, vigente, type TurnoReal } from '@/datos/real/cliente'
-import { capitalizar, diaCorto, diaRelativo, horaCorta } from '@/dominio/tiempo'
+import { Link } from 'react-router'
+import {
+  borrarEspera,
+  cancelarTurno,
+  confirmarTurno,
+  ErrorCliente,
+  useMisEsperas,
+  useMisResenas,
+  useRefrescar,
+  vigente,
+  type Espera,
+  type TurnoReal,
+} from '@/datos/real/cliente'
+import { capitalizar, claveDia, diaCorto, diaRelativo, horaCorta } from '@/dominio/tiempo'
 import { Boton } from '@/ui/Boton'
 import { Hoja } from '@/ui/Hoja'
 import { InsigniaEstado } from '@/ui/Insignia'
-import { linkWhatsApp, useReal } from './contexto'
+import { Calificar } from './Calificar'
+import { diaLegible, linkWhatsApp, useReal } from './contexto'
+import { InvitacionIngreso } from './Ingreso'
 import { Pase } from './Pase'
 
 const horas = (h: number) => `${h} ${h === 1 ? 'hora' : 'horas'}`
 
 export function MisTurnos() {
-  const { n, negocioId, turnos, resumen, ahora, abrirReserva, avisar, marcarPropio, tomaTurnos } = useReal()
+  const { uid, cargandoCuenta } = useReal()
+  if (!uid) {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="pt-1 text-3xl">Mis turnos</h1>
+        <InvitacionIngreso
+          titulo="Entrá para ver tus turnos"
+          texto="Con tu celular y un código por WhatsApp. Sin contraseñas."
+        />
+      </div>
+    )
+  }
+  if (cargandoCuenta) {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="pt-1 text-3xl">Mis turnos</h1>
+        <div className="grid place-items-center py-16" aria-busy="true">
+          <LoaderCircle className="size-8 animate-spin text-suave" aria-label="Cargando tus turnos" />
+        </div>
+      </div>
+    )
+  }
+  return <ListaTurnos />
+}
+
+function ListaTurnos() {
+  const { n, negocioId, uid, turnos, resumen, ahora, abrirReserva, avisar, marcarPropio, tomaTurnos } = useReal()
   const refrescar = useRefrescar(negocioId)
+  const resenas = useMisResenas(negocioId, uid)
+  const [calificando, setCalificando] = useState<TurnoReal>()
   const [cancelando, setCancelando] = useState<TurnoReal>()
   const [ocupado, setOcupado] = useState<string>()
   const [errores, setErrores] = useState<Record<string, string>>({})
@@ -141,27 +183,71 @@ export function MisTurnos() {
         </section>
       )}
 
+      <ListaEspera />
+
       {historial.length > 0 && (
         <section aria-labelledby="t-hist">
           <h2 id="t-hist" className="titulo mb-2 text-lg">Historial</h2>
           <ul className="divide-y divide-linea rounded-grande bg-superficie px-4 ring-1 ring-linea">
-            {historial.map((t) => (
-              <li key={t.id} className="flex items-center justify-between gap-3 py-3">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold">{t.servicio}{t.profesional ? ` · ${t.profesional}` : ''}</p>
-                  <p className="num text-sm text-suave">{capitalizar(diaCorto(t.inicio))} · {horaCorta(t.inicio)}</p>
-                </div>
-                {/* Un turno que ya pasó sin marcarse sigue "pendiente" en la base: acá se muestra como pasado. */}
-                {t.estado === 'pendiente' || t.estado === 'confirmado' ? (
-                  <span className="inline-flex h-6 shrink-0 items-center rounded-full bg-superficie-2 px-2.5 text-xs font-bold text-suave">Pasado</span>
-                ) : (
-                  <InsigniaEstado estado={t.estado} className="shrink-0" />
-                )}
-              </li>
-            ))}
+            {historial.map((t) => {
+              const puntaje = resenas.data?.get(t.id)
+              return (
+                <li key={t.id} className="flex flex-col gap-2 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{t.servicio}{t.profesional ? ` · ${t.profesional}` : ''}</p>
+                      <p className="num text-sm text-suave">{capitalizar(diaCorto(t.inicio))} · {horaCorta(t.inicio)}</p>
+                    </div>
+                    {/* Un turno que ya pasó sin marcarse sigue "pendiente" en la base: acá se muestra como pasado. */}
+                    {t.estado === 'pendiente' || t.estado === 'confirmado' ? (
+                      <span className="inline-flex h-6 shrink-0 items-center rounded-full bg-superficie-2 px-2.5 text-xs font-bold text-suave">Pasado</span>
+                    ) : (
+                      <InsigniaEstado estado={t.estado} className="shrink-0" />
+                    )}
+                  </div>
+                  {/* Solo se califica un turno al que vino, y una sola vez. */}
+                  {t.estado === 'asistio' && resenas.data && resumen.clienteId &&
+                    (puntaje ? (
+                      <p className="flex items-center gap-1.5 text-sm text-suave">
+                        <Star className="size-4 fill-current text-acento-texto" aria-hidden />
+                        Tu calificación: <b className="num text-texto">{puntaje} de 5</b>
+                      </p>
+                    ) : (
+                      <Boton variante="secundario" className="self-start" onClick={() => setCalificando(t)}>
+                        <Star className="size-4" aria-hidden />
+                        Calificar
+                      </Boton>
+                    ))}
+                </li>
+              )
+            })}
           </ul>
         </section>
       )}
+
+      <Link
+        to="/mis-turnos"
+        className="flex min-h-12 items-center justify-between gap-3 rounded-medio px-1 text-[15px] font-semibold text-acento-texto"
+      >
+        Ver mis turnos en todos los negocios
+        <ArrowRight className="size-4" aria-hidden />
+      </Link>
+
+      <Hoja abierta={!!calificando} onCerrar={() => setCalificando(undefined)} titulo="¿Cómo te fue?">
+        {calificando && resumen.clienteId && (
+          <Calificar
+            negocioId={negocioId}
+            clienteId={resumen.clienteId}
+            turno={calificando}
+            negocio={n.nombre}
+            onListo={() => {
+              setCalificando(undefined)
+              void resenas.refetch()
+              avisar('¡Gracias por calificar! Le sirve mucho al negocio.')
+            }}
+          />
+        )}
+      </Hoja>
 
       <Hoja abierta={!!cancelando} onCerrar={() => setCancelando(undefined)} titulo="¿Cancelar el turno?">
         {cancelando && (
@@ -210,5 +296,74 @@ export function MisTurnos() {
         )}
       </Hoja>
     </div>
+  )
+}
+
+/** "Avisame si se libera": mis anotaciones de hoy en adelante, para borrarlas si ya no hacen falta. */
+function ListaEspera() {
+  const { negocioId, uid, ahora, avisar } = useReal()
+  const hoy = claveDia(ahora)
+  const esperas = useMisEsperas(negocioId, uid, hoy)
+  const [borrando, setBorrando] = useState<string>()
+  const [error, setError] = useState<string>()
+
+  const borrar = async (e: Espera) => {
+    setBorrando(e.id)
+    setError(undefined)
+    try {
+      await borrarEspera(e.id)
+      await esperas.refetch()
+      avisar('Listo: ya no te avisamos por ese día.')
+    } catch (err) {
+      setError(err instanceof ErrorCliente ? err.message : 'No se pudo borrar. Probá de nuevo.')
+      void esperas.refetch()
+    } finally {
+      setBorrando(undefined)
+    }
+  }
+
+  if (esperas.isError) {
+    return (
+      <p role="alert" className="flex items-center justify-between gap-3 rounded-medio bg-peligro/12 px-4 py-3 text-sm font-semibold text-peligro">
+        No pudimos traer tu lista de espera.
+        <Boton variante="secundario" onClick={() => void esperas.refetch()}>Reintentar</Boton>
+      </p>
+    )
+  }
+  if (!esperas.data?.length) return null
+  return (
+    <section aria-labelledby="t-espera">
+      <h2 id="t-espera" className="titulo mb-1 text-lg">Te avisamos si se libera</h2>
+      <p className="mb-2 text-sm text-suave">Si alguien cancela ese día, te llega un WhatsApp. Lo reserva el primero que llega.</p>
+      <ul className="divide-y divide-linea rounded-grande bg-superficie px-4 ring-1 ring-linea">
+        {esperas.data.map((e) => {
+          const fecha = `${e.dia}T12:00:00-03:00`
+          return (
+            <li key={e.id} className="flex items-center justify-between gap-3 py-2">
+              <div className="flex min-w-0 items-center gap-3">
+                <BellRing className="size-5 shrink-0 text-acento-texto" aria-hidden />
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{e.servicio}{e.profesional ? ` · ${e.profesional}` : ''}</p>
+                  <p className="text-sm text-suave">
+                    {capitalizar(diaLegible(e.dia, ahora))}
+                    {e.avisado ? ' · Ya te avisamos' : ''}
+                  </p>
+                </div>
+              </div>
+              <Boton
+                variante="peligro"
+                className="shrink-0 px-3"
+                cargando={borrando === e.id}
+                aria-label={`Borrar aviso de ${e.servicio} del ${diaCorto(fecha)}`}
+                onClick={() => void borrar(e)}
+              >
+                <Trash2 className="size-5" aria-hidden />
+              </Boton>
+            </li>
+          )
+        })}
+      </ul>
+      {error && <p role="alert" className="mt-2 px-1 text-sm font-semibold text-peligro">{error}</p>}
+    </section>
   )
 }

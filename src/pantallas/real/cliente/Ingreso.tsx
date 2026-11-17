@@ -1,12 +1,11 @@
-import { motion } from 'motion/react'
-import { MessageCircle, ShieldCheck } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import type { User } from '@supabase/supabase-js'
+import { MessageCircle, ShieldCheck, Smartphone } from 'lucide-react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import { ErrorCliente, pedirCodigo, verificarCodigo } from '@/datos/real/cliente'
 import { formatoTelefono, normalizarTelefono } from '@/datos/real/cliente-telefono'
-import type { Negocio } from '@/dominio/tipos'
 import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
-import { Logo } from '@/ui/Logo'
 import { cn } from '@/ui/cn'
 
 const LARGO = 6
@@ -15,8 +14,17 @@ const ESPERA = 30
 
 const textoDe = (err: unknown) => (err instanceof ErrorCliente ? err.message : 'Algo salió mal. Probá de nuevo en un momento.')
 
-/** Entrada sin contraseña: el celular y un código que llega por WhatsApp. */
-export function Ingreso({ n }: { n: Negocio }) {
+interface Props {
+  /** Se llama apenas el código es correcto (la sesión ya quedó guardada). */
+  onEntrar?: (usuario: User) => void | Promise<void>
+}
+
+/**
+ * Entrada sin contraseña: el celular y un código que llega por WhatsApp.
+ * Se usa dentro de otras pantallas (la hoja de reserva, Mis turnos, Perfil, /mis-turnos), sin perder lo que estaba.
+ */
+export function FormIngreso({ onEntrar }: Props) {
+  const idCodigo = useId()
   const [paso, setPaso] = useState<'telefono' | 'codigo'>('telefono')
   const [tel, setTel] = useState('')
   const [e164, setE164] = useState('')
@@ -72,15 +80,18 @@ export function Ingreso({ n }: { n: Negocio }) {
     setErrorCodigo(undefined)
     if (limpio.length < LARGO || verificando) return
     setVerificando(true)
+    let usuario: User
     try {
-      // Si está bien, la sesión cambia y la app pasa sola al inicio.
-      await verificarCodigo(e164, limpio)
+      // Si está bien, la sesión cambia y la app se entera sola.
+      usuario = await verificarCodigo(e164, limpio)
     } catch (err) {
       setErrorCodigo(textoDe(err))
       setCodigo('')
       setVerificando(false)
       setTimeout(() => refCodigo.current?.focus(), 0)
+      return
     }
+    await onEntrar?.(usuario)
   }
 
   const reenviar = async () => {
@@ -92,102 +103,112 @@ export function Ingreso({ n }: { n: Negocio }) {
     }
   }
 
-  return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-segura pb-segura">
-      <motion.div
-        className="flex flex-1 flex-col justify-center gap-8 py-8"
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
-      >
-        <header className="flex flex-col items-center text-center">
-          <Logo negocio={n} className="size-22 text-3xl sombra-suave" />
-          <h1 className="mt-5 text-3xl">{n.nombre}</h1>
-          {n.bajada && <p className="mt-1 text-sm font-semibold text-acento-texto">{n.bajada}</p>}
-          {n.claim && <p className="mt-3 max-w-xs text-[15px] text-suave">{n.claim}</p>}
-        </header>
-
-        {paso === 'telefono' ? (
-          <form className="flex flex-col gap-4" onSubmit={(ev) => void alPedir(ev)} noValidate>
-            <Campo
-              etiqueta="Tu celular"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel-national"
-              placeholder="11 2345-6789"
-              value={tel}
-              onChange={(e) => {
-                setTel(formatoTelefono(e.target.value))
-                setErrorTel(undefined)
-              }}
-              ayuda="Con el código de área, sin el 0 ni el 15."
-              error={errorTel}
-            />
-            <Boton type="submit" tamano="grande" ancho cargando={enviando} className="mt-1">
-              <MessageCircle className="size-5" aria-hidden />
-              Recibir código por WhatsApp
-            </Boton>
-            <p className="flex items-center justify-center gap-1.5 text-center text-sm text-suave">
-              <ShieldCheck className="size-4" aria-hidden />
-              Sin contraseñas: te llega un código de {LARGO} números.
-            </p>
-          </form>
-        ) : (
-          <div className="flex flex-col gap-4">
-            <p className="text-center text-[15px]">
-              Te mandamos un código por WhatsApp al <b className="num">{tel}</b>
-            </p>
-            <div className="relative mx-auto">
-              <label className="sr-only" htmlFor="codigo-ingreso">Código de {LARGO} números</label>
-              <input
-                ref={refCodigo}
-                id="codigo-ingreso"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                pattern="[0-9]*"
-                maxLength={LARGO}
-                value={codigo}
-                disabled={verificando}
-                onChange={(e) => void alEscribirCodigo(e.target.value)}
-                aria-invalid={!!errorCodigo || undefined}
-                aria-describedby="codigo-ayuda"
-                className="absolute inset-0 z-10 w-full opacity-0"
-              />
-              <div className="flex gap-2" aria-hidden>
-                {Array.from({ length: LARGO }, (_, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      'num grid h-15 w-12 place-items-center rounded-medio border-2 bg-superficie text-2xl font-bold transition-colors',
-                      errorCodigo ? 'border-peligro' : codigo.length === i ? 'border-acento' : 'border-linea',
-                    )}
-                  >
-                    {codigo[i] ?? ''}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <p id="codigo-ayuda" role={errorCodigo ? 'alert' : undefined} className={cn('text-center text-sm', errorCodigo ? 'font-semibold text-peligro' : 'text-suave')}>
-              {errorCodigo ?? (verificando ? 'Verificando…' : reenviado ? 'Te mandamos un código nuevo. Usá el último que te llegó.' : 'Si tu celular lo sugiere, tocá el código para completarlo.')}
-            </p>
-            <Boton variante="secundario" disabled={espera > 0 || enviando} cargando={enviando} onClick={() => void reenviar()}>
-              {espera > 0 ? `Reenviar código en ${espera} s` : 'Reenviar código'}
-            </Boton>
-            <Boton
-              variante="fantasma"
-              onClick={() => {
-                setPaso('telefono')
-                setCodigo('')
-                setErrorCodigo(undefined)
-                setVerificando(false)
-              }}
+  return paso === 'telefono' ? (
+    <form className="flex flex-col gap-4" onSubmit={(ev) => void alPedir(ev)} noValidate>
+      <Campo
+        etiqueta="Tu celular"
+        type="tel"
+        inputMode="tel"
+        autoComplete="tel-national"
+        placeholder="11 2345-6789"
+        value={tel}
+        onChange={(e) => {
+          setTel(formatoTelefono(e.target.value))
+          setErrorTel(undefined)
+        }}
+        ayuda="Con el código de área, sin el 0 ni el 15."
+        error={errorTel}
+      />
+      <Boton type="submit" tamano="grande" ancho cargando={enviando} className="mt-1">
+        <MessageCircle className="size-5" aria-hidden />
+        Recibir código por WhatsApp
+      </Boton>
+      <p className="flex items-center justify-center gap-1.5 text-center text-sm text-suave">
+        <ShieldCheck className="size-4" aria-hidden />
+        Sin contraseñas: te llega un código de {LARGO} números.
+      </p>
+      {/* Antes de pedir el celular se informa para qué se usa (ley 25.326). */}
+      <p className="text-center text-xs leading-relaxed text-suave">
+        Usamos tu celular para tus turnos y recordatorios por WhatsApp.{' '}
+        <Link to="/privacidad" target="_blank" className="font-semibold text-texto underline underline-offset-2">
+          Ver privacidad
+        </Link>{' '}
+        ·{' '}
+        <Link to="/terminos" target="_blank" className="font-semibold text-texto underline underline-offset-2">
+          Términos
+        </Link>
+      </p>
+    </form>
+  ) : (
+    <div className="flex flex-col gap-4">
+      <p className="text-center text-[15px]">
+        Te mandamos un código por WhatsApp al <b className="num">{tel}</b>
+      </p>
+      <div className="relative mx-auto">
+        <label className="sr-only" htmlFor={idCodigo}>Código de {LARGO} números</label>
+        <input
+          ref={refCodigo}
+          id={idCodigo}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          pattern="[0-9]*"
+          maxLength={LARGO}
+          value={codigo}
+          disabled={verificando}
+          onChange={(e) => void alEscribirCodigo(e.target.value)}
+          aria-invalid={!!errorCodigo || undefined}
+          aria-describedby={`${idCodigo}-ayuda`}
+          className="absolute inset-0 z-10 w-full opacity-0"
+        />
+        <div className="flex gap-2" aria-hidden>
+          {Array.from({ length: LARGO }, (_, i) => (
+            <div
+              key={i}
+              className={cn(
+                'num grid h-15 w-12 place-items-center rounded-medio border-2 bg-superficie text-2xl font-bold transition-colors',
+                errorCodigo ? 'border-peligro' : codigo.length === i ? 'border-acento' : 'border-linea',
+              )}
             >
-              Cambiar el número
-            </Boton>
-          </div>
-        )}
-      </motion.div>
-      <p className="text-center text-xs text-suave">Usamos tu celular solo para tus turnos con {n.nombre}.</p>
-    </main>
+              {codigo[i] ?? ''}
+            </div>
+          ))}
+        </div>
+      </div>
+      <p id={`${idCodigo}-ayuda`} role={errorCodigo ? 'alert' : undefined} className={cn('text-center text-sm', errorCodigo ? 'font-semibold text-peligro' : 'text-suave')}>
+        {errorCodigo ?? (verificando ? 'Verificando…' : reenviado ? 'Te mandamos un código nuevo. Usá el último que te llegó.' : 'Si tu celular lo sugiere, tocá el código para completarlo.')}
+      </p>
+      <Boton variante="secundario" disabled={espera > 0 || enviando} cargando={enviando} onClick={() => void reenviar()}>
+        {espera > 0 ? `Reenviar código en ${espera} s` : 'Reenviar código'}
+      </Boton>
+      <Boton
+        variante="fantasma"
+        onClick={() => {
+          setPaso('telefono')
+          setCodigo('')
+          setErrorCodigo(undefined)
+          setVerificando(false)
+        }}
+      >
+        Cambiar el número
+      </Boton>
+    </div>
+  )
+}
+
+/** Tarjeta que invita a entrar (en Mis turnos y Perfil sin sesión). */
+export function InvitacionIngreso({ titulo, texto, onEntrar }: { titulo: string; texto: string } & Props) {
+  return (
+    <section aria-labelledby="t-invitacion" className="flex flex-col gap-5 rounded-grande bg-superficie p-5 ring-1 ring-linea">
+      <div className="flex items-start gap-3">
+        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-acento-suave text-acento-texto" aria-hidden>
+          <Smartphone className="size-5" />
+        </span>
+        <div>
+          <h2 id="t-invitacion" className="titulo text-lg">{titulo}</h2>
+          <p className="text-sm text-suave">{texto}</p>
+        </div>
+      </div>
+      <FormIngreso onEntrar={onEntrar} />
+    </section>
   )
 }

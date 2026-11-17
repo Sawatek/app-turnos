@@ -1,5 +1,6 @@
-// Equipo: profesionales (datos, servicios que hace), invitaciones por mail y miembros con acceso al panel.
-import { ChevronRight, MailPlus, Plus } from 'lucide-react'
+// Equipo: profesionales (datos, servicios que hace), invitaciones por mail, miembros con acceso al panel
+// y "yo también atiendo" (el dueño vincula su cuenta a una ficha para tener agenda propia).
+import { ChevronRight, MailPlus, Plus, UserRoundCheck } from 'lucide-react'
 import { useState } from 'react'
 import {
   cancelarInvitacion,
@@ -13,6 +14,7 @@ import {
   useServicios,
   type Profesional,
 } from '@/datos/real/panel'
+import { atiendoYo } from '@/datos/real/panel-gestion'
 import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
 import { Hoja } from '@/ui/Hoja'
@@ -30,7 +32,7 @@ export function Equipo() {
 
   const estadoUsuario = (p: Profesional) => {
     const m = miembros.data?.find((x) => x.profesionalId === p.id)
-    if (m) return `Entra con ${m.email}`
+    if (m) return `Entra con ${m.nombre ? `${m.nombre} (${m.email})` : m.email}`
     const inv = invitaciones.data?.find((i) => i.profesional_id === p.id)
     if (inv) return `Invitación pendiente: ${inv.email}`
     return 'Sin acceso al panel'
@@ -89,6 +91,8 @@ export function Equipo() {
         </section>
       )}
 
+      <YoTambienAtiendo />
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Invitar />
         <Tarjeta titulo="Con acceso al panel">
@@ -99,7 +103,7 @@ export function Equipo() {
           ) : (
             <ul className="flex flex-col divide-y divide-linea" aria-label="Miembros">
               {miembros.data.map((m) => (
-                <FilaMiembro key={m.userId} email={m.email} rol={m.rol} profesional={m.profesional} userId={m.userId} />
+                <FilaMiembro key={m.userId} email={m.email} nombre={m.nombre} rol={m.rol} profesional={m.profesional} userId={m.userId} />
               ))}
             </ul>
           )}
@@ -129,15 +133,96 @@ export function Equipo() {
   )
 }
 
-function FilaMiembro({ email, rol, profesional, userId }: { email: string; rol: string; profesional: string | null; userId: string }) {
+const NUEVA = 'nueva'
+
+/** El dueño también atiende: vincula su cuenta a una ficha (existente o nueva) y tiene su propia agenda. */
+function YoTambienAtiendo() {
+  const { negocioId, acceso, nombre } = usePanel()
+  const profs = useProfesionales(negocioId)
+  const invitaciones = useInvitaciones(negocioId)
+  const refrescar = useRefrescar(negocioId)
+  const accion = useAccion()
+  const [elegido, setElegido] = useState('')
+  const [hecho, setHecho] = useState<string>()
+  // SawaTek entra como dueño sin ser miembro: no tiene agenda propia.
+  if (acceso.superadmin) return null
+
+  const mia = profs.data?.find((p) => p.id === acceso.profesionalId)
+  const libres = (profs.data ?? []).filter((p) => !p.user_id && !invitaciones.data?.some((i) => i.profesional_id === p.id))
+  const opcion = elegido === NUEVA || libres.some((p) => p.id === elegido) ? elegido : (libres[0]?.id ?? NUEVA)
+
+  const listo = async (fn: () => Promise<unknown>, texto: string) => {
+    setHecho(undefined)
+    const ok = await accion.correr(async () => {
+      await fn()
+      await Promise.all([refrescar('acceso'), refrescar('profesionales'), refrescar('miembros'), refrescar('turnos')])
+    })
+    if (ok) setHecho(texto)
+  }
+
+  return (
+    <Tarjeta titulo="¿Vos también atendés?">
+      {mia ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <UserRoundCheck className="size-5 shrink-0 text-exito" aria-hidden />
+          <p className="min-w-0 flex-1 text-sm">
+            Tu cuenta tiene la agenda de <b>{mia.nombre}</b>: en la Agenda podés filtrar tus turnos y en Horarios, cargar tus días.
+          </p>
+          <BotonConfirmar
+            tamano="chico"
+            texto="Desvincular"
+            confirmar="Sí, desvincular"
+            cargando={accion.ocupado}
+            onConfirmar={() => void listo(() => atiendoYo(negocioId, null), 'Listo: tu cuenta ya no tiene agenda propia.')}
+          />
+        </div>
+      ) : (
+        <form
+          className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          onSubmit={(ev) => {
+            ev.preventDefault()
+            void listo(async () => {
+              let id = opcion
+              if (id === NUEVA) {
+                const orden = (profs.data?.reduce((m, p) => Math.max(m, p.orden), -1) ?? -1) + 1
+                id = await guardarProfesional(negocioId, null, { nombre: (nombre ?? 'Yo').slice(0, 60), rol: null, activo: true, orden }, [])
+              }
+              await atiendoYo(negocioId, id)
+            }, 'Listo: ya tenés tu propia agenda.')
+          }}
+        >
+          <Selector etiqueta="Mi ficha de profesional" className="sm:flex-1" value={opcion} onChange={(e) => setElegido(e.target.value)} ayuda="Vinculá tu cuenta a tu ficha y tené tu propia agenda.">
+            {libres.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nombre}
+              </option>
+            ))}
+            <option value={NUEVA}>Crear una ficha nueva{nombre ? ` (${nombre})` : ''}</option>
+          </Selector>
+          <Boton type="submit" cargando={accion.ocupado} className="sm:mb-7">
+            <UserRoundCheck className="size-5" aria-hidden />
+            Vincular mi cuenta
+          </Boton>
+        </form>
+      )}
+      <ErrorEnLinea texto={accion.error} />
+      <Exito texto={hecho} />
+    </Tarjeta>
+  )
+}
+
+function FilaMiembro({ email, nombre, rol, profesional, userId }: { email: string; nombre: string | null; rol: string; profesional: string | null; userId: string }) {
   const { negocioId } = usePanel()
   const refrescar = useRefrescar(negocioId)
   const accion = useAccion()
   return (
     <li className="flex flex-wrap items-center gap-3 py-2.5">
       <div className="min-w-0 flex-1">
-        <p className="truncate font-semibold">{email}</p>
-        <p className="truncate text-sm text-suave">{rol === 'dueno' ? 'Dueño' : `Profesional${profesional ? ` · ${profesional}` : ''}`}</p>
+        <p className="truncate font-semibold">{nombre ?? email}</p>
+        <p className="truncate text-sm text-suave">
+          {rol === 'dueno' ? 'Dueño' : `Profesional${profesional && profesional !== nombre ? ` · ${profesional}` : ''}`}
+          {nombre ? ` · ${email}` : ''}
+        </p>
         <ErrorEnLinea texto={accion.error} />
       </div>
       {rol === 'profesional' && (

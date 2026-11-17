@@ -1,4 +1,5 @@
-// Clientes: búsqueda, ficha con historial y notas privadas (el cliente nunca las ve), y alta manual.
+// Clientes: búsqueda, ficha con historial, mensajes y notas privadas (el cliente nunca las ve), alta manual
+// y los que hace rato que no vienen (para recuperar).
 import { ChevronRight, Search, Smartphone, UserPlus } from 'lucide-react'
 import { useDeferredValue, useState } from 'react'
 import { crearCliente, editarCliente, guardarNota, useClientes, useHistorial, useNota, useRefrescar, type Cliente } from '@/datos/real/panel'
@@ -8,6 +9,10 @@ import { Campo } from '@/ui/Campo'
 import { Hoja } from '@/ui/Hoja'
 import { InsigniaEstado } from '@/ui/Insignia'
 import { iniciales } from '@/ui/Logo'
+import { cn } from '@/ui/cn'
+import { traerCliente } from '@/datos/real/panel-gestion'
+import { HistorialMensajes } from './Mensajes'
+import { Recuperar } from './Recuperar'
 import { AreaTexto, Cargando, Encabezado, ErrorEnLinea, Exito, FalloCarga, Tarjeta, Vacio, useAccion, usePanel } from './comunes'
 
 export function Clientes() {
@@ -17,6 +22,7 @@ export function Clientes() {
   const clientes = useClientes(negocioId, diferida)
   const [elegido, setElegido] = useState<Cliente | null>(null)
   const [alta, setAlta] = useState(false)
+  const [vista, setVista] = useState<'todos' | 'recuperar'>('todos')
 
   return (
     <div className="flex flex-col gap-4">
@@ -27,6 +33,34 @@ export function Clientes() {
         </Boton>
       </Encabezado>
 
+      <fieldset className="grid grid-cols-2 gap-1 rounded-medio bg-superficie p-1 ring-1 ring-linea sm:max-w-sm">
+        <legend className="sr-only">Qué clientes ver</legend>
+        {(
+          [
+            ['todos', 'Todos'],
+            ['recuperar', 'Para recuperar'],
+          ] as const
+        ).map(([id, texto]) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={vista === id}
+            onClick={() => setVista(id)}
+            className={cn('h-11 rounded-chico text-sm font-semibold transition-colors', vista === id ? 'bg-acento text-sobre-acento' : 'text-suave hover:text-texto')}
+          >
+            {texto}
+          </button>
+        ))}
+      </fieldset>
+
+      {vista === 'recuperar' ? (
+        <Recuperar
+          onAbrir={(id) => {
+            void traerCliente(id).then(setElegido, () => undefined)
+          }}
+        />
+      ) : (
+        <>
       <div className="relative">
         <Search className="pointer-events-none absolute bottom-4 left-4 size-5 text-suave" aria-hidden />
         <Campo etiqueta="Buscar cliente" type="search" autoComplete="off" placeholder="Nombre o teléfono" className="[&_input]:pl-11" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
@@ -63,6 +97,8 @@ export function Clientes() {
             ))}
           </ul>
         </section>
+      )}
+        </>
       )}
 
       <Hoja abierta={alta} onCerrar={() => setAlta(false)} titulo="Nuevo cliente" descripcion="Para quien te pide turno por teléfono o en el local.">
@@ -138,6 +174,8 @@ function Ficha({ c, onCambio }: { c: Cliente; onCambio: (c: Cliente) => void }) 
       </div>
 
       <Nota clienteId={c.id} />
+
+      <HistorialMensajes clienteId={c.id} />
 
       <Tarjeta titulo="Historial">
         {historial.isPending ? (
