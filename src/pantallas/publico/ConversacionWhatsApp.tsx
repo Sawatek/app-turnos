@@ -87,7 +87,10 @@ export function ConversacionWhatsApp({ className }: { className?: string }) {
           </li>
         </ol>
       </div>
-      <figcaption className="mt-3 text-center text-sm text-suave">Así le llega a tu cliente. El turno se confirma solo en tu agenda.</figcaption>
+      <figcaption className="mt-4 flex gap-3 border-t border-linea pt-3 text-sm text-suave">
+        <span className="folio shrink-0 text-acento-texto">Fig. 1</span>
+        <span>Así le llega a tu cliente. El turno se confirma solo en tu agenda.</span>
+      </figcaption>
     </figure>
   )
 }

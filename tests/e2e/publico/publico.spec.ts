@@ -149,6 +149,24 @@ test.describe('en la compu (1280 px)', () => {
     await expect(page.getByRole('heading', { level: 2, name: 'Un abono mensual, sin sorpresas' })).toBeInViewport()
   })
 
+  test('diseño editorial: los pasos bajan en escalera y el chat va corrido dentro de su banda', async ({ page }) => {
+    await page.goto('/')
+    const pasos = page.getByRole('region', { name: 'Tres pasos y te olvidás de confirmar a mano' }).getByRole('listitem')
+    await expect(pasos).toHaveCount(3)
+    const tops = await pasos.evaluateAll((lis) => lis.map((li) => li.querySelector('h3')!.getBoundingClientRect().top))
+    expect(tops[1]!).toBeGreaterThan(tops[0]! + 40)
+    expect(tops[2]!).toBeGreaterThan(tops[1]! + 40)
+
+    const whatsapp = page.getByRole('region', { name: 'Tu cliente toca “Confirmo” y listo' })
+    const banda = (await whatsapp.boundingBox())!
+    const titulo = (await whatsapp.getByRole('heading', { level: 2 }).boundingBox())!
+    const chat = (await whatsapp.locator('figure').boundingBox())!
+    expect(chat.y).toBeGreaterThan(banda.y) // no se sale de la sección
+    expect(chat.y + chat.height).toBeLessThan(banda.y + banda.height)
+    expect(chat.y).toBeGreaterThan(titulo.y + 40) // más abajo que el título
+    expect(chat.x).toBeGreaterThan(banda.x + banda.width / 2) // y a la derecha
+  })
+
   test('el link "saltar al contenido" aparece con Tab', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { level: 1, name: MARCA.slogan })).toBeVisible()

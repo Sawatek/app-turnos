@@ -9,7 +9,7 @@ export interface Pregunta {
   respuesta: React.ReactNode
 }
 
-function Item({ p, abierta, alternar }: { p: Pregunta; abierta: boolean; alternar: () => void }) {
+function Item({ p, n, abierta, alternar }: { p: Pregunta; n: number; abierta: boolean; alternar: () => void }) {
   const id = useId()
   return (
     <li className="border-b border-linea">
@@ -20,17 +20,20 @@ function Item({ p, abierta, alternar }: { p: Pregunta; abierta: boolean; alterna
           aria-expanded={abierta}
           aria-controls={`${id}-r`}
           onClick={alternar}
-          className="flex min-h-14 w-full items-center justify-between gap-4 py-4 text-left text-base font-semibold transition-colors hover:text-acento-texto"
+          className="group flex min-h-14 w-full items-baseline gap-4 py-5 text-left transition-colors hover:text-acento-texto"
         >
-          {p.pregunta}
-          <ChevronDown className={cn('size-5 shrink-0 text-suave transition-transform duration-200', abierta && 'rotate-180')} aria-hidden />
+          <span aria-hidden className="folio num w-6 shrink-0 text-suave group-hover:text-acento-texto">
+            {String(n).padStart(2, '0')}
+          </span>
+          <span className="titular flex-1 text-[1.3rem] leading-snug tracking-[-0.015em]">{p.pregunta}</span>
+          <ChevronDown className={cn('size-5 shrink-0 self-center text-suave transition-transform duration-200', abierta && 'rotate-180')} aria-hidden />
         </button>
       </h3>
       <section
         id={`${id}-r`}
         aria-labelledby={`${id}-b`}
         hidden={!abierta}
-        className="pb-5 text-[15px] leading-relaxed text-suave [&_a]:font-semibold [&_a]:text-acento-texto [&_a]:underline [&_a]:underline-offset-4"
+        className="pb-6 pl-10 text-base leading-relaxed text-suave [text-wrap:pretty] [&_a]:font-semibold [&_a]:text-acento-texto [&_a]:underline [&_a]:underline-offset-4"
       >
         {p.respuesta}
       </section>
@@ -50,7 +53,7 @@ export function Preguntas({ items }: { items: Pregunta[] }) {
   return (
     <ul className="border-t border-linea">
       {items.map((p, i) => (
-        <Item key={p.pregunta} p={p} abierta={abiertas.has(i)} alternar={() => alternar(i)} />
+        <Item key={p.pregunta} p={p} n={i + 1} abierta={abiertas.has(i)} alternar={() => alternar(i)} />
       ))}
     </ul>
   )

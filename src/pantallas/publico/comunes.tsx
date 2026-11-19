@@ -14,7 +14,8 @@ const ESTILOS = {
   secundario: 'bg-superficie-2 text-texto ring-1 ring-linea hover:bg-linea/70',
   fantasma: 'text-acento-texto hover:bg-acento-suave',
 } as const
-const TAMANOS = { chico: 'h-11 px-4 text-sm', medio: 'h-12 px-5 text-[15px]', grande: 'h-14 px-6 text-base' } as const
+// Alto mínimo (no fijo): si el texto no entra en una línea, el botón crece en vez de cortarlo.
+const TAMANOS = { chico: 'min-h-11 px-4 py-2 text-sm', medio: 'min-h-12 px-5 py-2.5 text-[15px]', grande: 'min-h-14 px-6 py-3 text-base' } as const
 
 interface PropsEnlace {
   href: string
@@ -94,7 +95,7 @@ const NAV = [
 export function Encabezado({ secciones = false }: { secciones?: boolean }) {
   return (
     <header className="sticky top-0 z-40 border-b border-linea/70 bg-fondo/85 pt-[env(safe-area-inset-top)] backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
+      <div className={cn('mx-auto flex h-16 items-center justify-between gap-4 px-5', secciones ? 'max-w-7xl sm:px-8' : 'max-w-6xl')}>
         <MarcaSitio />
         {secciones && (
           <nav aria-label="Secciones" className="hidden lg:block">
@@ -115,12 +116,13 @@ export function Encabezado({ secciones = false }: { secciones?: boolean }) {
   )
 }
 
-/** Pie con legales, demos y acceso para negocios. */
-export function Pie() {
+/** Pie con legales, demos y acceso para negocios. `amplio`: mismo ancho que la grilla de la landing. */
+export function Pie({ amplio = false }: { amplio?: boolean }) {
+  const ancho = amplio ? 'max-w-7xl sm:px-8' : 'max-w-6xl'
   const dominio = typeof window === 'undefined' ? '' : window.location.host
   return (
     <footer className="border-t border-linea bg-superficie/40">
-      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 pb-[max(3rem,env(safe-area-inset-bottom))] sm:grid-cols-2 lg:grid-cols-4">
+      <div className={cn('mx-auto grid gap-10 px-5 py-12', ancho, 'pb-[max(3rem,env(safe-area-inset-bottom))] sm:grid-cols-2 lg:grid-cols-4')}>
         <div className="sm:col-span-2 lg:col-span-1">
           <MarcaSitio />
           <p className="mt-2 max-w-xs text-sm text-suave">{MARCA.slogan}. Hecho en Argentina para negocios que viven de sus turnos.</p>
@@ -158,7 +160,7 @@ export function Pie() {
           </Link>
         </div>
       </div>
-      <p className="mx-auto max-w-6xl px-5 pb-8 text-xs text-suave">© {ANIO} {MARCA.nombre}. Todos los derechos reservados.</p>
+      <p className={cn('mx-auto px-5 pb-8 text-xs text-suave', ancho)}>© {ANIO} {MARCA.nombre}. Todos los derechos reservados.</p>
     </footer>
   )
 }
