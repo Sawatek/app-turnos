@@ -28,6 +28,8 @@ export function NoEncontrado() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-6 py-16">
+      {/* Lo inexistente responde 200 (es una SPA): que los buscadores no lo indexen. React lo sube al <head>. */}
+      <meta name="robots" content="noindex" />
       <div className="text-center">
         <span className="mx-auto grid size-16 place-items-center rounded-grande bg-superficie text-suave ring-1 ring-linea">
           <SearchX className="size-8" aria-hidden />

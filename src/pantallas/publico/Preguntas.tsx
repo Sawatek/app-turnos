@@ -16,7 +16,6 @@ function Item({ p, n, abierta, alternar }: { p: Pregunta; n: number; abierta: bo
       <h3>
         <button
           type="button"
-          id={`${id}-b`}
           aria-expanded={abierta}
           aria-controls={`${id}-r`}
           onClick={alternar}
@@ -29,14 +28,15 @@ function Item({ p, n, abierta, alternar }: { p: Pregunta; n: number; abierta: bo
           <ChevronDown className={cn('size-5 shrink-0 self-center text-suave transition-transform duration-200', abierta && 'rotate-180')} aria-hidden />
         </button>
       </h3>
-      <section
+      {/* div y no section: con 9 preguntas serían 9 landmarks "region" que ensucian la navegación.
+          hidden común y no "until-found": React 19 trata hidden como booleano y escribe hidden="". */}
+      <div
         id={`${id}-r`}
-        aria-labelledby={`${id}-b`}
         hidden={!abierta}
         className="pb-6 pl-10 text-base leading-relaxed text-suave [text-wrap:pretty] [&_a]:font-semibold [&_a]:text-acento-texto [&_a]:underline [&_a]:underline-offset-4"
       >
         {p.respuesta}
-      </section>
+      </div>
     </li>
   )
 }

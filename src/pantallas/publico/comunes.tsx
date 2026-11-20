@@ -1,70 +1,59 @@
-// Piezas compartidas del sitio público: tema de la marca, encabezado, pie y links con forma de botón.
+// Piezas compartidas del sitio público: tema de la marca, encabezado, pie y el botón "Pedí tu demo".
+// role="list" a propósito: Safari con VoiceOver les saca el rol de lista a las listas sin viñeta (y Tailwind se las saca a todas).
+/* oxlint-disable jsx-a11y/no-redundant-roles */
+import { Menu } from 'lucide-react'
+import { Suspense, lazy, useState } from 'react'
 import { Link } from 'react-router'
-import { cn } from '@/ui/cn'
 import { useTemaNegocio } from '@/tema/TemaNegocio'
-import { CONTACTO, MARCA, linkContacto } from './marca'
+import type { Tamano } from '@/ui/Boton'
+import { cn } from '@/ui/cn'
+import { Enlace } from '@/ui/Enlace'
+// Las secciones de la navegación (y su número de folio) salen de la misma lista que arma la landing.
+import { NAV } from './inicio/secciones'
+import { CONTACTO, DEMOS, MARCA, linkContacto } from './marca'
 
 /** Aplica la marca de la plataforma (colores, personalidad, título de la pestaña). */
 export function useMarcaSitio(titulo?: string) {
   useTemaNegocio(MARCA, titulo ? `${titulo} · ${MARCA.nombre}` : `${MARCA.nombre} · ${MARCA.slogan}`)
 }
 
-const ESTILOS = {
-  primario: 'bg-acento text-sobre-acento hover:brightness-110 sombra-suave',
-  secundario: 'bg-superficie-2 text-texto ring-1 ring-linea hover:bg-linea/70',
-  fantasma: 'text-acento-texto hover:bg-acento-suave',
-} as const
-// Alto mínimo (no fijo): si el texto no entra en una línea, el botón crece en vez de cortarlo.
-const TAMANOS = { chico: 'min-h-11 px-4 py-2 text-sm', medio: 'min-h-12 px-5 py-2.5 text-[15px]', grande: 'min-h-14 px-6 py-3 text-base' } as const
-
-interface PropsEnlace {
-  href: string
-  children: React.ReactNode
-  variante?: keyof typeof ESTILOS
-  tamano?: keyof typeof TAMANOS
+interface PropsCta {
+  tamano?: Tamano
   className?: string
-  externo?: boolean
+  /** Texto con contacto cargado (abre WhatsApp o el mail). */
+  texto?: string
+  /** Texto sin contacto: el botón lleva a la demo, así que dice eso (no promete una persona). */
+  textoSinContacto?: string
 }
 
-/** Link con forma de botón: interno (react-router) o externo (WhatsApp, mail). */
-export function EnlaceBoton({ href, children, variante = 'primario', tamano = 'medio', className, externo }: PropsEnlace) {
-  const clases = cn(
-    'inline-flex select-none items-center justify-center gap-2 rounded-medio font-semibold transition-[filter,background-color] duration-200',
-    ESTILOS[variante],
-    TAMANOS[tamano],
-    className,
-  )
-  if (externo || /^(https?:|mailto:)/.test(href)) {
-    const nueva = href.startsWith('http')
-    return (
-      <a href={href} className={clases} {...(nueva ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
-        {children}
-      </a>
-    )
-  }
+/**
+ * "Pedí tu demo": WhatsApp o mail si están cargados en marca.ts.
+ * Sin contacto, el botón dice lo que hace ("Ver la demo") y lleva a la demo de la barbería.
+ */
+export function CtaDemo({ tamano = 'medio', className, texto = 'Pedí tu demo', textoSinContacto = 'Ver la demo' }: PropsCta) {
+  const { href, externo, via } = linkContacto()
+  const sinContacto = via === 'demos'
   return (
-    <Link to={href} className={clases}>
-      {children}
-    </Link>
+    // El primario del sitio lleva una sombra suave: lo despega del fondo oscuro.
+    <Enlace href={sinContacto ? DEMOS.barberia : href} externo={!sinContacto && externo} tamano={tamano} className={cn('sombra-suave', className)}>
+      {sinContacto ? textoSinContacto : texto}
+    </Enlace>
   )
 }
 
-/** "Pedí tu demo": WhatsApp o mail si están cargados en marca.ts; si no, la lista de demos. */
-export function CtaDemo({ tamano = 'medio', className, texto = 'Pedí tu demo' }: { tamano?: PropsEnlace['tamano']; className?: string; texto?: string }) {
-  const { href, externo } = linkContacto()
+/** Isotipo + nombre de la plataforma. `compacto`: en el celular muestra el nombre corto (deja lugar en el encabezado). */
+export function MarcaSitio({ className, compacto = false }: { className?: string; compacto?: boolean }) {
   return (
-    <EnlaceBoton href={href} externo={externo} tamano={tamano} className={className}>
-      {texto}
-    </EnlaceBoton>
-  )
-}
-
-/** Isotipo + nombre de la plataforma. */
-export function MarcaSitio({ className }: { className?: string }) {
-  return (
-    <Link to="/" className={cn('inline-flex min-h-11 items-center gap-2.5 rounded-chico font-bold tracking-tight', className)}>
+    <Link to="/" className={cn('inline-flex min-h-11 shrink-0 items-center gap-2.5 rounded-chico font-bold tracking-tight', className)}>
       <img src="/icono.svg" alt="" width={32} height={32} className="size-8 rounded-[9px]" />
-      <span className="text-[17px]">{MARCA.nombre}</span>
+      {compacto ? (
+        <span className="text-[17px]">
+          <span className="sm:hidden">{MARCA.corto}</span>
+          <span className="hidden sm:inline">{MARCA.nombre}</span>
+        </span>
+      ) : (
+        <span className="text-[17px]">{MARCA.nombre}</span>
+      )}
     </Link>
   )
 }
@@ -83,20 +72,66 @@ export function SaltarAlContenido() {
 
 const ANIO = new Date().getFullYear()
 
-const NAV = [
-  { href: '#como-funciona', texto: 'Cómo funciona' },
-  { href: '#funciones', texto: 'Funciones' },
-  { href: '#rubros', texto: 'Rubros' },
-  { href: '#precios', texto: 'Precios' },
-  { href: '#preguntas', texto: 'Preguntas' },
-]
+// La hoja (y motion, que viene con ella) se baja recién la primera vez que se abre el menú: la portada no la necesita.
+const Hoja = lazy(() => import('@/ui/Hoja').then((m) => ({ default: m.Hoja })))
+
+/**
+ * Menú "Secciones" del celular (bajo lg): abre una hoja con las mismas secciones que la barra de la compu.
+ * Tocar una cierra la hoja y el link hace el salto al ancla (scroll-padding de estilos.css deja lugar al encabezado).
+ */
+function MenuSecciones() {
+  const [abierta, setAbierta] = useState(false)
+  const [usada, setUsada] = useState(false)
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="Secciones"
+        aria-haspopup="dialog"
+        aria-expanded={abierta}
+        onClick={() => {
+          setUsada(true)
+          setAbierta(true)
+        }}
+        className="grid size-11 shrink-0 place-items-center rounded-full text-texto ring-1 ring-linea transition-colors hover:bg-superficie-2 lg:hidden"
+      >
+        <Menu className="size-5" aria-hidden />
+      </button>
+      {usada && (
+        <Suspense fallback={null}>
+          <Hoja abierta={abierta} onCerrar={() => setAbierta(false)} titulo="Secciones" pie={<CtaDemo tamano="grande" className="w-full" />}>
+            <ul role="list" className="border-b border-linea">
+              {NAV.map((s) => (
+                <li key={s.href} className="border-t border-linea">
+                  <a
+                    href={s.href}
+                    onClick={() => setAbierta(false)}
+                    className="flex min-h-14 items-baseline gap-4 py-3 transition-colors hover:text-acento-texto"
+                  >
+                    <span aria-hidden className="folio num text-acento-texto">
+                      {s.n}
+                    </span>
+                    <span className="titular text-2xl">{s.texto}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Hoja>
+        </Suspense>
+      )}
+    </>
+  )
+}
 
 /** Barra superior fija. En la landing muestra las secciones; en las otras páginas, solo marca y CTA. */
 export function Encabezado({ secciones = false }: { secciones?: boolean }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-linea/70 bg-fondo/85 pt-[env(safe-area-inset-top)] backdrop-blur-md">
-      <div className={cn('mx-auto flex h-16 items-center justify-between gap-4 px-5', secciones ? 'max-w-7xl sm:px-8' : 'max-w-6xl')}>
-        <MarcaSitio />
+    <header
+      data-encabezado-sitio
+      className="sticky top-0 z-40 border-b border-linea/70 bg-fondo/95 pt-[env(safe-area-inset-top)] lg:bg-fondo/85 lg:backdrop-blur-md"
+    >
+      <div className={cn('mx-auto flex h-16 items-center justify-between gap-3 px-5', secciones ? 'max-w-7xl sm:px-8' : 'max-w-6xl')}>
+        <MarcaSitio compacto={secciones} />
         {secciones && (
           <nav aria-label="Secciones" className="hidden lg:block">
             <ul className="flex items-center gap-1 text-sm font-semibold text-suave">
@@ -110,7 +145,10 @@ export function Encabezado({ secciones = false }: { secciones?: boolean }) {
             </ul>
           </nav>
         )}
-        <CtaDemo tamano="chico" />
+        <div className="flex items-center gap-2">
+          {secciones && <MenuSecciones />}
+          <CtaDemo tamano="chico" className="whitespace-nowrap" />
+        </div>
       </div>
     </header>
   )
@@ -132,8 +170,8 @@ export function Pie({ amplio = false }: { amplio?: boolean }) {
           <h2 id="pie-producto" className="text-sm font-bold">Producto</h2>
           <ul className="mt-2 text-sm text-suave">
             <li><Link to="/demos" className="inline-flex min-h-11 items-center hover:text-texto">Ver todas las demos</Link></li>
-            <li><a href="/#precios" className="inline-flex min-h-11 items-center hover:text-texto">Precios</a></li>
-            <li><a href="/#preguntas" className="inline-flex min-h-11 items-center hover:text-texto">Preguntas frecuentes</a></li>
+            <li><Link to="/#precios" className="inline-flex min-h-11 items-center hover:text-texto">Precios</Link></li>
+            <li><Link to="/#preguntas" className="inline-flex min-h-11 items-center hover:text-texto">Preguntas frecuentes</Link></li>
             {CONTACTO.email && (
               <li><a href={`mailto:${CONTACTO.email}`} className="inline-flex min-h-11 items-center hover:text-texto">{CONTACTO.email}</a></li>
             )}
@@ -152,9 +190,9 @@ export function Pie({ amplio = false }: { amplio?: boolean }) {
           <h2 className="text-sm font-bold">Acceso para negocios</h2>
           <p className="mt-3 text-sm text-suave">
             Cada negocio entra a su panel desde su propio link:
-            <span className="mt-1 block font-semibold text-texto [overflow-wrap:anywhere]">{dominio}/tu-negocio/panel</span>
+            <span className="mt-1 block font-semibold text-texto wrap-anywhere">{dominio}/tu-negocio/panel</span>
           </p>
-          <p className="mt-2 text-sm text-suave">¿Sacaste un turno? <Link to="/mis-turnos" className="inline-flex min-h-11 items-center font-semibold text-acento-texto underline-offset-4 hover:underline">Mis turnos</Link></p>
+          <p className="mt-2 text-sm text-suave">¿Sacaste un turno? <Link to="/mis-turnos" className="inline-flex min-h-11 items-center font-semibold text-acento-texto underline decoration-acento-borde underline-offset-4 transition-colors hover:decoration-acento">Mis turnos</Link></p>
           <Link to="/admin" className="inline-flex min-h-11 items-center text-sm font-semibold text-acento-texto underline-offset-4 hover:underline">
             Ingreso del equipo {MARCA.corto}
           </Link>

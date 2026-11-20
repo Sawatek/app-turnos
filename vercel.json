@@ -6,8 +6,12 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/",
       "destination": "/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/app.html"
     }
   ],
   "headers": [
@@ -26,6 +30,33 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/:seccion(admin|demos|mis-turnos)/:resto*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    },
+    {
+      "source": "/:slug/panel/:resto*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    },
+    {
+      "source": "/:slug/escenario",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
         }
       ]
     },

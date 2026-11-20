@@ -156,7 +156,7 @@ function Editor({ profesionalId, nombre, inicial }: { profesionalId: string; nom
                 ))}
                 <ErrorEnLinea texto={errores[dia]} />
               </div>
-              <Boton variante="fantasma" tamano="chico" className="h-11 self-start" onClick={() => agregar(dia)} aria-label={`Agregar franja al ${DIAS[dia].toLowerCase()}`}>
+              <Boton variante="fantasma" tamano="chico" className="self-start" onClick={() => agregar(dia)} aria-label={`Agregar franja al ${DIAS[dia].toLowerCase()}`}>
                 <Plus className="size-4" aria-hidden />
                 Franja
               </Boton>

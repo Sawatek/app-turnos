@@ -232,7 +232,7 @@ function Editor({ inicial }: { inicial: DatosMarca }) {
                   </label>
                 </div>
                 {m.logo && (
-                  <Boton variante="fantasma" tamano="chico" className="h-11 self-start" onClick={() => cambiar({ logo: undefined })}>
+                  <Boton variante="fantasma" tamano="chico" className="self-start" onClick={() => cambiar({ logo: undefined })}>
                     <Trash2 className="size-4" aria-hidden />
                     Quitar logo
                   </Boton>
@@ -429,7 +429,7 @@ function ListaPromos({
             <Campo etiqueta={`Promo ${i + 1}: etiqueta`} placeholder="Ej.: -20%" maxLength={24} value={p.etiqueta} onChange={(e) => poner(i, { etiqueta: e.target.value })} />
             <Campo etiqueta={`Promo ${i + 1}: título`} placeholder="Ej.: Martes de barba" maxLength={60} value={p.titulo} onChange={(e) => poner(i, { titulo: e.target.value })} />
             <Campo etiqueta={`Promo ${i + 1}: detalle`} className="sm:col-span-2" maxLength={160} value={p.detalle} onChange={(e) => poner(i, { detalle: e.target.value })} />
-            <Boton variante="peligro" tamano="chico" className="h-11 sm:col-span-2 sm:justify-self-start" onClick={() => onCambiar(promos.filter((_, j) => j !== i))}>
+            <Boton variante="peligro" tamano="chico" className="sm:col-span-2 sm:justify-self-start" onClick={() => onCambiar(promos.filter((_, j) => j !== i))}>
               <Trash2 className="size-4" aria-hidden />
               Borrar promo {i + 1}
             </Boton>

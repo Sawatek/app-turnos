@@ -18,6 +18,7 @@ import { estiloTema } from '@/tema/TemaNegocio'
 import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
 import { Logo } from '@/ui/Logo'
+import { Pastillas } from '@/ui/Pastillas'
 import { cn } from '@/ui/cn'
 import { achicarLogo } from './Alta'
 import { AreaTexto, Cargando, Cifra, ErrorEnLinea, Exito, FalloCarga, Insignia, Selector, Tarjeta, fechaCorta, useAccion } from './comunes'
@@ -59,20 +60,13 @@ function Lista() {
           Nuevo negocio real
         </Link>
       </div>
-      <fieldset className="flex flex-wrap gap-2">
-        <legend className="sr-only">Filtrar por estado</legend>
-        {([{ id: 'todos', texto: `Todos (${q.data.length})` }, ...ESTADOS.map((e) => ({ id: e.id, texto: `${e.texto} (${cuenta(e.id)})` }))] as const).map((o) => (
-          <button
-            key={o.id}
-            type="button"
-            aria-pressed={filtro === o.id}
-            onClick={() => setFiltro(o.id)}
-            className={cn('h-11 rounded-full px-4 text-sm font-semibold', filtro === o.id ? 'bg-acento text-sobre-acento' : 'bg-superficie ring-1 ring-linea')}
-          >
-            {o.texto}
-          </button>
-        ))}
-      </fieldset>
+      <Pastillas
+        etiqueta="Filtrar por estado"
+        ocultarEtiqueta
+        valor={filtro}
+        opciones={[{ id: 'todos', texto: `Todos (${q.data.length})` }, ...ESTADOS.map((e) => ({ id: e.id, texto: `${e.texto} (${cuenta(e.id)})` }))]}
+        onCambiar={setFiltro}
+      />
 
       <section aria-labelledby="t-reales" className="rounded-grande bg-superficie p-2 ring-1 ring-linea sm:p-3">
         <h2 id="t-reales" className="titulo px-2 pt-2 pb-1 text-base">

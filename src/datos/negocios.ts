@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { SLUGS_RESERVADOS } from '@/dominio/slugs'
 import type { Negocio } from '@/dominio/tipos'
 import { DEMOS_FIJAS } from '@/plantillas/demos'
 import { supabase } from './supabase'
@@ -140,11 +141,8 @@ export async function borrarNegocio(slug: string) {
   useNegocios.getState().borrarLocal(slug)
 }
 
-/** Links que usa la plataforma: ningún negocio puede llamarse así. */
-export const SLUGS_RESERVADOS = new Set([
-  'admin', 'demos', 'terminos', 'privacidad', 'mis-turnos', 'm', 'assets', 'api', 'panel', 'login', 'ingresar',
-  'precios', 'ayuda', 'contacto', 'sawatek', 'app', 'www', 'icono', 'manifest', 'sw', 'workbox',
-])
+/** Links que usa la plataforma (viven en dominio/slugs.ts para que los use también middleware.ts). */
+export { SLUGS_RESERVADOS }
 
 /** ¿Está libre este link? Revisa las reservadas, las demos fijas, las del navegador y las de la nube. */
 export async function slugLibre(slug: string, ignorar?: string) {

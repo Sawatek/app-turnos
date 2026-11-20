@@ -223,7 +223,7 @@ function ElegirCliente(p: {
             <p className="truncate font-semibold">{p.cliente.nombre}</p>
             {p.cliente.telefono && <p className="truncate text-sm text-suave">{p.cliente.telefono}</p>}
           </div>
-          <Boton variante="fantasma" tamano="chico" className="h-11" onClick={() => p.onCliente(null)}>
+          <Boton variante="fantasma" tamano="chico" onClick={() => p.onCliente(null)}>
             <X className="size-4" aria-hidden />
             Cambiar
           </Boton>

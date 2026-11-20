@@ -15,7 +15,9 @@
 
     <!-- SEO y vista previa al compartir (genéricos de la plataforma; cada negocio cambia el título al cargar su app).
          Si cambia el nombre o el slogan, actualizar también src/pantallas/publico/marca.ts.
-         Cuando haya dominio: agregar og:url y poner og:image / twitter:image con la URL absoluta (WhatsApp y Facebook la prefieren). -->
+         Con VITE_URL_SITIO, el build agrega og:url y pone og:image / twitter:image absolutas (plugin seoDelSitio de
+         vite.config.ts); el canonical lo pone src/main.tsx por ruta. -->
+    <!-- og:image / twitter:image: dejar "/compartir.jpg" tal cual (el plugin busca ese texto). -->
     <meta name="description" content="La app de turnos con la marca de tu negocio: tus clientes reservan en segundos, les llega el recordatorio por WhatsApp y confirman con un toque. Para barberías, peluquerías, consultorios y más." />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="es_AR" />

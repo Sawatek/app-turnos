@@ -5,8 +5,9 @@ import { useEffect, useState } from 'react'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { estaLibre } from '@/dominio/horarios'
+import { textoMensaje } from '@/dominio/mensajes'
 import { generarSemilla } from '@/dominio/semilla'
-import { claveDia, diaRelativo, horaCorta } from '@/dominio/tiempo'
+import { claveDia } from '@/dominio/tiempo'
 import type { Aviso, ClienteResumen, EstadoTurno, Negocio, Turno } from '@/dominio/tipos'
 
 interface Usuario {
@@ -50,20 +51,8 @@ interface EstadoDemo {
 export const ahoraSimulado = (desfase: number) => new Date(Date.now() + desfase)
 const id = () => Math.random().toString(36).slice(2, 10)
 
-const sustituir = (plantilla: string, valores: Record<string, string>) =>
-  plantilla.replace(/\{(\w+)\}/g, (_, k: string) => valores[k] ?? `{${k}}`)
-
-export function textoMensaje(n: Negocio, plantilla: string, t: Turno | null, nombre: string, ahora: Date) {
-  return sustituir(plantilla, {
-    nombre: nombre.split(' ')[0] ?? nombre,
-    negocio: n.nombre,
-    direccion: n.direccion,
-    hora: t ? horaCorta(t.inicio) : '',
-    dia: t ? diaRelativo(t.inicio, ahora) : '',
-    servicio: t ? (n.servicios.find((s) => s.id === t.servicioId)?.nombre ?? '') : '',
-    profesional: t ? (n.staff.find((p) => p.id === t.profesionalId)?.nombre ?? '') : '',
-  })
-}
+// Los textos de los mensajes viven en dominio/mensajes (la landing los usa sin cargar este estado).
+export { textoMensaje } from '@/dominio/mensajes'
 
 export const useDemo = create<EstadoDemo>()(
   persist(

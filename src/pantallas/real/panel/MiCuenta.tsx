@@ -38,7 +38,7 @@ export function BotonMiCuenta({ nombre, email, rol }: { nombre: string | null; e
   const [abierta, setAbierta] = useState(false)
   return (
     <>
-      <Boton variante="secundario" tamano="chico" className="h-11" onClick={() => setAbierta(true)} aria-label="Mi cuenta">
+      <Boton variante="secundario" tamano="chico" onClick={() => setAbierta(true)} aria-label="Mi cuenta">
         <UserRound className="size-4" aria-hidden />
         <span className="hidden max-w-36 truncate sm:inline">{nombre ?? 'Mi cuenta'}</span>
       </Boton>

@@ -1,7 +1,9 @@
 # Dependencias y builds
 node_modules/
 dist/
+dist-servidor/
 dev-dist/
+dist-servidor/
 *.tsbuildinfo
 
 # Variables de entorno (claves): nunca al repo

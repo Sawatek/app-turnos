@@ -65,7 +65,7 @@ export default function Legal({ tipo }: { tipo: 'terminos' | 'privacidad' }) {
 
           <div className="max-w-3xl">
             {pagina.secciones.map((s, i) => (
-              <section key={s.id} id={s.id} aria-labelledby={`t-${s.id}`} className="scroll-mt-24 border-t border-linea py-8 first:border-t-0 first:pt-0">
+              <section key={s.id} id={s.id} aria-labelledby={`t-${s.id}`} className="border-t border-linea py-8 first:border-t-0 first:pt-0">
                 <h2 id={`t-${s.id}`} className="text-2xl">
                   <span className="num mr-2 text-suave">{i + 1}.</span>
                   {s.titulo}

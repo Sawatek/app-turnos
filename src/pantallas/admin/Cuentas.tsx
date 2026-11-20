@@ -16,7 +16,8 @@ import {
 } from '@/datos/admin'
 import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
-import { Cargando, ContrasenaNueva, ErrorEnLinea, FalloCarga, Insignia, Opciones, Selector, Tarjeta, fechaCorta, useAccion } from './comunes'
+import { Pastillas } from '@/ui/Pastillas'
+import { Cargando, ContrasenaNueva, ErrorEnLinea, FalloCarga, Insignia, Selector, Tarjeta, fechaCorta, useAccion } from './comunes'
 
 const ROLES: Record<RolStaff, string> = { dueno: 'Dueño', profesional: 'Profesional' }
 
@@ -89,7 +90,7 @@ function CrearCuenta() {
             ))}
           </Selector>
           {negocioId && (
-            <Opciones
+            <Pastillas
               etiqueta="Rol en el negocio"
               valor={rol}
               opciones={[

@@ -1,7 +1,7 @@
 // Todo lo "comercial" del sitio público en un solo lugar: nombre, slogan, contacto, empresa y planes.
 // El nombre comercial todavía no está decidido: cambiarlo acá cambia la landing, los legales y la 404.
 // Lo que dice COMPLETAR hay que llenarlo antes de publicar. Si queda vacío, el sitio lo resuelve solo
-// (por ejemplo: sin WhatsApp ni mail de contacto, "Pedí tu demo" lleva a /demos).
+// (por ejemplo: sin WhatsApp ni mail de contacto, "Pedí tu demo" pasa a decir "Ver la demo" y lleva a la demo).
 // index.html tiene su propia copia del nombre y la descripción (meta tags): actualizarla también.
 
 export const MARCA = {
@@ -73,14 +73,21 @@ export const PLANES: Plan[] = [
 /** Demos de fábrica que se muestran en la landing (tienen que existir en src/plantillas/demos.ts). */
 export const DEMOS = { barberia: '/quetul', consultorio: '/lema', unas: '/nailed' } as const
 
-/** A dónde lleva "Pedí tu demo": WhatsApp, si no mail, y si no hay contacto cargado, la lista de demos. */
-export function linkContacto(): { href: string; externo: boolean; via: 'whatsapp' | 'email' | 'demos' } {
-  if (CONTACTO.whatsapp)
-    return { href: `https://wa.me/${CONTACTO.whatsapp}?text=${encodeURIComponent(CONTACTO.mensajeDemo)}`, externo: true, via: 'whatsapp' }
-  if (CONTACTO.email)
-    return { href: `mailto:${CONTACTO.email}?subject=${encodeURIComponent(`Demo de ${MARCA.nombre}`)}`, externo: true, via: 'email' }
+export type Contacto = typeof CONTACTO
+
+/**
+ * A dónde lleva "Pedí tu demo": WhatsApp, si no mail, y si no hay contacto cargado, la lista de demos.
+ * Recibe el contacto (por defecto, el de arriba) para poder probar cada rama sin tocar CONTACTO.
+ */
+export function linkContacto(contacto: Contacto = CONTACTO): { href: string; externo: boolean; via: 'whatsapp' | 'email' | 'demos' } {
+  if (contacto.whatsapp)
+    return { href: `https://wa.me/${contacto.whatsapp}?text=${encodeURIComponent(contacto.mensajeDemo)}`, externo: true, via: 'whatsapp' }
+  if (contacto.email)
+    return { href: `mailto:${contacto.email}?subject=${encodeURIComponent(`Demo de ${MARCA.nombre}`)}`, externo: true, via: 'email' }
   return { href: '/demos', externo: false, via: 'demos' }
 }
 
 const pesos = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 })
 export const precioPlan = (p: Plan) => (p.precioMensual == null ? null : pesos.format(p.precioMensual))
+/** true si algún plan ya tiene precio cargado. */
+export const hayPrecios = () => PLANES.some((p) => p.precioMensual != null)

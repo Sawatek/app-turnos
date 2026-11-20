@@ -179,7 +179,7 @@ function SelectorDia({ dia, hoy, onDia }: { dia: string; hoy: string; onDia: (d:
         </div>
         <div className="flex items-end gap-2">
           {dia !== hoy && (
-            <Boton variante="secundario" tamano="chico" className="h-11" onClick={() => onDia(hoy)}>
+            <Boton variante="secundario" tamano="chico" onClick={() => onDia(hoy)}>
               Hoy
             </Boton>
           )}
@@ -315,11 +315,11 @@ function DetalleTurno({ t, onListo }: { t: TurnoPanel; onListo: () => void }) {
 
       {activo && (
         <div className="grid grid-cols-2 gap-2">
-          <Boton variante="secundario" className="bg-exito/15! text-exito!" cargando={accion.ocupado && hecho === 'asistio'} onClick={() => cambiar('asistio')}>
+          <Boton variante="secundario" className="bg-exito/15 text-exito" cargando={accion.ocupado && hecho === 'asistio'} onClick={() => cambiar('asistio')}>
             <Check className="size-5" aria-hidden />
             Vino
           </Boton>
-          <Boton variante="secundario" className="bg-peligro/12! text-peligro!" cargando={accion.ocupado && hecho === 'falto'} onClick={() => cambiar('falto')}>
+          <Boton variante="secundario" className="bg-peligro/12 text-peligro" cargando={accion.ocupado && hecho === 'falto'} onClick={() => cambiar('falto')}>
             <UserX className="size-5" aria-hidden />
             No vino
           </Boton>

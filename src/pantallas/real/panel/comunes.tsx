@@ -1,11 +1,12 @@
 // Piezas compartidas por las secciones del panel real (mismo estilo que src/ui).
-import { CircleAlert, CircleCheck, LoaderCircle } from 'lucide-react'
 import { createContext, use, useId, useState } from 'react'
 import type { Acceso } from '@/datos/real/panel'
 import { mensajeDe } from '@/datos/real/panel'
 import type { Negocio } from '@/dominio/tipos'
 import { Boton } from '@/ui/Boton'
 import { cn } from '@/ui/cn'
+import { FalloCarga as FalloCargaBase, type PropsFalloCarga } from '@/ui/Estados'
+import { useAccion as useAccionBase } from '@/ui/useAccion'
 
 // ---------- Contexto del panel ----------
 
@@ -28,93 +29,17 @@ export function usePanel() {
   return c
 }
 
-// ---------- Acciones con estado de carga y error ----------
+// ---------- Piezas de src/ui con los textos del panel ----------
 
 /** Corre una acción async: maneja "cargando" y deja el error listo para mostrar al lado del botón o campo. */
-export function useAccion() {
-  const [ocupado, setOcupado] = useState(false)
-  const [error, setError] = useState<string>()
-  const correr = async (fn: () => Promise<unknown>) => {
-    setOcupado(true)
-    setError(undefined)
-    try {
-      await fn()
-      return true
-    } catch (e) {
-      setError(mensajeDe(e))
-      return false
-    } finally {
-      setOcupado(false)
-    }
-  }
-  return { ocupado, error, setError, correr }
-}
+export const useAccion = () => useAccionBase(mensajeDe)
 
-// ---------- Campos ----------
+export { AreaTexto, Selector } from '@/ui/Campo'
+export { Cargando, ErrorEnLinea, Exito, Vacio } from '@/ui/Estados'
+export { Tarjeta } from '@/ui/Tarjeta'
 
-const claseControl =
-  'rounded-medio border border-linea bg-superficie px-4 text-[17px] text-texto outline-none transition-colors placeholder:text-suave/70 focus:border-acento aria-invalid:border-peligro'
-
-interface PropsSelector extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  etiqueta: string
-  error?: string
-  ayuda?: string
-}
-
-export function Selector({ etiqueta, error, ayuda, className, children, ...resto }: PropsSelector) {
-  const id = useId()
-  return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
-      <label htmlFor={id} className="text-sm font-semibold text-suave">
-        {etiqueta}
-      </label>
-      <select
-        id={id}
-        aria-invalid={!!error || undefined}
-        aria-describedby={error || ayuda ? `${id}-d` : undefined}
-        className={cn(claseControl, 'h-13 appearance-auto')}
-        {...resto}
-      >
-        {children}
-      </select>
-      {(error || ayuda) && (
-        <p id={`${id}-d`} className={cn('text-sm', error ? 'text-peligro' : 'text-suave')}>
-          {error ?? ayuda}
-        </p>
-      )}
-    </div>
-  )
-}
-
-interface PropsArea extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  etiqueta: string
-  error?: string
-  ayuda?: string
-}
-
-export function AreaTexto({ etiqueta, error, ayuda, className, ...resto }: PropsArea) {
-  const id = useId()
-  return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
-      <label htmlFor={id} className="text-sm font-semibold text-suave">
-        {etiqueta}
-      </label>
-      <textarea
-        id={id}
-        rows={3}
-        aria-invalid={!!error || undefined}
-        aria-describedby={error || ayuda ? `${id}-d` : undefined}
-        className={cn(claseControl, 'min-h-24 py-3 leading-snug')}
-        {...resto}
-      />
-      {(error || ayuda) && (
-        <p id={`${id}-d`} className={cn('text-sm', error ? 'text-peligro' : 'text-suave')}>
-          {error ?? ayuda}
-        </p>
-      )}
-    </div>
-  )
-}
+/** Error al cargar una consulta, con botón para reintentar. */
+export const FalloCarga = (p: PropsFalloCarga) => <FalloCargaBase mensaje={mensajeDe} {...p} />
 
 /** Interruptor (checkbox con rol switch) con etiqueta visible. Toda la fila es clickeable (44 px). */
 export function Interruptor({
@@ -144,51 +69,6 @@ export function Interruptor({
   )
 }
 
-// ---------- Mensajes ----------
-
-export function ErrorEnLinea({ texto, className }: { texto?: string; className?: string }) {
-  if (!texto) return null
-  return (
-    <p role="alert" className={cn('flex items-start gap-2 text-sm font-semibold text-peligro', className)}>
-      <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-      {texto}
-    </p>
-  )
-}
-
-export function Exito({ texto }: { texto?: string }) {
-  return (
-    <p aria-live="polite" className="flex min-h-5 items-center gap-2 text-sm font-semibold text-exito">
-      {texto && <CircleCheck className="size-4 shrink-0" aria-hidden />}
-      {texto}
-    </p>
-  )
-}
-
-export function Cargando({ texto = 'Cargando' }: { texto?: string }) {
-  return (
-    <div className="grid place-items-center py-10" aria-busy="true">
-      <LoaderCircle className="size-7 animate-spin text-suave" aria-label={texto} />
-    </div>
-  )
-}
-
-export function Vacio({ children }: { children: React.ReactNode }) {
-  return <p className="rounded-grande bg-superficie p-8 text-center text-suave ring-1 ring-linea">{children}</p>
-}
-
-/** Error al cargar una consulta, con botón para reintentar. */
-export function FalloCarga({ error, onReintentar }: { error: unknown; onReintentar: () => void }) {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-grande bg-superficie p-6 text-center ring-1 ring-linea">
-      <ErrorEnLinea texto={mensajeDe(error)} />
-      <Boton variante="secundario" tamano="chico" onClick={onReintentar}>
-        Reintentar
-      </Boton>
-    </div>
-  )
-}
-
 // ---------- Estructura ----------
 
 export function Encabezado({ titulo, bajada, children }: { titulo: string; bajada?: string; children?: React.ReactNode }) {
@@ -200,20 +80,6 @@ export function Encabezado({ titulo, bajada, children }: { titulo: string; bajad
       </div>
       {children && <div className="flex flex-wrap gap-2">{children}</div>}
     </div>
-  )
-}
-
-export function Tarjeta({ titulo, children, className, id }: { titulo?: string; children: React.ReactNode; className?: string; id?: string }) {
-  const idTitulo = useId()
-  return (
-    <section aria-labelledby={titulo ? idTitulo : undefined} id={id} className={cn('rounded-grande bg-superficie p-4 ring-1 ring-linea', className)}>
-      {titulo && (
-        <h3 id={idTitulo} className="titulo mb-3 text-base">
-          {titulo}
-        </h3>
-      )}
-      {children}
-    </section>
   )
 }
 
@@ -245,7 +111,7 @@ export function BotonConfirmar({
       <Boton variante="secundario" tamano={tamano} className={ancho ? 'flex-1' : undefined} onClick={() => setPidiendo(false)}>
         No
       </Boton>
-      <Boton variante="primario" tamano={tamano} className={cn('bg-peligro! text-white!', ancho && 'flex-1')} cargando={cargando} onClick={onConfirmar}>
+      <Boton variante="primario" tamano={tamano} className={cn('bg-peligro text-white', ancho && 'flex-1')} cargando={cargando} onClick={onConfirmar}>
         {confirmar}
       </Boton>
     </div>

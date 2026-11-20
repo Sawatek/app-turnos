@@ -8,10 +8,29 @@
   3. De componente: se usan vía las clases de Tailwind mapeadas abajo (bg-acento, text-suave…).
 */
 
+/* Respaldo de los titulares con las medidas de Bricolage Grotesque (700, que es lo único que usan): Arial Bold del
+   sistema, agrandada o achicada para que cada línea ocupe lo mismo y no se muevan al llegar la fuente (CLS).
+   Cómo se calculó (una vez, en Chrome, con el woff2 latin de @fontsource-variable/bricolage-grotesque):
+   - size-adjust = ancho de 4 titulares de la landing en Bricolage 700 / en Arial Bold. Con optical sizing el ancho
+     cambia con el tamaño (1,00 a 24 px; 0,96 a 56 px; 0,91 a 112 px): 96 % es el del título de la portada en el celular.
+   - ascent/descent = fontBoundingBoxAscent/Descent de Bricolage (canvas: 0,930 y 0,270 del em) / size-adjust.
+   Si cambia la fuente de títulos, volver a medir. En Android no hay Arial: ahí no aplica y sigue ui-sans-serif. */
+@font-face {
+  font-family: 'Titulos Respaldo';
+  font-style: normal;
+  font-weight: 200 800;
+  src: local('Arial Bold'), local('Arial-BoldMT');
+  size-adjust: 96%;
+  ascent-override: 96.88%;
+  descent-override: 28.13%;
+  line-gap-override: 0%;
+}
+
 @theme inline {
   --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
-  /* Titulares editoriales del sitio público. La fuente (Bricolage Grotesque) la carga solo la landing. */
-  --font-editorial: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
+  /* Titulares editoriales del sitio público. La fuente (Bricolage Grotesque) la carga solo la landing.
+     Mientras baja, 'Titulos Respaldo' (abajo) ocupa el mismo lugar: no saltan las líneas al cambiar. */
+  --font-editorial: 'Bricolage Grotesque Variable', 'Titulos Respaldo', ui-sans-serif, system-ui, sans-serif;
 
   /* Escalas fluidas de la landing: rem + vw dentro de clamp() (el máximo no pasa 2,5× el mínimo, así el zoom sigue andando). */
   --text-portada: clamp(3.25rem, 1.4rem + 6vw, 7rem);
@@ -20,6 +39,18 @@
   --text-titular--line-height: 1;
   --text-entrada: clamp(1.125rem, 1rem + 0.45vw, 1.375rem);
   --text-entrada--line-height: 1.55;
+  /* Títulos de sección más chicos (columna angosta con texto pegajoso: Funciones, Preguntas). */
+  --text-subtitular: clamp(2.25rem, 1.5rem + 2.4vw, 3.75rem);
+  --text-subtitular--line-height: 1.02;
+  /* Citas y nombres de un índice (la cita de WhatsApp, los rubros). */
+  --text-destacado: clamp(1.75rem, 1.3rem + 1.7vw, 3rem);
+  --text-destacado--line-height: 1.08;
+  /* Números gigantes de los pasos. */
+  --text-numeral: clamp(5rem, 4rem + 4vw, 8.5rem);
+  --text-numeral--line-height: 0.8;
+  /* La palabra gigante y calada de la portada (decorativa). */
+  --text-gigante: clamp(7rem, 22vw, 21rem);
+  --text-gigante--line-height: 1;
 
   --color-fondo: var(--t-fondo);
   --color-superficie: var(--t-superficie);
@@ -114,6 +145,11 @@
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
   }
+  /* Con el encabezado fijo del sitio público, los saltos a un #ancla y el foco con teclado quedan debajo de él (WCAG 2.4.11).
+     4rem = h-16 del encabezado, + la safe area del celular, + 1rem de aire. */
+  html:has([data-encabezado-sitio]) {
+    scroll-padding-top: calc(4rem + env(safe-area-inset-top) + 1rem);
+  }
   body {
     background: var(--t-fondo);
     color: var(--t-texto);
@@ -158,7 +194,10 @@
   letter-spacing: -0.035em;
   text-wrap: balance;
   /* Bricolage no tiene itálica: lo destacado va en color, sin inclinar (evita la itálica falsa del navegador). */
-  & em { font-style: normal; }
+  & em {
+    font-style: normal;
+    color: var(--t-acento-texto);
+  }
 }
 /* Antetítulo de sección ("01 — El problema"). */
 @utility folio {
@@ -206,28 +245,56 @@
 }
 
 /*
-  Landing: los bloques suben y aparecen a medida que entran en pantalla (scroll-driven animations).
-  Es decorativo: sin soporte o con "reducir movimiento" el contenido está quieto y completo desde el principio.
-  .deriva: números y palabras gigantes que se corren un poco más lento que el scroll.
+  Landing. Todo es decorativo: sin soporte o con "reducir movimiento" el contenido está quieto y completo desde el principio
+  (las animaciones se suman solo con prefers-reduced-motion: no-preference, no se declaran y después se apagan).
+  - aparecer: los bloques suben y aparecen a medida que entran en pantalla (scroll-driven animations).
+  - deriva: números y palabras gigantes que se corren un poco más lento que el scroll.
+  - entrar / asomar: entrada de la portada al cargar, en CSS (no espera a JS). asomar solo sube, sin fundir:
+    es para el h1, que tiene que verse desde el primer cuadro. retraso-<ms> escalona las entradas.
 */
-@media (prefers-reduced-motion: no-preference) {
-  @supports ((animation-timeline: view()) and (animation-range: entry)) {
-    @keyframes aparecer {
-      from { opacity: 0; translate: 0 2.5rem; }
-    }
-    @keyframes deriva {
-      from { translate: 0 3rem; }
-      to { translate: 0 -3rem; }
-    }
-    .aparecer {
+@keyframes aparecer {
+  from { opacity: 0; translate: 0 2.5rem; }
+}
+@keyframes deriva {
+  from { translate: 0 3rem; }
+  to { translate: 0 -3rem; }
+}
+@keyframes entrar {
+  from { opacity: 0; translate: 0 14px; }
+}
+@keyframes asomar {
+  from { translate: 0 14px; }
+}
+@utility aparecer {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports ((animation-timeline: view()) and (animation-range: entry)) {
       animation: aparecer auto var(--ease-suave) backwards;
       animation-timeline: view();
       animation-range: entry 0% entry 80%;
     }
-    .deriva {
+  }
+}
+@utility deriva {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports ((animation-timeline: view()) and (animation-range: entry)) {
       animation: deriva auto linear both;
       animation-timeline: view();
       animation-range: cover;
     }
   }
+}
+@utility entrar {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: entrar 0.5s var(--ease-suave) backwards;
+    animation-delay: var(--retraso, 0ms);
+  }
+}
+@utility asomar {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: asomar 0.5s var(--ease-suave) backwards;
+    animation-delay: var(--retraso, 0ms);
+  }
+}
+@utility retraso-* {
+  --retraso: calc(--value(integer) * 1ms);
 }
