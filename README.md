@@ -6,25 +6,64 @@ Qué falta para que sea un producto real: [`HOJA-DE-RUTA.md`](HOJA-DE-RUTA.md).
 
 ## Levantarla
 
-Requisitos: **Node 24+** y **Docker Desktop** abierto (para la base local). `pnpm` se baja solo la versión que pide el proyecto.
+Requisitos: **Node 24+** y **Docker Desktop** abierto (para la base local). `pnpm` baja solo la versión que pide el proyecto.
+
+### La primera vez
 
 ```bash
-pnpm install          # dependencias
-pnpm db:local         # Supabase local en Docker con todas las migraciones (la primera vez tarda: baja imágenes)
-pnpm local:semilla    # usuarios y un negocio real de prueba (se puede repetir)
-pnpm dev:local        # la app en http://localhost:5180, conectada a la base LOCAL
+git clone https://github.com/Sawatek/app-turnos.git
+cd app-turnos
+git switch feat/redesign   # o la rama que quieras ver (dev, main…)
+pnpm install               # dependencias
+pnpm db:local              # Supabase local en Docker con todas las migraciones (la primera vez tarda: baja imágenes)
+pnpm local:semilla         # usuarios y un negocio real de prueba ("Barbería de Prueba")
+pnpm dev:local             # la app en http://localhost:5180, conectada a la base LOCAL
 ```
 
-Usuarios de prueba (contraseña `sawatek-local-123`):
+### Las veces siguientes
 
-| Rol | Usuario | Dónde |
-|---|---|---|
-| SawaTek | `admin@sawatek.local` | `/admin` |
-| Dueño | `dueno@sawatek.local` | `/barberia-de-prueba/panel` |
-| Profesional | `profesional@sawatek.local` | `/barberia-de-prueba/panel` |
-| Cliente | cualquier celular | `/barberia-de-prueba` → el código: `pnpm local:codigo` |
+Con Docker abierto: `pnpm db:local` (si la base está apagada) y `pnpm dev:local`. Los datos quedan guardados entre una vez y otra.
+Para apagar: `Ctrl+C` en la terminal de la app y `pnpm exec supabase stop` para la base.
 
-Las demos (`/quetul`, `/lema`, `/nailed`) andan siempre, con o sin base.
+> Todo esto usa la base **local** (en tu compu). Nunca toca la base real. `pnpm dev` (sin `:local`) sí usa la real: no lo uses para probar.
+
+### Usuarios de prueba
+
+Los crea `pnpm local:semilla` (se puede correr las veces que quieras, no duplica nada). Contraseña de todos: **`sawatek-local-123`**.
+
+| Rol | Usuario | Dónde entra | Qué puede hacer |
+|---|---|---|---|
+| SawaTek (superadmin) | `admin@sawatek.local` | [`/admin`](http://localhost:5180/admin) | La consola: ver y dar de alta negocios, crear demos y cuentas, ver mensajes |
+| Dueño (Tulio) | `dueno@sawatek.local` | [`/barberia-de-prueba/panel`](http://localhost:5180/barberia-de-prueba/panel) | Todo el panel: agenda, clientes, reportes, servicios, equipo, horarios, marca y ajustes |
+| Profesional (Nico) | `profesional@sawatek.local` | [`/barberia-de-prueba/panel`](http://localhost:5180/barberia-de-prueba/panel) | Solo su agenda y sus números |
+| Cliente | cualquier celular | [`/barberia-de-prueba`](http://localhost:5180/barberia-de-prueba) | Reservar, confirmar, cancelar y ver sus turnos |
+
+**Entrar como cliente** (no tiene contraseña: entra con celular y código, como en la app real):
+
+1. En `/barberia-de-prueba`, tocá **Reservar** y elegí servicio, profesional, día y hora (o "Reservar este" en el próximo libre).
+2. Poné cualquier celular, por ejemplo `11 5555-0101`, y tocá **Recibir código por WhatsApp**.
+3. En local no sale ningún WhatsApp: el código se ve corriendo en otra terminal `pnpm local:codigo` (o `pnpm local:codigo 1155550101` para un celular puntual).
+4. Escribí el código, tu nombre la primera vez, y **Confirmar turno**.
+
+Cada celular distinto es un cliente distinto. El turno aparece al instante en la agenda del dueño (probalo con dos pestañas: una de cliente y otra del panel).
+
+**Para probar el ida y vuelta**: con el cliente, en *Mis turnos* tocá **Confirmar asistencia** (el sello cae sobre el turno); con el dueño, en la agenda tocá el turno y marcá **Vino** o **No vino** cuando ya pasó.
+
+**Volver a empezar de cero** (borra turnos, clientes y todo lo que hayas cargado):
+
+```bash
+pnpm db:reset         # rearma la base local desde las migraciones
+pnpm local:semilla    # vuelve a crear los usuarios y la barbería de prueba
+```
+
+Si los tests e2e se cortan a la mitad pueden quedar usuarios `…@ejemplo.com` en la base local: no molestan, y `pnpm db:reset` los limpia.
+
+### Demos y sitio
+
+- Landing: [`/`](http://localhost:5180/) (tiene modo claro y oscuro: el botón de la luna/sol del encabezado).
+- Demos de venta, sin base ni usuarios (todo simulado en el navegador): [`/quetul`](http://localhost:5180/quetul), [`/lema`](http://localhost:5180/lema), [`/nailed`](http://localhost:5180/nailed), y el modo escenario para presentar en [`/quetul/escenario`](http://localhost:5180/quetul/escenario). Listado en [`/demos`](http://localhost:5180/demos).
+
+### Comandos
 
 | Comando | Qué hace |
 |---|---|
