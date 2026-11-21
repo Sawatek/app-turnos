@@ -1,11 +1,12 @@
-// Aviso discreto cuando entra un turno nuevo mientras el panel está abierto (desde la app del cliente,
+// Aviso cuando entra un turno nuevo (sale como un ticket impreso) mientras el panel está abierto (desde la app del cliente,
 // o cargado por otra persona del equipo). Los que carga el propio usuario no se avisan.
 import { AnimatePresence, motion } from 'motion/react'
-import { CalendarPlus, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import type { TurnoPanel } from '@/datos/real/panel'
 import { capitalizar, claveDia, diaRelativo, horaCorta } from '@/dominio/tiempo'
+import { Talon } from '@/ui/Talon'
 import { usePanel } from './comunes'
 
 const DURACION = 12_000
@@ -40,34 +41,46 @@ function Aviso({ t, onCerrar }: { t: TurnoPanel; onCerrar: () => void }) {
   const [ahora] = useState(() => new Date())
   const dia = claveDia(t.inicio)
   return (
+    // El turno nuevo sale como un ticket de la impresora (a saltitos), con la hora grande y el link para verlo.
     <motion.div
       layout
-      initial={{ opacity: 0, y: -16, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.15 } }}
-      className="pointer-events-auto mt-2 flex w-full max-w-sm items-start gap-3 rounded-grande bg-superficie p-3 pl-4 ring-1 ring-linea sombra-flotante lg:mt-0"
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0, y: -8, transition: { duration: 0.15 } }}
+      className="pointer-events-auto mt-2 w-full max-w-sm drop-shadow-[0_18px_28px_hsl(var(--t-sombra)/0.35)] lg:mt-0"
     >
-      <CalendarPlus className="mt-0.5 size-5 shrink-0 text-acento-texto" aria-hidden />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold">Turno nuevo{t.origen === 'app' ? ' desde la app' : ''}</p>
-        <p className="truncate text-sm">
-          {t.clienteNombre} · {t.servicioNombre}
-          {esDueno && t.profesionalNombre ? ` con ${t.profesionalNombre}` : ''}
-        </p>
-        <p className="text-sm text-suave">
-          {capitalizar(diaRelativo(t.inicio, ahora))} a las {horaCorta(t.inicio)}
-        </p>
-        <Link
-          to={`/${n.slug}/panel?dia=${dia}`}
-          onClick={onCerrar}
-          className="mt-1 inline-flex h-11 items-center text-sm font-semibold text-acento-texto underline underline-offset-4"
-        >
-          Ver en la agenda
-        </Link>
-      </div>
-      <button type="button" onClick={onCerrar} className="-mt-1 -mr-1 grid size-11 shrink-0 place-items-center rounded-full text-suave hover:bg-superficie-2" aria-label="Cerrar aviso">
-        <X className="size-4" aria-hidden />
-      </button>
+      <Talon
+        as="div"
+        className="imprimir"
+        cuerpo={
+          <div className="flex items-start gap-3 px-4 pt-3 pb-3.5">
+            <div className="min-w-0 flex-1">
+              <p className="rotulo text-acento-texto">Turno nuevo{t.origen === 'app' ? ' desde la app' : ''}</p>
+              <p className="mt-1.5 flex items-baseline gap-2">
+                <span className="cifra text-[2.5rem]">{horaCorta(t.inicio)}</span>
+                <span className="titulo text-lg">{capitalizar(diaRelativo(t.inicio, ahora))}</span>
+              </p>
+            </div>
+            <button type="button" onClick={onCerrar} className="-mt-1 -mr-2 grid size-11 shrink-0 place-items-center rounded-full text-suave hover:bg-superficie-2" aria-label="Cerrar aviso">
+              <X className="size-4" aria-hidden />
+            </button>
+          </div>
+        }
+        talon={
+          <div className="flex flex-wrap items-center justify-between gap-x-3 px-4 pt-2.5 pb-1.5">
+            <p className="min-w-0 flex-1 truncate text-sm font-semibold">
+              {t.clienteNombre} · {t.servicioNombre}
+              {esDueno && t.profesionalNombre ? ` con ${t.profesionalNombre}` : ''}
+            </p>
+            <Link
+              to={`/${n.slug}/panel?dia=${dia}`}
+              onClick={onCerrar}
+              className="inline-flex h-11 shrink-0 items-center text-sm font-semibold text-acento-texto underline underline-offset-4"
+            >
+              Ver en la agenda
+            </Link>
+          </div>
+        }
+      />
     </motion.div>
   )
 }

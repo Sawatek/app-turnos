@@ -3,7 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#111214" />
+    <meta name="theme-color" content="#f4efe4" />
+    <!-- Modo claro/oscuro del sitio: "light dark" sigue al sistema; el script copia la elección guardada antes de pintar
+         (sin destello). Copia de SCRIPT_ESQUEMA en src/pantallas/publico/temaSitio.ts: si cambia uno, cambiar el otro. -->
+    <meta name="color-scheme" content="light dark" />
+    <script>try{var e=localStorage.getItem('esquema-sitio');if(e==='light'||e==='dark')document.querySelector('meta[name="color-scheme"]').content=e}catch(_){}</script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

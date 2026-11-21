@@ -2,7 +2,7 @@
 // (fixture `errores` de ayudantes.ts). Por defecto corren en celular (Pixel 7); el bloque "en la compu" usa 1280 px.
 import type { Locator, Page } from '@playwright/test'
 import { expect, test } from '../ayudantes'
-import { DEMOS, MARCA, PLANES, hayPrecios, linkContacto, precioPlan } from '../../../src/pantallas/publico/marca'
+import { DEMOS, MARCA, PAPEL_SITIO, PAPEL_SITIO_OSCURO, PLANES, hayPrecios, linkContacto, precioPlan } from '../../../src/pantallas/publico/marca'
 import { SECCIONES } from '../../../src/pantallas/publico/inicio/secciones'
 
 const sinScrollHorizontal = (page: Page) =>
@@ -338,6 +338,32 @@ test.describe('en la compu (1280 px)', () => {
       expect(x[1]!).toBeGreaterThan(x[0]! + 40)
       expect(Math.abs(x[2]! - x[0]!)).toBeLessThan(2)
     })
+  })
+
+  test('modo claro y oscuro: sigue al sistema, el botón lo invierte y se recuerda', async ({ page }) => {
+    const fondo = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--t-fondo').trim())
+    const guardado = () => page.evaluate(() => localStorage.getItem('esquema-sitio'))
+
+    await page.emulateMedia({ colorScheme: 'light' })
+    await page.goto('/')
+    await expect.poll(fondo).toBe(PAPEL_SITIO['--t-fondo'])
+
+    await page.getByRole('button', { name: 'Pasar a modo oscuro' }).click()
+    await expect.poll(fondo).toBe(PAPEL_SITIO_OSCURO['--t-fondo'])
+    expect(await guardado()).toBe('dark')
+    await page.reload()
+    await expect.poll(fondo).toBe(PAPEL_SITIO_OSCURO['--t-fondo'])
+
+    // Volver al del sistema no guarda nada: queda siguiéndolo.
+    await page.getByRole('button', { name: 'Pasar a modo claro' }).click()
+    await expect.poll(fondo).toBe(PAPEL_SITIO['--t-fondo'])
+    expect(await guardado()).toBeNull()
+
+    // Con el sistema en oscuro (y nada elegido), arranca oscuro.
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await page.reload()
+    await expect.poll(fondo).toBe(PAPEL_SITIO_OSCURO['--t-fondo'])
+    await expect(page.getByRole('button', { name: 'Pasar a modo claro' })).toBeVisible()
   })
 
   test('el link "saltar al contenido" aparece con Tab', async ({ page }) => {

@@ -5,8 +5,8 @@
 // los textos en ./inicio/contenido.tsx y lo comercial (nombre, contacto, precios) en ./marca.ts.
 // El orden y el número de cada sección salen de SECCIONES (./inicio/secciones.ts): reordenar = mover una línea ahí.
 // Se pre-genera con renderToString: nada del navegador (window, document) en el render, solo en efectos.
-import '@fontsource-variable/bricolage-grotesque/opsz.css'
 import { Encabezado, Pie, SaltarAlContenido, useMarcaSitio } from './comunes'
+import { CintaTalones } from './inicio/CintaTalones'
 import { SECCIONES, type IdSeccion } from './inicio/secciones'
 import { Cierre } from './inicio/secciones/Cierre'
 import { ComoFunciona } from './inicio/secciones/ComoFunciona'
@@ -36,6 +36,7 @@ export default function InicioPublico() {
       <Encabezado secciones />
       <main id="contenido" tabIndex={-1} className="overflow-x-clip outline-none">
         <Portada />
+        <CintaTalones />
         {SECCIONES.map(({ id }) => {
           const Cuerpo = CUERPOS[id]
           return <Cuerpo key={id} />

@@ -7,6 +7,7 @@ import { Link } from 'react-router'
 import { useRefrescarAdmin } from '@/datos/admin'
 import { borrarNegocio, crearNegocioReal, guardarNegocio, slugLibre, useRefrescarNegocios, useTodosLosNegocios } from '@/datos/negocios'
 import { hayNube } from '@/datos/supabase'
+import { precio } from '@/dominio/tiempo'
 import type { Modo, Negocio, Personalidad, RubroId } from '@/dominio/tipos'
 import { LISTA_RUBROS, RUBROS, negocioDesdePlantilla, slugDe } from '@/plantillas/rubros'
 import { colorDelLogo } from '@/tema/paleta'
@@ -14,6 +15,8 @@ import { estiloTema } from '@/tema/TemaNegocio'
 import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
 import { Logo } from '@/ui/Logo'
+import { Talon } from '@/ui/Talon'
+import { clasesBoton } from '@/ui/clasesBoton'
 import { cn } from '@/ui/cn'
 import { QR } from './QR'
 
@@ -117,7 +120,7 @@ export function Alta({ tipo }: { tipo: 'demo' | 'real' }) {
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_400px]">
-      <form className="flex flex-col gap-6" onSubmit={crear} noValidate>
+      <form className="flex flex-col gap-10" onSubmit={crear} noValidate>
         <Seccion titulo="1. El negocio">
           <Campo
             etiqueta="Nombre"
@@ -130,7 +133,7 @@ export function Alta({ tipo }: { tipo: 'demo' | 'real' }) {
             error={error}
           />
           <div>
-            <p className="mb-2 text-sm font-semibold text-suave">Rubro</p>
+            <p className="rotulo mb-2 text-suave">Rubro</p>
             <div className="flex flex-wrap gap-2">
               {LISTA_RUBROS.map((r) => (
                 <button
@@ -139,8 +142,8 @@ export function Alta({ tipo }: { tipo: 'demo' | 'real' }) {
                   aria-pressed={rubro === r.id}
                   onClick={() => elegirRubro(r.id)}
                   className={cn(
-                    'h-11 rounded-full px-4 text-sm font-semibold transition-colors',
-                    rubro === r.id ? 'bg-acento text-sobre-acento' : 'bg-superficie ring-1 ring-linea hover:ring-acento-borde',
+                    'h-11 rounded-chico px-4 text-sm font-semibold ring-inset transition-colors',
+                    rubro === r.id ? 'bg-acento text-sobre-acento shadow-[inset_0_-3px_0_rgb(0_0_0/0.16)]' : 'bg-superficie ring-1 ring-linea hover:ring-suave/60',
                   )}
                 >
                   {r.etiqueta}
@@ -162,7 +165,7 @@ export function Alta({ tipo }: { tipo: 'demo' | 'real' }) {
           <div className="flex flex-wrap items-center gap-4">
             <label
               htmlFor={idLogo}
-              className="flex h-24 w-24 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-grande border-2 border-dashed border-linea bg-superficie text-xs font-semibold text-suave transition-colors hover:border-acento"
+              className="cuadricula flex h-24 w-24 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-medio border-2 border-dashed border-linea text-xs font-semibold text-suave transition-colors hover:border-acento"
             >
               {logo ? (
                 <img src={logo} alt="Logo cargado" className="size-full bg-white object-contain" />
@@ -209,7 +212,7 @@ export function Alta({ tipo }: { tipo: 'demo' | 'real' }) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="mb-2 text-sm font-semibold text-suave">Fondo</p>
+              <p className="rotulo mb-2 text-suave">Fondo</p>
               <div className="grid grid-cols-2 gap-2">
                 {(
                   [
@@ -222,7 +225,10 @@ export function Alta({ tipo }: { tipo: 'demo' | 'real' }) {
                     type="button"
                     aria-pressed={modo === id}
                     onClick={() => setModo(id)}
-                    className={cn('flex h-12 items-center justify-center gap-2 rounded-medio font-semibold', modo === id ? 'bg-acento text-sobre-acento' : 'bg-superficie ring-1 ring-linea')}
+                    className={cn(
+                      'flex h-12 items-center justify-center gap-2 rounded-chico font-semibold ring-inset',
+                      modo === id ? 'bg-acento text-sobre-acento shadow-[inset_0_-3px_0_rgb(0_0_0/0.16)]' : 'bg-superficie ring-1 ring-linea hover:ring-suave/60',
+                    )}
                   >
                     <Icono className="size-4" aria-hidden />
                     {texto}
@@ -231,7 +237,7 @@ export function Alta({ tipo }: { tipo: 'demo' | 'real' }) {
               </div>
             </div>
             <div>
-              <p className="mb-2 text-sm font-semibold text-suave">Estilo</p>
+              <p className="rotulo mb-2 text-suave">Estilo</p>
               <div className="grid grid-cols-3 gap-2">
                 {PERSONALIDADES.map((p) => (
                   <button
@@ -240,12 +246,12 @@ export function Alta({ tipo }: { tipo: 'demo' | 'real' }) {
                     aria-pressed={personalidad === p.id}
                     onClick={() => setPersonalidad(p.id)}
                     className={cn(
-                      'flex h-12 flex-col items-center justify-center rounded-medio text-sm leading-tight font-semibold',
-                      personalidad === p.id ? 'bg-acento text-sobre-acento' : 'bg-superficie ring-1 ring-linea',
+                      'flex min-h-12 flex-col items-center justify-center rounded-chico px-1 py-1 text-sm leading-tight font-semibold ring-inset',
+                      personalidad === p.id ? 'bg-acento text-sobre-acento shadow-[inset_0_-3px_0_rgb(0_0_0/0.16)]' : 'bg-superficie ring-1 ring-linea hover:ring-suave/60',
                     )}
                   >
                     {p.nombre}
-                    <span className="text-[10px] font-medium opacity-75">{p.detalle}</span>
+                    <span className="text-xs font-medium opacity-75">{p.detalle}</span>
                   </button>
                 ))}
               </div>
@@ -288,7 +294,7 @@ export function Alta({ tipo }: { tipo: 'demo' | 'real' }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               aria-label={real ? 'Negocio creado' : 'Demo creada'}
-              className="flex flex-col gap-4 rounded-grande bg-superficie p-5 ring-1 ring-linea"
+              className="flex flex-col gap-4 rounded-medio border border-dashed border-acento-borde p-5"
             >
               <div className="flex items-start gap-4">
                 <QR texto={link} className="size-32 shrink-0 rounded-medio" />
@@ -322,14 +328,14 @@ export function Alta({ tipo }: { tipo: 'demo' | 'real' }) {
                   { to: `/${creado.slug}/panel`, texto: 'Dueño', Icono: LayoutDashboard },
                   ...(real ? [] : [{ to: `/${creado.slug}/escenario`, texto: 'Escenario', Icono: MonitorSmartphone }]),
                 ].map(({ to, texto, Icono }) => (
-                  <Link key={to} to={to} className="flex h-16 flex-col items-center justify-center gap-1 rounded-medio bg-acento-suave text-xs font-bold text-acento-texto">
+                  <Link key={to} to={to} className="flex h-16 flex-col items-center justify-center gap-1 rounded-chico text-xs font-bold text-acento-texto ring-1 ring-inset ring-acento-borde transition-colors hover:bg-acento-suave">
                     <Icono className="size-5" aria-hidden />
                     {texto}
                   </Link>
                 ))}
               </div>
               {real && idReal && (
-                <Link to={`/admin/cuentas?${paramsCuenta}`} className="flex h-12 items-center justify-center gap-2 rounded-medio bg-acento font-semibold text-sobre-acento">
+                <Link to={`/admin/cuentas?${paramsCuenta}`} className={clasesBoton({ ancho: true })}>
                   <KeyRound className="size-4" aria-hidden />
                   Crear la cuenta del dueño
                 </Link>
@@ -349,9 +355,9 @@ export function Alta({ tipo }: { tipo: 'demo' | 'real' }) {
         </AnimatePresence>
 
         {!real && creadas.length > 0 && (
-          <section aria-labelledby="t-mias" className="rounded-grande bg-superficie p-4 ring-1 ring-linea">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <h2 id="t-mias" className="titulo text-base">
+          <section aria-labelledby="t-mias">
+            <div className="flex items-end justify-between gap-2 border-b-2 border-texto pb-1">
+              <h2 id="t-mias" className="titulo pb-1 text-xl">
                 Demos creadas
               </h2>
               <Link to="/demos" className="inline-flex h-11 items-center px-2 text-sm font-semibold text-acento-texto">
@@ -366,7 +372,7 @@ export function Alta({ tipo }: { tipo: 'demo' | 'real' }) {
                   </div>
                   <Link to={`/${p.slug}/escenario`} className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{p.nombre}</p>
-                    <p className="truncate text-xs text-suave">/{p.slug}</p>
+                    <p className="mono truncate text-xs text-suave">/{p.slug}</p>
                   </Link>
                   <button
                     type="button"
@@ -398,46 +404,60 @@ export function Alta({ tipo }: { tipo: 'demo' | 'real' }) {
 
 function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <fieldset className="flex flex-col gap-4 rounded-grande bg-superficie/50 p-5 ring-1 ring-linea">
-      <legend className="titulo float-left mb-1 w-full text-lg">{titulo}</legend>
+    <fieldset className="flex flex-col gap-5">
+      <legend className="titulo float-left mb-1 w-full border-b-2 border-texto pb-2 text-xl">{titulo}</legend>
       {children}
     </fieldset>
   )
 }
 
-/** Así se va a ver: la pantalla de entrada de la app, con el tema del negocio aplicado solo a este recuadro. */
+/** Así se va a ver: la vidriera de la app, con el tema del negocio aplicado solo a este recuadro. */
 function VistaPrevia({ n }: { n: Negocio }) {
+  const servicio = n.servicios[0]
   return (
     <div className="flex justify-center">
+      {/* Marco de celular: negro a propósito. */}
       <div className="rounded-[44px] bg-black p-2.5 shadow-2xl ring-1 ring-white/10">
         <motion.div
           layout
           style={estiloTema(n)}
           data-personalidad={n.personalidad}
-          className="flex h-[520px] w-[260px] flex-col overflow-hidden rounded-[36px] bg-fondo px-5 text-texto transition-colors duration-300"
+          className="relative flex h-[520px] w-[260px] flex-col overflow-hidden rounded-[36px] bg-fondo px-5 pt-10 text-texto transition-colors duration-300"
         >
-          <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <Logo negocio={n} className="size-16 text-xl" />
-            <p className="titulo mt-3 text-xl">{n.nombre}</p>
-            <p className="text-xs font-semibold text-acento-texto">{n.bajada}</p>
-            <p className="mt-2 text-xs text-suave">{n.claim}</p>
+          <div aria-hidden className="cuadricula pointer-events-none absolute inset-x-0 top-0 h-56 [mask-image:linear-gradient(to_bottom,black,transparent)]" />
+          <div className="relative flex flex-1 flex-col items-start">
+            <Logo negocio={n} className="size-12 text-lg" />
+            <p className="titulo mt-3 text-[1.75rem] leading-[0.95]">{n.nombre}</p>
+            <p className="rotulo mt-2 text-acento-texto">{n.bajada}</p>
+            <p className="mt-1 line-clamp-2 text-xs text-suave">{n.claim}</p>
           </div>
-          <div className="flex flex-col gap-2 pb-6">
-            <div className="rounded-medio bg-acento p-3 text-sobre-acento">
-              <p className="text-[10px] font-bold opacity-85">Próximo libre</p>
-              <p className="titulo text-lg">Hoy 17:30</p>
-              <p className="text-[11px] font-semibold opacity-90">
-                {n.servicios[0]?.nombre} con {n.staff[0]?.nombre}
-              </p>
-            </div>
-            <div className="flex gap-1.5">
-              {n.servicios.slice(0, 3).map((s) => (
-                <span key={s.id} className="flex-1 truncate rounded-chico bg-superficie px-2 py-1.5 text-center text-[10px] font-semibold ring-1 ring-linea">
-                  {s.nombre}
-                </span>
+          <div className="relative flex flex-col gap-3 pb-6">
+            <Talon
+              as="div"
+              papel="acento"
+              cuerpo={
+                <div className="px-3.5 pt-3 pb-3">
+                  <p className="rotulo opacity-90">Próximo libre</p>
+                  <p className="mt-1 flex items-baseline gap-2">
+                    <span className="titulo text-base">Hoy</span>
+                    <span className="cifra text-[2.5rem]">17:30</span>
+                  </p>
+                  <p className="truncate text-xs font-semibold">
+                    {servicio?.nombre} con {n.staff[0]?.nombre}
+                  </p>
+                </div>
+              }
+              talon={<div className="mx-3.5 mt-2.5 mb-3 grid h-9 place-items-center rounded-chico bg-sobre-acento text-xs font-bold text-acento">{n.textos.reservar}</div>}
+            />
+            <ul className="divide-y divide-linea border-y border-linea">
+              {n.servicios.slice(0, 2).map((s) => (
+                <li key={s.id} className="flex items-baseline gap-1.5 py-1.5 text-xs">
+                  <span className="truncate font-semibold">{s.nombre}</span>
+                  <span aria-hidden className="mb-0.5 min-w-3 flex-1 border-b border-dotted border-linea" />
+                  {s.precio > 0 && <span className="mono shrink-0 font-bold">{precio(s.precio)}</span>}
+                </li>
               ))}
-            </div>
-            <div className="grid h-10 place-items-center rounded-medio bg-acento text-xs font-bold text-sobre-acento">{n.textos.reservar}</div>
+            </ul>
           </div>
         </motion.div>
       </div>

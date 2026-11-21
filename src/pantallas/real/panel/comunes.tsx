@@ -41,7 +41,10 @@ export { Tarjeta } from '@/ui/Tarjeta'
 /** Error al cargar una consulta, con botón para reintentar. */
 export const FalloCarga = (p: PropsFalloCarga) => <FalloCargaBase mensaje={mensajeDe} {...p} />
 
-/** Interruptor (checkbox con rol switch) con etiqueta visible. Toda la fila es clickeable (44 px). */
+/**
+ * Interruptor (checkbox con rol switch) con etiqueta visible: un renglón con una llave de corredera a la derecha
+ * (recta, como la de un aparato; con "SÍ"/"NO" en letra de ticket para no depender solo del color). Toda la fila es clickeable (44 px).
+ */
 export function Interruptor({
   etiqueta,
   ayuda,
@@ -55,7 +58,7 @@ export function Interruptor({
 }) {
   const id = useId()
   return (
-    <label htmlFor={id} className="flex min-h-11 items-center justify-between gap-3 rounded-medio bg-superficie px-4 py-2.5 ring-1 ring-linea">
+    <label htmlFor={id} className="flex min-h-13 items-center justify-between gap-4 border-b border-linea pb-3">
       <span>
         <span className="block font-semibold">{etiqueta}</span>
         {ayuda && <span className="block text-sm text-suave">{ayuda}</span>}
@@ -63,25 +66,38 @@ export function Interruptor({
       <input id={id} type="checkbox" role="switch" aria-checked={activo} checked={activo} onChange={(e) => onCambiar(e.target.checked)} className="peer sr-only" />
       <span
         aria-hidden
-        className="relative h-7 w-12 shrink-0 rounded-full bg-superficie-2 ring-1 ring-linea transition-colors peer-checked:bg-acento peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-acento after:absolute after:top-1 after:left-1 after:size-5 after:rounded-full after:bg-texto after:transition-transform peer-checked:after:translate-x-5 peer-checked:after:bg-sobre-acento"
-      />
+        className="mono relative grid h-8 w-15 shrink-0 grid-cols-2 items-center rounded-chico bg-superficie-2 text-[0.6875rem] font-bold ring-1 ring-inset ring-linea transition-colors peer-checked:bg-acento peer-checked:text-sobre-acento peer-checked:ring-acento peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-acento"
+      >
+        <span className={cn('text-center transition-opacity', !activo && 'opacity-0')}>SÍ</span>
+        <span className={cn('text-center text-suave transition-opacity', activo && 'opacity-0')}>NO</span>
+        <span
+          className={cn(
+            'absolute top-1 left-1 h-6 w-[1.625rem] rounded-[calc(var(--p-radio-chico)-2px)] bg-texto shadow-[inset_0_-2px_0_rgb(0_0_0/0.18)] transition-transform duration-200 ease-suave',
+            activo && 'translate-x-[1.625rem] bg-sobre-acento',
+          )}
+        />
+      </span>
     </label>
   )
 }
 
 // ---------- Estructura ----------
 
+/** Encabezado de sección: título grande con un filete grueso abajo, como el encabezado de una planilla. */
 export function Encabezado({ titulo, bajada, children }: { titulo: string; bajada?: string; children?: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h2 className="text-2xl">{titulo}</h2>
-        {bajada && <p className="mt-0.5 text-sm text-suave">{bajada}</p>}
+    <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-b-2 border-texto pb-3">
+      <div className="min-w-0">
+        <h2 className="text-[2rem] leading-none sm:text-[2.5rem]">{titulo}</h2>
+        {bajada && <p className="mt-2 max-w-xl text-sm text-suave">{bajada}</p>}
       </div>
       {children && <div className="flex flex-wrap gap-2">{children}</div>}
     </div>
   )
 }
+
+/** Rayado diagonal (lo tachado de la libreta): bloqueos y francos. Tokens, sin colores sueltos. */
+export const RAYADO = 'bg-[repeating-linear-gradient(135deg,var(--t-linea)_0_1.5px,transparent_1.5px_7px)]'
 
 /** Botón de acción destructiva en dos pasos: el primer toque pide confirmar. */
 export function BotonConfirmar({

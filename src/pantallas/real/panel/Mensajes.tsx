@@ -1,6 +1,6 @@
 // Historial de lo que se le mandó a un cliente (o por un turno): tipo, canal, estado y fecha.
 // Los códigos de ingreso nunca aparecen: la regla de la base no los deja leer.
-import { Bell, ChevronDown, Mail, MessageCircle, MessageSquare } from 'lucide-react'
+import { Ban, Bell, Check, CheckCheck, ChevronDown, CircleAlert, Clock, Mail, MessageCircle, MessageSquare } from 'lucide-react'
 import { useMensajes, type CanalMensaje, type EstadoMensaje, type MensajeEnviado, type TipoMensaje } from '@/datos/real/panel-gestion'
 import { capitalizar, diaCorto, horaCorta } from '@/dominio/tiempo'
 import { cn } from '@/ui/cn'
@@ -22,19 +22,25 @@ const CANALES: Record<CanalMensaje, { texto: string; Icono: typeof Bell }> = {
   push: { texto: 'Notificación', Icono: Bell },
 }
 
-export const ESTADOS_MENSAJE: Record<EstadoMensaje, { texto: string; clase: string }> = {
-  pendiente: { texto: 'Programado', clase: 'bg-superficie-2 text-suave' },
-  enviando: { texto: 'Enviando', clase: 'bg-superficie-2 text-suave' },
-  enviado: { texto: 'Enviado', clase: 'bg-acento-suave text-acento-texto' },
-  entregado: { texto: 'Entregado', clase: 'bg-exito/15 text-exito' },
-  leido: { texto: 'Leído', clase: 'bg-exito/15 text-exito' },
-  error: { texto: 'Error', clase: 'bg-peligro/12 text-peligro' },
-  cancelado: { texto: 'No se mandó', clase: 'bg-superficie-2 text-suave' },
+/** Estado del mensaje como lo marca WhatsApp: un ícono (reloj, tilde, doble tilde) y el texto en letra de ticket. */
+export const ESTADOS_MENSAJE: Record<EstadoMensaje, { texto: string; clase: string; Icono: typeof Bell }> = {
+  pendiente: { texto: 'Programado', clase: 'text-suave', Icono: Clock },
+  enviando: { texto: 'Enviando', clase: 'text-suave', Icono: Clock },
+  enviado: { texto: 'Enviado', clase: 'text-acento-texto', Icono: Check },
+  entregado: { texto: 'Entregado', clase: 'text-exito', Icono: CheckCheck },
+  leido: { texto: 'Leído', clase: 'text-exito', Icono: CheckCheck },
+  error: { texto: 'Error', clase: 'text-peligro', Icono: CircleAlert },
+  cancelado: { texto: 'No se mandó', clase: 'text-suave', Icono: Ban },
 }
 
 export function InsigniaMensaje({ estado, className }: { estado: EstadoMensaje; className?: string }) {
   const e = ESTADOS_MENSAJE[estado]
-  return <span className={cn('inline-flex h-6 shrink-0 items-center rounded-full px-2.5 text-xs font-bold', e.clase, className)}>{e.texto}</span>
+  return (
+    <span className={cn('rotulo inline-flex shrink-0 items-center gap-1 whitespace-nowrap', e.clase, className)}>
+      <e.Icono className="size-3.5" aria-hidden />
+      {e.texto}
+    </span>
+  )
 }
 
 const fecha = (iso: string) => `${capitalizar(diaCorto(iso))} · ${horaCorta(iso)}`
@@ -86,7 +92,7 @@ function FilaMensaje({ m }: { m: MensajeEnviado }) {
           <ChevronDown className="size-4 shrink-0 text-suave transition-transform group-open:rotate-180" aria-hidden />
           <span className="sr-only">Ver el texto</span>
         </summary>
-        <p className="mt-2 ml-7 rounded-medio bg-superficie-2 px-3 py-2 text-sm whitespace-pre-line">{m.texto.replaceAll('{link}', 'el link de la app')}</p>
+        <p className="mt-2 ml-7 rounded-medio rounded-tl-none bg-wa-fondo px-3 py-2 text-sm whitespace-pre-line text-wa-tinta">{m.texto.replaceAll('{link}', 'el link de la app')}</p>
       </details>
     </li>
   )

@@ -3,13 +3,14 @@
 import { ChevronRight, Search, Smartphone, UserPlus } from 'lucide-react'
 import { useDeferredValue, useState } from 'react'
 import { crearCliente, editarCliente, guardarNota, useClientes, useHistorial, useNota, useRefrescar, type Cliente } from '@/datos/real/panel'
-import { capitalizar, diaCorto, horaCorta } from '@/dominio/tiempo'
+import { capitalizar, diaCorto, horaCorta, mesCorto } from '@/dominio/tiempo'
 import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
 import { Hoja } from '@/ui/Hoja'
 import { InsigniaEstado } from '@/ui/Insignia'
-import { iniciales } from '@/ui/Logo'
+import { Pastillas } from '@/ui/Pastillas'
 import { cn } from '@/ui/cn'
+import { telefonoLegible } from '@/datos/real/cliente-telefono'
 import { traerCliente } from '@/datos/real/panel-gestion'
 import { HistorialMensajes } from './Mensajes'
 import { Recuperar } from './Recuperar'
@@ -33,25 +34,16 @@ export function Clientes() {
         </Boton>
       </Encabezado>
 
-      <fieldset className="grid grid-cols-2 gap-1 rounded-medio bg-superficie p-1 ring-1 ring-linea sm:max-w-sm">
-        <legend className="sr-only">Qué clientes ver</legend>
-        {(
-          [
-            ['todos', 'Todos'],
-            ['recuperar', 'Para recuperar'],
-          ] as const
-        ).map(([id, texto]) => (
-          <button
-            key={id}
-            type="button"
-            aria-pressed={vista === id}
-            onClick={() => setVista(id)}
-            className={cn('h-11 rounded-chico text-sm font-semibold transition-colors', vista === id ? 'bg-acento text-sobre-acento' : 'text-suave hover:text-texto')}
-          >
-            {texto}
-          </button>
-        ))}
-      </fieldset>
+      <Pastillas
+        etiqueta="Qué clientes ver"
+        ocultarEtiqueta
+        valor={vista}
+        opciones={[
+          { id: 'todos', texto: 'Todos' },
+          { id: 'recuperar', texto: 'Para recuperar' },
+        ]}
+        onCambiar={setVista}
+      />
 
       {vista === 'recuperar' ? (
         <Recuperar
@@ -61,43 +53,20 @@ export function Clientes() {
         />
       ) : (
         <>
-      <div className="relative">
-        <Search className="pointer-events-none absolute bottom-4 left-4 size-5 text-suave" aria-hidden />
-        <Campo etiqueta="Buscar cliente" type="search" autoComplete="off" placeholder="Nombre o teléfono" className="[&_input]:pl-11" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
-      </div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute bottom-4 left-3.5 size-5 text-suave" aria-hidden />
+            <Campo etiqueta="Buscar cliente" type="search" autoComplete="off" placeholder="Nombre o teléfono" className="[&_input]:pl-11" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+          </div>
 
-      {clientes.isPending ? (
-        <Cargando />
-      ) : clientes.isError ? (
-        <FalloCarga error={clientes.error} onReintentar={() => void clientes.refetch()} />
-      ) : clientes.data.length === 0 ? (
-        <Vacio>{diferida.trim() ? `No encontramos a nadie con “${diferida.trim()}”.` : 'Todavía no hay clientes. Se suman solos cuando reservan, o cargalos a mano.'}</Vacio>
-      ) : (
-        <section aria-label="Lista de clientes" className="overflow-hidden rounded-grande bg-superficie ring-1 ring-linea">
-          <ul className="divide-y divide-linea">
-            {clientes.data.map((c) => (
-              <li key={c.id}>
-                <button type="button" onClick={() => setElegido(c)} className="flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-superficie-2/60">
-                  <div className="grid size-9 shrink-0 place-items-center rounded-full bg-superficie-2 text-xs font-bold" aria-hidden>
-                    {iniciales(c.nombre)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">{c.nombre}</p>
-                    <p className="truncate text-sm text-suave">{c.telefono || 'Sin teléfono'}</p>
-                  </div>
-                  {c.user_id && (
-                    <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-acento-suave px-2.5 text-xs font-bold text-acento-texto">
-                      <Smartphone className="size-3" aria-hidden />
-                      Usa la app
-                    </span>
-                  )}
-                  <ChevronRight className="size-5 shrink-0 text-suave" aria-hidden />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+          {clientes.isPending ? (
+            <Cargando />
+          ) : clientes.isError ? (
+            <FalloCarga error={clientes.error} onReintentar={() => void clientes.refetch()} />
+          ) : clientes.data.length === 0 ? (
+            <Vacio>{diferida.trim() ? `No encontramos a nadie con “${diferida.trim()}”.` : 'Todavía no hay clientes. Se suman solos cuando reservan, o cargalos a mano.'}</Vacio>
+          ) : (
+            <Fichero clientes={clientes.data} onElegir={setElegido} />
+          )}
         </>
       )}
 
@@ -109,10 +78,63 @@ export function Clientes() {
           }}
         />
       </Hoja>
-      <Hoja abierta={!!elegido} onCerrar={() => setElegido(null)} titulo={elegido?.nombre ?? 'Cliente'} descripcion={elegido?.telefono ?? undefined}>
+      <Hoja abierta={!!elegido} onCerrar={() => setElegido(null)} titulo={elegido?.nombre ?? 'Cliente'} descripcion={telefonoLegible(elegido?.telefono) || undefined}>
         {elegido && <Ficha key={elegido.id} c={elegido} onCambio={setElegido} />}
       </Hoja>
     </div>
+  )
+}
+
+/** Letra del fichero: la inicial sin tilde ("Ángela" va en la A); números y símbolos, en "#". */
+function letraDe(nombre: string) {
+  const l = nombre.trim().charAt(0).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+  return /[A-ZÑ]/.test(l) ? l : '#'
+}
+
+/**
+ * Los clientes como la libreta de teléfonos: agrupados por letra, con la letra grande en el margen
+ * (como el índice recortado de la agenda) y cada cliente en un renglón con su teléfono en letra de ticket.
+ */
+function Fichero({ clientes, onElegir }: { clientes: Cliente[]; onElegir: (c: Cliente) => void }) {
+  const grupos = new Map<string, Cliente[]>()
+  for (const c of clientes.toSorted((a, b) => a.nombre.localeCompare(b.nombre, 'es'))) {
+    const l = letraDe(c.nombre)
+    grupos.set(l, [...(grupos.get(l) ?? []), c])
+  }
+  return (
+    <section aria-label="Lista de clientes" className="overflow-clip rounded-grande ring-1 ring-linea">
+      <p className="rotulo flex justify-between border-b border-linea bg-superficie px-4 py-2.5 text-suave">
+        <span>{clientes.length === 1 ? '1 cliente' : `${clientes.length} clientes`}</span>
+        {clientes.length >= 100 && <span>Mostrando los primeros 100</span>}
+      </p>
+      {[...grupos].map(([letra, lista]) => (
+        <div key={letra} className="grid grid-cols-[3.25rem_minmax(0,1fr)] border-b border-linea last:border-b-0 sm:grid-cols-[4.5rem_minmax(0,1fr)]">
+          <p aria-hidden className="border-r border-acento-borde pt-2.5 text-center">
+            <span className="cifra sticky top-[calc(var(--alto-encabezado,0px)+0.5rem)] text-[2rem] text-acento-texto">{letra}</span>
+          </p>
+          <ul className="divide-y divide-linea">
+            {lista.map((c) => (
+              <li key={c.id}>
+                <button type="button" onClick={() => onElegir(c)} className="group flex min-h-15 w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-superficie">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold">{c.nombre}</span>
+                    <span className={cn('block truncate text-sm text-suave', c.telefono && 'mono')}>{telefonoLegible(c.telefono) || 'Sin teléfono'}</span>
+                  </span>
+                  {c.user_id && (
+                    <span className="rotulo inline-flex shrink-0 items-center gap-1 text-acento-texto">
+                      <Smartphone className="size-3.5" aria-hidden />
+                      {/* En el celular, solo el ícono: el teléfono es el dato que importa y necesita el lugar. */}
+                      <span className="sr-only sm:not-sr-only">Usa la app</span>
+                    </span>
+                  )}
+                  <ChevronRight className="size-5 shrink-0 text-suave transition-transform group-hover:translate-x-0.5" aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
   )
 }
 
@@ -160,22 +182,21 @@ function Ficha({ c, onCambio }: { c: Cliente; onCambio: (c: Cliente) => void }) 
 
   return (
     <div className="flex flex-col gap-4 pb-2">
-      <div className="grid grid-cols-3 gap-2 text-center">
-        {[
-          ['Turnos', turnos.length],
-          ['Vino', visitas],
-          ['No vino', faltas],
-        ].map(([t, v]) => (
-          <div key={t} className="rounded-medio bg-superficie p-3 ring-1 ring-linea">
-            <p className="titulo num text-xl">{v}</p>
-            <p className="text-xs font-semibold text-suave">{t}</p>
+      {/* La cuenta del cliente, como el pie de una planilla: turnos, cuántas vino y cuántas faltó. */}
+      <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-medio bg-linea ring-1 ring-linea">
+        {(
+          [
+            ['Turnos', turnos.length, 'text-texto'],
+            ['Vino', visitas, 'text-texto'],
+            ['No vino', faltas, faltas ? 'text-peligro' : 'text-texto'],
+          ] as const
+        ).map(([t, v, color]) => (
+          <div key={t} className="flex flex-col bg-fondo px-3 py-2.5">
+            <dt className="rotulo text-suave">{t}</dt>
+            <dd className={cn('cifra mt-1 text-[2.25rem]', color)}>{historial.isPending ? '–' : v}</dd>
           </div>
         ))}
-      </div>
-
-      <Nota clienteId={c.id} />
-
-      <HistorialMensajes clienteId={c.id} />
+      </dl>
 
       <Tarjeta titulo="Historial">
         {historial.isPending ? (
@@ -183,23 +204,31 @@ function Ficha({ c, onCambio }: { c: Cliente; onCambio: (c: Cliente) => void }) 
         ) : turnos.length === 0 ? (
           <p className="text-sm text-suave">Todavía no tiene turnos.</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-linea" aria-label="Historial de turnos">
+          <ul className="-my-2 flex flex-col divide-y divide-linea" aria-label="Historial de turnos">
             {turnos.map((t) => (
               <li key={t.id} className="flex items-center gap-3 py-2.5">
-                <div className="min-w-0 flex-1">
-                  <p className="num font-semibold">
-                    {capitalizar(diaCorto(t.inicio))} · {horaCorta(t.inicio)}
-                  </p>
-                  <p className="truncate text-sm text-suave">
-                    {t.servicioNombre} · {t.profesionalNombre}
-                  </p>
-                </div>
+                <p className="w-[5.75rem] shrink-0 leading-tight">
+                  <span className="cifra block text-[1.375rem]">{horaCorta(t.inicio)}</span>
+                  <span className="rotulo text-suave">
+                    {diaCorto(t.inicio)} {mesCorto(t.inicio)}
+                  </span>
+                </p>
+                <p className="min-w-0 flex-1 text-sm">
+                  <span className="block truncate font-semibold">{t.servicioNombre}</span>
+                  <span className="block truncate text-suave">{t.profesionalNombre}</span>
+                </p>
                 <InsigniaEstado estado={t.estado} className="shrink-0" />
               </li>
             ))}
           </ul>
         )}
       </Tarjeta>
+
+      {/* Primero lo que el dueño viene a buscar (cuántas vino y cuándo); después las notas, y al final lo técnico:
+          qué mensajes salieron y los datos de contacto. */}
+      <Nota clienteId={c.id} />
+
+      <HistorialMensajes clienteId={c.id} />
 
       <Tarjeta titulo="Datos">
         <FormCliente c={c} onListo={onCambio} />

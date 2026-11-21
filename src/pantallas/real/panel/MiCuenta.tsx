@@ -60,8 +60,8 @@ export function PedirNombre() {
   const [cerrado, setCerrado] = useState(false)
   if (cerrado) return null
   return (
-    <section aria-labelledby="t-pedir-nombre" className="mb-4 rounded-grande bg-acento-suave p-4 ring-1 ring-acento-borde/50">
-      <h2 id="t-pedir-nombre" className="titulo text-base">¿Cómo te llamás?</h2>
+    <section aria-labelledby="t-pedir-nombre" className="mb-5 rounded-grande border border-dashed border-acento-borde p-4">
+      <h2 id="t-pedir-nombre" className="titulo text-xl">¿Cómo te llamás?</h2>
       <p className="mb-3 text-sm text-suave">Así te saludamos y tu equipo te ve con tu nombre, no con tu mail.</p>
       <FormNombre inicial="" onListo={() => setCerrado(true)} />
     </section>

@@ -6,7 +6,7 @@
 //   · Cuentas: crear cuentas con contraseña sin depender del mail, y resetearlas.
 //   · Mensajes: registro de la cola (nunca muestra los códigos de ingreso).
 // Sin Supabase configurado, solo queda el alta de demos (se guardan en este navegador).
-import { BarChart3, Building2, KeyRound, LogOut, Mail, MailCheck, MessagesSquare, Sparkles, Store, Users, type LucideIcon } from 'lucide-react'
+import { BarChart3, Building2, LogOut, MailCheck, MessagesSquare, Sparkles, Store, Users, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useEsSuperadmin } from '@/datos/admin'
@@ -16,6 +16,7 @@ import { useTemaNegocio } from '@/tema/TemaNegocio'
 import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
 import { Logo } from '@/ui/Logo'
+import { Pastillas } from '@/ui/Pastillas'
 import { cn } from '@/ui/cn'
 import { Alta } from './Alta'
 import { Cargando, ErrorEnLinea } from './comunes'
@@ -70,15 +71,15 @@ function Estructura({ secciones, email, nombre }: { secciones: typeof SECCIONES;
   const conNav = secciones.length > 1
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
+    <div className="min-h-dvh lg:grid lg:grid-cols-[264px_minmax(0,1fr)]">
       {conNav && (
-        <aside className="hidden border-r border-linea lg:block">
-          <div className="sticky top-0 flex h-dvh flex-col gap-6 p-4">
-            <div className="flex items-center gap-3 px-1 pt-2">
-              <Logo negocio={PANEL} className="size-10 text-sm" />
+        <aside className="hidden border-r border-linea bg-superficie/40 lg:block">
+          <div className="sticky top-0 flex h-dvh flex-col gap-8 px-4 py-5">
+            <div className="flex items-center gap-3 px-1">
+              <Logo negocio={PANEL} className="size-10 rounded-chico text-sm" />
               <div className="min-w-0">
-                <p className="titulo truncate text-base">SawaTek</p>
-                <p className="text-xs text-suave">Consola de plataforma</p>
+                <p className="titulo truncate text-lg leading-tight">SawaTek</p>
+                <p className="rotulo text-suave">Consola</p>
               </div>
             </div>
             <Navegacion secciones={secciones} actual={actual.id} lateral />
@@ -87,17 +88,18 @@ function Estructura({ secciones, email, nombre }: { secciones: typeof SECCIONES;
       )}
 
       <div className={cn('mx-auto w-full max-w-6xl px-4 pt-segura sm:px-6', conNav ? 'pb-28 lg:pb-12' : 'pb-16')}>
-        <header className="flex items-center gap-3 py-5">
-          <Logo negocio={PANEL} className={cn('size-11 shrink-0 text-sm', conNav && 'lg:hidden')} />
+        <header className="mt-5 mb-6 flex items-end gap-3 border-b-2 border-texto pb-3">
+          {!conNav && <Logo negocio={PANEL} className="size-11 shrink-0 rounded-chico text-sm" />}
           <div className="mr-auto min-w-0">
-            <h1 className="truncate text-2xl">{actual.titulo}</h1>
-            <p className="text-sm text-suave">{actual.bajada}</p>
+            <p className="rotulo text-suave">Consola de SawaTek</p>
+            <h1 className="mt-1 truncate text-3xl">{actual.titulo}</h1>
+            <p className="mt-0.5 text-sm text-suave">{actual.bajada}</p>
           </div>
           {email && (
             <button
               type="button"
               onClick={() => void salir()}
-              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-superficie px-3.5 text-sm font-semibold ring-1 ring-linea"
+              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-medio px-3.5 text-sm font-semibold ring-1 ring-inset ring-linea transition-colors hover:bg-superficie-2"
               title={`Salir (${email})`}
               aria-label={`Salir (${email})`}
             >
@@ -129,22 +131,31 @@ function Estructura({ secciones, email, nombre }: { secciones: typeof SECCIONES;
 function Navegacion({ secciones, actual, lateral }: { secciones: typeof SECCIONES; actual: IdSeccion; lateral?: boolean }) {
   return (
     <nav aria-label="Secciones de la consola">
-      <ul className={lateral ? 'flex flex-col gap-1' : 'mx-auto grid max-w-xl grid-cols-6'}>
-        {secciones.map(({ id, texto, corto, Icono }) => {
+      {lateral && <p className="rotulo mb-2 px-3 text-suave">Índice</p>}
+      <ul className={lateral ? 'flex flex-col border-t border-linea' : 'mx-auto grid max-w-xl grid-cols-6'}>
+        {secciones.map(({ id, texto, corto, Icono }, i) => {
           const activo = id === actual
           return (
-            <li key={id}>
+            <li key={id} className={lateral ? 'border-b border-linea' : undefined}>
               <Link
                 to={id === 'resumen' ? '/admin' : `/admin/${id}`}
                 aria-current={activo ? 'page' : undefined}
                 className={cn(
-                  'flex items-center font-semibold transition-colors',
+                  'relative flex items-center font-semibold transition-colors',
                   lateral
-                    ? cn('h-11 gap-3 rounded-medio px-3 text-[15px]', activo ? 'bg-acento-suave text-acento-texto' : 'text-suave hover:bg-superficie hover:text-texto')
-                    : cn('h-15 flex-col justify-center gap-1 text-[11px]', activo ? 'text-acento-texto' : 'text-suave'),
+                    ? cn('h-12 gap-3 px-3 text-[15px] whitespace-nowrap', activo ? 'bg-acento-suave text-acento-texto' : 'text-suave hover:bg-superficie hover:text-texto')
+                    : cn('h-15 flex-col justify-center gap-1 text-xs', activo ? 'text-acento-texto' : 'text-suave'),
                 )}
               >
-                <Icono className={lateral ? 'size-5' : 'size-5.5'} aria-hidden />
+                {activo && (
+                  <span aria-hidden className={cn('absolute bg-acento', lateral ? 'inset-y-0 left-0 w-[3px]' : '-top-px left-1/2 h-[3px] w-8 -translate-x-1/2')} />
+                )}
+                {lateral ? (
+                  <span aria-hidden className="mono w-5 text-xs text-suave">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                ) : null}
+                <Icono className={lateral ? 'size-4.5' : 'size-5.5'} aria-hidden />
                 {lateral ? texto : corto}
               </Link>
             </li>
@@ -202,38 +213,28 @@ function Ingreso() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 px-5">
-      <div>
-        <p className="text-sm font-bold tracking-wide text-acento-texto uppercase">SawaTek · Turnos</p>
-        <h1 className="mt-1 text-3xl">Consola de SawaTek</h1>
+    <main className="relative mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 px-5">
+      <div aria-hidden className="cuadricula pointer-events-none fixed inset-x-0 top-0 -z-10 h-96 [mask-image:linear-gradient(to_bottom,black,transparent)]" />
+      <div className="border-b-2 border-texto pb-4">
+        <Logo negocio={PANEL} className="size-12 rounded-chico text-base" />
+        <p className="rotulo mt-5 text-acento-texto">SawaTek · Turnos</p>
+        <h1 className="mt-1 text-4xl">Consola de SawaTek</h1>
         <p className="mt-2 text-suave">Ingresá con tu cuenta de SawaTek.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-1 rounded-medio bg-superficie p-1 ring-1 ring-linea">
-        {(
-          [
-            ['contrasena', 'Con contraseña', KeyRound],
-            ['link', 'Con link al mail', Mail],
-          ] as const
-        ).map(([id, texto, Icono]) => (
-          <button
-            key={id}
-            type="button"
-            aria-pressed={modo === id}
-            onClick={() => cambiarModo(id)}
-            className={cn(
-              'flex h-11 items-center justify-center gap-1.5 rounded-chico text-sm font-semibold transition-colors',
-              modo === id ? 'bg-acento text-sobre-acento' : 'text-suave hover:text-texto',
-            )}
-          >
-            <Icono className="size-4" aria-hidden />
-            {texto}
-          </button>
-        ))}
-      </div>
+      <Pastillas
+        etiqueta="Cómo querés entrar"
+        ocultarEtiqueta
+        valor={modo}
+        opciones={[
+          { id: 'contrasena', texto: 'Con contraseña' },
+          { id: 'link', texto: 'Con link al mail' },
+        ]}
+        onCambiar={cambiarModo}
+      />
 
       {estado === 'enviado' ? (
-        <p aria-live="polite" className="flex items-start gap-3 rounded-grande bg-superficie p-4 ring-1 ring-linea">
+        <p aria-live="polite" className="flex items-start gap-3 border-l-2 border-exito py-1 pl-4">
           <MailCheck className="mt-0.5 size-5 shrink-0 text-exito" aria-hidden />
           <span>
             Listo. Abrí el mail que te llegó a <b>{email}</b> y tocá el link. Si no lo ves, revisá spam.
@@ -251,7 +252,7 @@ function Ingreso() {
           {modo === 'contrasena' && <p className="text-center text-sm text-suave">¿No tenés usuario o te olvidaste la contraseña? Pedíselo a otra persona de SawaTek.</p>}
         </form>
       )}
-      <Link to="/demos" className="text-center text-sm font-semibold text-acento-texto">
+      <Link to="/demos" className="inline-flex h-11 items-center justify-center text-sm font-semibold text-acento-texto hover:underline">
         Volver a las demos
       </Link>
     </main>

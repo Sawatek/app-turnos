@@ -12,6 +12,7 @@ import {
   useServicios,
   type Cliente,
 } from '@/datos/real/panel'
+import { telefonoLegible } from '@/datos/real/cliente-telefono'
 import { enHora, horaCorta, precio } from '@/dominio/tiempo'
 import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
@@ -23,16 +24,19 @@ export function HojaTurnoManual({
   abierta,
   onCerrar,
   diaInicial,
+  horaInicial,
   profesionalInicial,
 }: {
   abierta: boolean
   onCerrar: () => void
   diaInicial: string
+  /** Hora ya elegida (al tocar un renglón libre de la libreta). */
+  horaInicial?: string
   profesionalInicial: string | null
 }) {
   return (
     <Hoja abierta={abierta} onCerrar={onCerrar} titulo="Cargar turno" descripcion="Para turnos que te piden por teléfono, WhatsApp o en el local.">
-      <FormTurno diaInicial={diaInicial} profesionalInicial={profesionalInicial} onListo={onCerrar} />
+      <FormTurno diaInicial={diaInicial} horaInicial={horaInicial} profesionalInicial={profesionalInicial} onListo={onCerrar} />
     </Hoja>
   )
 }
@@ -45,7 +49,7 @@ interface Errores {
   sena?: string
 }
 
-function FormTurno({ diaInicial, profesionalInicial, onListo }: { diaInicial: string; profesionalInicial: string | null; onListo: () => void }) {
+function FormTurno({ diaInicial, horaInicial, profesionalInicial, onListo }: { diaInicial: string; horaInicial?: string; profesionalInicial: string | null; onListo: () => void }) {
   const { negocioId, esDueno, acceso } = usePanel()
   const servicios = useServicios(negocioId)
   const profesionales = useProfesionales(negocioId)
@@ -59,7 +63,7 @@ function FormTurno({ diaInicial, profesionalInicial, onListo }: { diaInicial: st
   const [servicioElegido, setServicio] = useState('')
   const [profElegido, setProfesional] = useState(esDueno ? (profesionalInicial ?? '') : (acceso.profesionalId ?? ''))
   const [dia, setDia] = useState(diaInicial)
-  const [hora, setHora] = useState('')
+  const [hora, setHora] = useState(horaInicial ?? '')
   const [sena, setSena] = useState('0')
   const [notas, setNotas] = useState('')
   const [errores, setErrores] = useState<Errores>({})
@@ -147,7 +151,7 @@ function FormTurno({ diaInicial, profesionalInicial, onListo }: { diaInicial: st
       <Campo etiqueta="Día" type="date" value={dia} onChange={(e) => setDia(e.target.value)} />
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1.5 text-sm font-semibold text-suave">Horarios libres</legend>
+        <legend className="rotulo mb-1.5 text-suave">Horarios libres</legend>
         {libres.isFetching && !libres.data ? (
           <p className="text-sm text-suave">Buscando horarios…</p>
         ) : libres.data?.length ? (
@@ -161,8 +165,8 @@ function FormTurno({ diaInicial, profesionalInicial, onListo }: { diaInicial: st
                   aria-pressed={hora === h}
                   onClick={() => setHora(h)}
                   className={cn(
-                    'num h-11 min-w-[4.25rem] rounded-medio px-3 text-[15px] font-bold transition-colors',
-                    hora === h ? 'bg-acento text-sobre-acento' : 'bg-superficie ring-1 ring-linea hover:bg-superficie-2',
+                    'mono h-11 min-w-[4.5rem] rounded-chico px-3 text-[15px] font-semibold transition-colors',
+                    hora === h ? 'bg-acento text-sobre-acento shadow-[inset_0_-3px_0_rgb(0_0_0/0.16)]' : 'bg-superficie ring-1 ring-inset ring-linea hover:ring-suave/60',
                   )}
                 >
                   {h}
@@ -217,11 +221,11 @@ function ElegirCliente(p: {
   if (p.cliente)
     return (
       <div className="flex flex-col gap-1.5">
-        <p className="text-sm font-semibold text-suave">Cliente</p>
-        <div className="flex items-center justify-between gap-3 rounded-medio bg-acento-suave px-4 py-3 ring-1 ring-acento-borde">
+        <p className="rotulo text-suave">Cliente</p>
+        <div className="flex items-center justify-between gap-3 rounded-medio border-l-[3px] border-acento bg-acento-suave py-3 pr-2 pl-4">
           <div className="min-w-0">
             <p className="truncate font-semibold">{p.cliente.nombre}</p>
-            {p.cliente.telefono && <p className="truncate text-sm text-suave">{p.cliente.telefono}</p>}
+            {p.cliente.telefono && <p className="mono truncate text-sm text-suave">{telefonoLegible(p.cliente.telefono)}</p>}
           </div>
           <Boton variante="fantasma" tamano="chico" onClick={() => p.onCliente(null)}>
             <X className="size-4" aria-hidden />
@@ -234,7 +238,7 @@ function ElegirCliente(p: {
   if (p.nuevo)
     return (
       <fieldset className="flex flex-col gap-3">
-        <legend className="mb-1.5 text-sm font-semibold text-suave">Cliente nuevo</legend>
+        <legend className="rotulo mb-1.5 text-suave">Cliente nuevo</legend>
         <Campo etiqueta="Nombre del cliente" autoComplete="off" maxLength={80} value={p.nombre} onChange={(e) => p.onNombre(e.target.value)} error={p.error} />
         <Campo etiqueta="Teléfono (opcional)" type="tel" inputMode="tel" maxLength={30} value={p.telefono} onChange={(e) => p.onTelefono(e.target.value)} />
         <Boton variante="fantasma" tamano="chico" className="self-start" onClick={() => p.onNuevo(false)}>
@@ -248,12 +252,12 @@ function ElegirCliente(p: {
     <div className="flex flex-col gap-2">
       <Campo etiqueta="Buscar cliente" type="search" autoComplete="off" placeholder="Nombre o teléfono" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} error={p.error} />
       {lista.length > 0 ? (
-        <ul className="overflow-hidden rounded-medio ring-1 ring-linea" aria-label="Clientes encontrados">
+        <ul className="divide-y divide-linea border-y border-linea" aria-label="Clientes encontrados">
           {lista.map((c) => (
-            <li key={c.id} className="border-b border-linea last:border-b-0">
-              <button type="button" onClick={() => p.onCliente(c)} className="flex min-h-12 w-full items-center justify-between gap-3 bg-superficie px-4 py-2 text-left hover:bg-superficie-2">
+            <li key={c.id}>
+              <button type="button" onClick={() => p.onCliente(c)} className="flex min-h-12 w-full items-center justify-between gap-3 px-1 py-2 text-left transition-colors hover:bg-superficie">
                 <span className="truncate font-semibold">{c.nombre}</span>
-                {c.telefono && <span className="shrink-0 text-sm text-suave">{c.telefono}</span>}
+                {c.telefono && <span className="mono shrink-0 text-sm text-suave">{telefonoLegible(c.telefono)}</span>}
               </button>
             </li>
           ))}

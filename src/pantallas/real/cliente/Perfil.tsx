@@ -6,8 +6,10 @@ import { OfertaInstalar } from '@/instalacion/OfertaInstalar'
 import { guardarMiNombre } from '@/datos/sesion'
 import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
+import { cn } from '@/ui/cn'
 import { useReal } from './contexto'
 import { InvitacionIngreso } from './Ingreso'
+import { numeroDeTalon } from './Pase'
 
 const permisoInicial = (): ResultadoPush | 'pendiente' => {
   if (!pushSoportado()) return 'no-soportado'
@@ -18,21 +20,14 @@ export function Perfil() {
   const { n, uid } = useReal()
   if (!uid) {
     return (
-      <div className="flex flex-col gap-4">
-        <h1 className="pt-1 text-3xl">Perfil</h1>
+      <div className="flex flex-col gap-6">
+        <h1 className="pt-1 text-[2.75rem] leading-[0.95]">Perfil</h1>
         <InvitacionIngreso
           titulo={`Entrá a ${n.nombre}`}
           texto="Para reservar más rápido, ver tus turnos, sumar sellos y recibir los recordatorios."
         />
-        <section aria-label="Ajustes" className="flex items-center justify-between gap-3 rounded-grande bg-superficie p-4 ring-1 ring-linea">
-          <div className="flex items-center gap-3">
-            <Download className="size-5 shrink-0 text-acento-texto" aria-hidden />
-            <div>
-              <p className="font-semibold">Tener {n.nombre} como app</p>
-              <p className="text-sm text-suave">Un toque y la abrís desde tu inicio.</p>
-            </div>
-          </div>
-          <OfertaInstalar n={n} variante="fila" className="shrink-0" />
+        <section aria-label="Ajustes" className="border-y border-linea">
+          <FilaInstalar />
         </section>
       </div>
     )
@@ -41,7 +36,7 @@ export function Perfil() {
 }
 
 function MiPerfil() {
-  const { n, negocioId, resumen, telefono, avisar } = useReal()
+  const { negocioId, resumen, telefono, avisar } = useReal()
   const refrescar = useRefrescar(negocioId)
   const [editando, setEditando] = useState(false)
   const [nombre, setNombre] = useState(resumen.nombre ?? '')
@@ -100,99 +95,145 @@ function MiPerfil() {
           : 'Por WhatsApp siempre. También en el celular, si querés.'
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="pt-1 text-3xl">Perfil</h1>
+    <div className="flex flex-col gap-7">
+      <h1 className="pt-1 text-[2.75rem] leading-[0.95]">Perfil</h1>
 
-      <section aria-label="Tus datos" className="rounded-grande bg-superficie p-4 ring-1 ring-linea">
-        <div className="flex items-center gap-4">
-          <div className="grid size-14 shrink-0 place-items-center rounded-full bg-acento-suave text-xl font-extrabold text-acento-texto" aria-hidden>
-            {(resumen.nombre ?? telefono).trim()[0]?.toUpperCase() ?? '?'}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-lg font-bold">{resumen.nombre ?? 'Sin nombre todavía'}</p>
-            <p className="num flex items-center gap-1.5 text-sm text-suave">
-              <Phone className="size-3.5" aria-hidden />
-              {telefono}
-            </p>
-          </div>
-          {resumen.clienteId && !editando && (
-            <Boton
-              variante="secundario"
-              aria-label="Editar nombre"
-              onClick={() => {
-                setNombre(resumen.nombre ?? '')
-                setErrorNombre(undefined)
-                setEditando(true)
-                setTimeout(() => refForm.current?.querySelector('input')?.focus(), 0)
-              }}
-            >
-              <Pencil className="size-4" aria-hidden />
-              Editar
-            </Boton>
+      {/* Ficha de cliente, como la del fichero del local: número arriba, el nombre y los datos en renglones. */}
+      <section aria-label="Tus datos" className="rounded-grande bg-superficie ring-1 ring-linea">
+        <header className="rotulo flex items-center justify-between gap-3 border-b border-linea px-4 py-2.5 text-suave">
+          <span>Ficha de cliente</span>
+          {resumen.clienteId && (
+            <span>
+              N.º <span className="text-texto">{numeroDeTalon(resumen.clienteId)}</span>
+            </span>
           )}
-        </div>
-        {!resumen.clienteId && <p className="mt-3 text-sm text-suave">Tu nombre te lo pedimos cuando saques tu primer turno.</p>}
-        {editando && (
-          <form ref={refForm} className="mt-4 flex flex-col gap-3" onSubmit={(ev) => void guardar(ev)} noValidate>
-            <Campo
-              etiqueta="Tu nombre"
-              autoComplete="name"
-              value={nombre}
-              maxLength={80}
-              onChange={(e) => {
-                setNombre(e.target.value)
-                setErrorNombre(undefined)
-              }}
-              error={errorNombre}
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <Boton variante="secundario" onClick={() => setEditando(false)}>Cancelar</Boton>
-              <Boton type="submit" cargando={guardando}>Guardar</Boton>
+        </header>
+        <div className="px-4 pt-4 pb-4">
+          {editando ? (
+            <form ref={refForm} className="flex flex-col gap-3" onSubmit={(ev) => void guardar(ev)} noValidate>
+              <Campo
+                etiqueta="Tu nombre"
+                autoComplete="name"
+                value={nombre}
+                maxLength={80}
+                onChange={(e) => {
+                  setNombre(e.target.value)
+                  setErrorNombre(undefined)
+                }}
+                error={errorNombre}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <Boton variante="secundario" onClick={() => setEditando(false)}>Cancelar</Boton>
+                <Boton type="submit" cargando={guardando}>Guardar</Boton>
+              </div>
+            </form>
+          ) : (
+            <div className="flex items-start justify-between gap-3">
+              <p className={cn('titulo min-w-0 pt-1 text-[1.75rem] leading-tight break-words', !resumen.nombre && 'text-suave')}>
+                {resumen.nombre ?? 'Sin nombre todavía'}
+              </p>
+              {resumen.clienteId && (
+                <Boton
+                  variante="secundario"
+                  tamano="chico"
+                  className="shrink-0"
+                  aria-label="Editar nombre"
+                  onClick={() => {
+                    setNombre(resumen.nombre ?? '')
+                    setErrorNombre(undefined)
+                    setEditando(true)
+                    setTimeout(() => refForm.current?.querySelector('input')?.focus(), 0)
+                  }}
+                >
+                  <Pencil className="size-4" aria-hidden />
+                  Editar
+                </Boton>
+              )}
             </div>
-          </form>
-        )}
+          )}
+          {!resumen.clienteId && <p className="mt-1 text-sm text-suave">Tu nombre te lo pedimos cuando saques tu primer turno.</p>}
+        </div>
+        <dl className="grid grid-cols-2 border-t border-linea">
+          <div className="col-span-2 border-b border-linea px-4 py-3">
+            <dt className="rotulo flex items-center gap-1.5 text-suave">
+              <Phone className="size-3" aria-hidden />
+              Celular
+            </dt>
+            <dd className="mono mt-0.5 font-semibold">{telefono}</dd>
+          </div>
+          <div className="border-r border-linea px-4 py-3">
+            <dt className="rotulo text-suave">Visitas</dt>
+            <dd className="cifra mt-1 text-[2rem]">{resumen.sellos}</dd>
+          </div>
+          <div className="px-4 py-3">
+            <dt className="rotulo text-suave">Próximos turnos</dt>
+            <dd className="cifra mt-1 text-[2rem]">{resumen.activos}</dd>
+          </div>
+        </dl>
       </section>
 
-      <section aria-label="Ajustes" className="flex flex-col divide-y divide-linea rounded-grande bg-superficie px-4 ring-1 ring-linea">
-        <div className="flex items-center justify-between gap-3 py-3.5">
-          <div className="flex items-center gap-3">
-            <Download className="size-5 shrink-0 text-acento-texto" aria-hidden />
-            <div>
-              <p className="font-semibold">Tener {n.nombre} como app</p>
-              <p className="text-sm text-suave">Un toque y la abrís desde tu inicio.</p>
-            </div>
-          </div>
-          <OfertaInstalar n={n} variante="fila" className="shrink-0" />
-        </div>
-        <div className="flex items-center justify-between gap-3 py-3.5">
-          <div className="flex items-center gap-3">
-            <Bell className="size-5 shrink-0 text-acento-texto" aria-hidden />
-            <div>
-              <p className="font-semibold">Recordatorios en el celular</p>
-              <p className="text-sm text-suave">{textoPush}</p>
-            </div>
-          </div>
-          {push !== 'no-soportado' && (
-            <Boton variante="secundario" className="shrink-0" cargando={activando} onClick={() => void activar()} disabled={push === 'activado' || push === 'denegado'}>
-              {push === 'activado' ? 'Activados' : 'Activar'}
-            </Boton>
-          )}
+      <section aria-labelledby="t-ajustes">
+        <h2 id="t-ajustes" className="titulo border-b-2 border-texto pb-2 text-xl">Ajustes</h2>
+        <div className="divide-y divide-linea border-b border-linea">
+          <FilaInstalar />
+          <Fila
+            icono={<Bell className="size-5" aria-hidden />}
+            titulo="Recordatorios en el celular"
+            detalle={textoPush}
+            accion={
+              push !== 'no-soportado' && (
+                <Boton variante="secundario" tamano="chico" cargando={activando} onClick={() => void activar()} disabled={push === 'activado' || push === 'denegado'}>
+                  {push === 'activado' ? 'Activados' : 'Activar'}
+                </Boton>
+              )
+            }
+          />
         </div>
       </section>
 
-      <Boton
-        variante="peligro"
-        tamano="grande"
-        cargando={saliendo}
-        onClick={() => {
-          setSaliendo(true)
-          void salirCliente().finally(() => setSaliendo(false))
-        }}
-      >
-        <LogOut className="size-5" aria-hidden />
-        Salir
-      </Boton>
-      <p className="text-center text-xs text-suave">Tus turnos quedan guardados: entrás de nuevo con tu celular.</p>
+      <div className="flex flex-col items-start gap-1">
+        <Boton
+          variante="peligro"
+          className="-ml-3"
+          cargando={saliendo}
+          onClick={() => {
+            setSaliendo(true)
+            void salirCliente().finally(() => setSaliendo(false))
+          }}
+        >
+          <LogOut className="size-5" aria-hidden />
+          Salir
+        </Boton>
+        <p className="text-sm text-suave">Tus turnos quedan guardados: entrás de nuevo con tu celular.</p>
+      </div>
     </div>
+  )
+}
+
+/** Renglón de ajustes: ícono, qué es, una línea de detalle y la acción a la derecha. */
+function Fila({ icono, titulo, detalle, accion }: { icono: React.ReactNode; titulo: string; detalle: string; accion?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-4">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className="mt-0.5 shrink-0 text-acento-texto">{icono}</span>
+        <div className="min-w-0">
+          <p className="font-semibold leading-snug">{titulo}</p>
+          <p className="text-sm text-suave">{detalle}</p>
+        </div>
+      </div>
+      {accion && <div className="shrink-0">{accion}</div>}
+    </div>
+  )
+}
+
+function FilaInstalar() {
+  const { n } = useReal()
+  return (
+    <Fila
+      icono={<Download className="size-5" aria-hidden />}
+      titulo={`Tener ${n.nombre} como app`}
+      detalle="Un toque y la abrís desde tu inicio."
+      accion={<OfertaInstalar n={n} variante="fila" />}
+    />
   )
 }

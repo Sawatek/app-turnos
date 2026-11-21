@@ -36,12 +36,13 @@ export function Ingreso({ n }: { n: Negocio }) {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 px-5 py-10">
+    <main className="relative mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-7 px-5 py-10">
+      <div aria-hidden className="cuadricula pointer-events-none fixed inset-x-0 top-0 -z-10 h-80 [mask-image:linear-gradient(to_bottom,black,transparent)]" />
       <div className="flex flex-col items-start gap-4">
-        <Logo negocio={n} className="size-14 text-base" />
+        <Logo negocio={n} className="size-14 rounded-medio text-base" />
         <div>
-          <p className="text-sm font-bold tracking-wide text-acento-texto uppercase">Panel del negocio</p>
-          <h1 className="mt-1 text-3xl">{n.nombre}</h1>
+          <p className="rotulo text-acento-texto">Panel del negocio</p>
+          <h1 className="mt-2 border-b-2 border-texto pb-3 text-[2.5rem] leading-none">{n.nombre}</h1>
           <p className="mt-2 text-suave">Entrá con tu mail y tu contraseña para ver la agenda.</p>
         </div>
       </div>
@@ -59,7 +60,7 @@ export function Ingreso({ n }: { n: Negocio }) {
           Entrar
         </Boton>
       </form>
-      <Link to={`/${n.slug}`} className="text-center text-sm font-semibold text-acento-texto">
+      <Link to={`/${n.slug}`} className="inline-flex min-h-11 items-center justify-center text-sm font-semibold text-acento-texto underline-offset-4 hover:underline">
         Ir a la app de {n.textos.clientes || 'clientes'}
       </Link>
     </main>

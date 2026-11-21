@@ -28,11 +28,7 @@ export function Portada() {
   const ultima = palabras.pop()
   return (
     <section aria-labelledby="t-hero" className="relative isolate overflow-x-clip px-5 pt-10 pb-24 sm:px-8 sm:pt-16 lg:pb-32">
-      <Halo className="-top-40 right-[-20%] size-[70vmax]" />
-      {/* La palabra que vende, gigante y calada, detrás del celular */}
-      <p aria-hidden className="titular calado deriva pointer-events-none absolute right-[-4%] bottom-6 -z-10 text-gigante select-none">
-        Confirmo
-      </p>
+      <Halo className="-top-24 right-[-18%] size-[64vmax]" />
 
       <div className={cn('mx-auto max-w-7xl', GRILLA)}>
         <p className={cn('folio entrar flex flex-wrap items-center gap-x-3 gap-y-1 text-suave', TODO)}>
@@ -42,8 +38,17 @@ export function Portada() {
         </p>
 
         {/* El h1 solo sube (asomar), sin fundir: se ve desde el primer cuadro */}
+        {/* El sello cae sobre la promesa al cargar: es lo que hace el producto (el cliente toca "Confirmo" y queda sellado).
+            Va dentro del h1 pero aria-hidden: el nombre del título sigue siendo el slogan. */}
         <h1 id="t-hero" className="titular asomar retraso-50 col-span-6 mt-6 text-portada sm:mt-8 lg:col-span-8">
           {palabras.join(' ')} <em>{ultima}</em>
+          <span
+            aria-hidden
+            style={{ '--giro': '-9deg', '--retraso': '650ms' } as React.CSSProperties}
+            className="sello sellar ml-4 inline-flex translate-y-[-0.35em] align-middle font-mono text-[clamp(1rem,0.7rem+1.1vw,1.6rem)] text-acento-texto"
+          >
+            Confirmado
+          </span>
         </h1>
 
         {/* La sangría editorial (columna corrida) va solo desde lg: en el celular los botones tienen que entrar en la primera pantalla */}

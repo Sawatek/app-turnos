@@ -123,12 +123,12 @@ export function FormIngreso({ onEntrar }: Props) {
         <MessageCircle className="size-5" aria-hidden />
         Recibir código por WhatsApp
       </Boton>
-      <p className="flex items-center justify-center gap-1.5 text-center text-sm text-suave">
-        <ShieldCheck className="size-4" aria-hidden />
+      <p className="flex items-start gap-2 text-sm text-suave">
+        <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
         Sin contraseñas: te llega un código de {LARGO} números.
       </p>
       {/* Antes de pedir el celular se informa para qué se usa (ley 25.326). */}
-      <p className="text-center text-xs leading-relaxed text-suave">
+      <p className="border-t border-linea pt-3 text-xs leading-relaxed text-suave">
         Usamos tu celular para tus turnos y recordatorios por WhatsApp.{' '}
         <Link to="/privacidad" target="_blank" className="font-semibold text-texto underline underline-offset-2">
           Ver privacidad
@@ -141,74 +141,91 @@ export function FormIngreso({ onEntrar }: Props) {
     </form>
   ) : (
     <div className="flex flex-col gap-4">
-      <p className="text-center text-[15px]">
-        Te mandamos un código por WhatsApp al <b className="num">{tel}</b>
+      <p className="text-[15px]">
+        Te mandamos un código por WhatsApp al <b className="mono whitespace-nowrap">{tel}</b>
       </p>
-      <div className="relative mx-auto">
-        <label className="sr-only" htmlFor={idCodigo}>Código de {LARGO} números</label>
-        <input
-          ref={refCodigo}
-          id={idCodigo}
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          pattern="[0-9]*"
-          maxLength={LARGO}
-          value={codigo}
-          disabled={verificando}
-          onChange={(e) => void alEscribirCodigo(e.target.value)}
-          aria-invalid={!!errorCodigo || undefined}
-          aria-describedby={`${idCodigo}-ayuda`}
-          className="absolute inset-0 z-10 w-full opacity-0"
-        />
-        <div className="flex gap-2" aria-hidden>
-          {Array.from({ length: LARGO }, (_, i) => (
-            <div
-              key={i}
-              className={cn(
-                'num grid h-15 w-12 place-items-center rounded-medio border-2 bg-superficie text-2xl font-bold transition-colors',
-                errorCodigo ? 'border-peligro' : codigo.length === i ? 'border-acento' : 'border-linea',
-              )}
-            >
-              {codigo[i] ?? ''}
-            </div>
-          ))}
+      {/* Casilleros de un formulario de papel: un peine de 6 lugares, uno por número. El input real va encima, invisible. */}
+      <div className="flex flex-col gap-2">
+        <label className="rotulo text-suave" htmlFor={idCodigo}>
+          Código de {LARGO} números
+        </label>
+        <div className="relative">
+          <input
+            ref={refCodigo}
+            id={idCodigo}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]*"
+            maxLength={LARGO}
+            value={codigo}
+            disabled={verificando}
+            onChange={(e) => void alEscribirCodigo(e.target.value)}
+            aria-invalid={!!errorCodigo || undefined}
+            aria-describedby={`${idCodigo}-ayuda`}
+            className="peer absolute inset-0 z-10 w-full opacity-0"
+          />
+          <div
+            aria-hidden
+            className={cn(
+              'grid grid-cols-6 divide-x divide-linea rounded-t-chico border-b-2 bg-superficie-2/70 transition-colors peer-focus:bg-superficie-2',
+              errorCodigo ? 'border-peligro' : 'border-suave peer-focus:border-acento',
+              verificando && 'motion-safe:animate-pulse',
+            )}
+          >
+            {Array.from({ length: LARGO }, (_, i) => (
+              <div key={i} className="relative grid h-16 place-items-center">
+                <span className="cifra text-[2.25rem]">{codigo[i] ?? ''}</span>
+                {/* El casillero que sigue: una rayita de la marca, como el cursor de la máquina de escribir. */}
+                {!errorCodigo && !verificando && codigo.length === i && <span className="absolute inset-x-3 bottom-2.5 h-[3px] rounded-full bg-acento motion-safe:animate-pulse" />}
+              </div>
+            ))}
+          </div>
         </div>
+        <p id={`${idCodigo}-ayuda`} role={errorCodigo ? 'alert' : undefined} className={cn('text-sm', errorCodigo ? 'font-semibold text-peligro' : 'text-suave')}>
+          {errorCodigo ?? (verificando ? 'Verificando…' : reenviado ? 'Te mandamos un código nuevo. Usá el último que te llegó.' : 'Si tu celular lo sugiere, tocá el código para completarlo.')}
+        </p>
       </div>
-      <p id={`${idCodigo}-ayuda`} role={errorCodigo ? 'alert' : undefined} className={cn('text-center text-sm', errorCodigo ? 'font-semibold text-peligro' : 'text-suave')}>
-        {errorCodigo ?? (verificando ? 'Verificando…' : reenviado ? 'Te mandamos un código nuevo. Usá el último que te llegó.' : 'Si tu celular lo sugiere, tocá el código para completarlo.')}
-      </p>
-      <Boton variante="secundario" disabled={espera > 0 || enviando} cargando={enviando} onClick={() => void reenviar()}>
-        {espera > 0 ? `Reenviar código en ${espera} s` : 'Reenviar código'}
-      </Boton>
-      <Boton
-        variante="fantasma"
-        onClick={() => {
-          setPaso('telefono')
-          setCodigo('')
-          setErrorCodigo(undefined)
-          setVerificando(false)
-        }}
-      >
-        Cambiar el número
-      </Boton>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Boton
+          variante="fantasma"
+          tamano="chico"
+          className="-ml-2"
+          onClick={() => {
+            setPaso('telefono')
+            setCodigo('')
+            setErrorCodigo(undefined)
+            setVerificando(false)
+          }}
+        >
+          Cambiar el número
+        </Boton>
+        <Boton variante="secundario" tamano="chico" disabled={espera > 0 || enviando} cargando={enviando} onClick={() => void reenviar()}>
+          {espera > 0 ? `Reenviar código en ${espera} s` : 'Reenviar código'}
+        </Boton>
+      </div>
     </div>
   )
 }
 
-/** Tarjeta que invita a entrar (en Mis turnos y Perfil sin sesión). */
+/**
+ * Invitación a entrar (en Mis turnos y Perfil sin sesión): una ficha con el encabezado sobre la hoja cuadriculada
+ * y, abajo de la línea, el formulario.
+ */
 export function InvitacionIngreso({ titulo, texto, onEntrar }: { titulo: string; texto: string } & Props) {
   return (
-    <section aria-labelledby="t-invitacion" className="flex flex-col gap-5 rounded-grande bg-superficie p-5 ring-1 ring-linea">
-      <div className="flex items-start gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-acento-suave text-acento-texto" aria-hidden>
-          <Smartphone className="size-5" />
-        </span>
-        <div>
-          <h2 id="t-invitacion" className="titulo text-lg">{titulo}</h2>
-          <p className="text-sm text-suave">{texto}</p>
-        </div>
+    <section aria-labelledby="t-invitacion" className="overflow-hidden rounded-grande bg-superficie ring-1 ring-linea">
+      <header className="relative border-b border-linea px-5 pt-4 pb-4">
+        <div aria-hidden className="cuadricula absolute inset-0 [mask-image:linear-gradient(to_bottom,black,transparent)]" />
+        <p className="rotulo relative flex items-center gap-1.5 text-acento-texto">
+          <Smartphone className="size-3.5" aria-hidden />
+          Ingreso en 2 pasos
+        </p>
+        <h2 id="t-invitacion" className="titulo relative mt-2 text-2xl">{titulo}</h2>
+        <p className="relative mt-1 text-[15px] text-suave">{texto}</p>
+      </header>
+      <div className="px-5 pt-5 pb-5">
+        <FormIngreso onEntrar={onEntrar} />
       </div>
-      <FormIngreso onEntrar={onEntrar} />
     </section>
   )
 }

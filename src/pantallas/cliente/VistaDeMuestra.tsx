@@ -87,7 +87,16 @@ export function VistaDeMuestra({ n, ejemplo, ahora, confirmado, noVistos, bajar,
 
   const scroll = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    scroll.current?.scrollTo({ top: bajar ? 330 : 0, behavior: quieto ? 'auto' : 'smooth' })
+    const caja = scroll.current
+    if (!caja) return
+    // Baja hasta que la tarjeta de sellos queda apenas debajo del encabezado (mida lo que mida lo de arriba).
+    const tarjeta = caja.querySelector<HTMLElement>('[aria-labelledby="t-fid"]')
+    const encabezado = caja.querySelector('header')?.offsetHeight ?? 0
+    // offsetTop y no getBoundingClientRect: el celular de la landing está achicado con transform.
+    let arriba = 0
+    for (let el: HTMLElement | null = tarjeta; el && el !== caja; el = el.offsetParent as HTMLElement | null) arriba += el.offsetTop
+    const destino = bajar && tarjeta ? Math.max(0, arriba - encabezado - 16) : 0
+    caja.scrollTo({ top: destino, behavior: quieto ? 'auto' : 'smooth' })
   }, [bajar, quieto])
 
   return (
@@ -95,7 +104,7 @@ export function VistaDeMuestra({ n, ejemplo, ahora, confirmado, noVistos, bajar,
       <div ref={scroll} className="sin-barra absolute inset-0 overflow-hidden">
         <EncabezadoCliente n={n} noVistos={noVistos} onAvisos={nada} />
         {/* div y no main: esto se dibuja adentro de la landing, que ya tiene su main */}
-        <div className="px-5 pt-2 pb-32">
+        <div className="px-5 pt-3 pb-32">
           <Inicio />
         </div>
       </div>

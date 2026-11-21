@@ -4,9 +4,11 @@ import { useState } from 'react'
 import { guardarHorarios, useBloqueos, useHorarios, useProfesionales, useRefrescar, type Franja, type Horario } from '@/datos/real/panel'
 import { claveDia, minutosDe } from '@/dominio/tiempo'
 import { Boton } from '@/ui/Boton'
+import { claseControl } from '@/ui/Campo'
+import { Pastillas } from '@/ui/Pastillas'
 import { cn } from '@/ui/cn'
 import { FilaBloqueo, HojaBloqueo } from './Bloqueos'
-import { Cargando, DIAS, Encabezado, ErrorEnLinea, Exito, FalloCarga, SEMANA, Tarjeta, Vacio, hhmm, useAccion, usePanel } from './comunes'
+import { Cargando, DIAS, Encabezado, ErrorEnLinea, Exito, FalloCarga, RAYADO, SEMANA, Tarjeta, Vacio, hhmm, useAccion, usePanel } from './comunes'
 
 export function Horarios() {
   const { negocioId } = usePanel()
@@ -29,23 +31,13 @@ export function Horarios() {
       ) : (
         <>
           {lista.length > 1 && (
-            <fieldset className="flex flex-wrap gap-2">
-              <legend className="sr-only">Elegir profesional</legend>
-              {lista.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  aria-pressed={p.id === profId}
-                  onClick={() => setElegido(p.id)}
-                  className={cn(
-                    'h-11 rounded-full px-4 text-sm font-semibold transition-colors',
-                    p.id === profId ? 'bg-texto text-fondo' : 'bg-superficie text-suave ring-1 ring-linea hover:text-texto',
-                  )}
-                >
-                  {p.nombre}
-                </button>
-              ))}
-            </fieldset>
+            <Pastillas
+              etiqueta="Elegir profesional"
+              ocultarEtiqueta
+              valor={profId}
+              opciones={lista.map((p) => ({ id: p.id, texto: p.nombre }))}
+              onCambiar={setElegido}
+            />
           )}
           <Editor key={profId} profesionalId={profId} nombre={lista.find((p) => p.id === profId)!.nombre} inicial={horarios.data.filter((h) => h.profesional_id === profId)} />
         </>
@@ -113,16 +105,55 @@ function Editor({ profesionalId, nombre, inicial }: { profesionalId: string; nom
     setGuardado(listo)
   }
 
+  // Escala de la planilla: de la primera a la última hora que se atiende en la semana (mínimo 9 a 20).
+  const validas = franjas.filter((f) => /^\d\d:\d\d$/.test(f.desde) && /^\d\d:\d\d$/.test(f.hasta) && f.hasta > f.desde)
+  const hMin = Math.min(9, ...validas.map((f) => Math.floor(minutosDe(f.desde) / 60)))
+  const hMax = Math.max(20, ...validas.map((f) => Math.ceil(minutosDe(f.hasta) / 60)))
+  const horas = Array.from({ length: hMax - hMin + 1 }, (_, i) => hMin + i)
+  const pos = (hora: string) => ((minutosDe(hora) - hMin * 60) / ((hMax - hMin) * 60)) * 100
+
   return (
     <Tarjeta titulo={`Semana de ${nombre}`}>
-      <ul className="flex flex-col divide-y divide-linea">
+      {/* Escala de horas de la planilla (decorativa: cada día dice sus horarios en los campos). */}
+      <div aria-hidden className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-[7rem_minmax(0,1fr)]">
+        <span className="max-sm:hidden" />
+        <div className="relative h-4">
+          {horas.map((h, i) => (
+            <span
+              key={h}
+              className={cn('mono absolute -translate-x-1/2 text-xs text-suave', i % 2 === 1 && 'max-sm:hidden')}
+              style={{ left: `${(i / (horas.length - 1)) * 100}%` }}
+            >
+              {String(h).padStart(2, '0')}
+            </span>
+          ))}
+        </div>
+      </div>
+      <ul className="mt-2 flex flex-col border-t border-texto">
         {SEMANA.map((dia) => {
           const delDia = franjas.filter((f) => f.dia === dia)
+          const dibujables = validas.filter((f) => f.dia === dia)
           return (
-            <li key={dia} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start sm:gap-4" aria-label={DIAS[dia]}>
-              <p className="w-28 shrink-0 pt-2.5 font-semibold">{DIAS[dia]}</p>
-              <div className="flex min-w-0 flex-1 flex-col gap-2">
-                {delDia.length === 0 && <p className="pt-2.5 text-sm text-suave">Cerrado</p>}
+            <li key={dia} className="grid grid-cols-[minmax(0,1fr)] gap-x-3 border-b border-linea py-3 sm:grid-cols-[7rem_minmax(0,1fr)]" aria-label={DIAS[dia]}>
+              <div className="flex items-center justify-between gap-1 sm:flex-col sm:items-start sm:justify-start">
+                <p className="titulo text-lg leading-tight">{DIAS[dia]}</p>
+                <Boton variante="fantasma" tamano="chico" className="-mr-2 sm:-ml-2" onClick={() => agregar(dia)} aria-label={`Agregar franja al ${DIAS[dia].toLowerCase()}`}>
+                  <Plus className="size-4" aria-hidden />
+                  Franja
+                </Boton>
+              </div>
+              <div className="flex min-w-0 flex-col gap-2">
+                {/* La franja dibujada en la planilla: tinta donde atiende; rayado si está cerrado. */}
+                <div
+                  aria-hidden
+                  className={cn('relative mt-1.5 h-3.5 ring-1 ring-inset ring-linea', dibujables.length ? 'bg-superficie-2' : RAYADO)}
+                  style={{ backgroundImage: dibujables.length ? `repeating-linear-gradient(to right, transparent 0 calc(${100 / (horas.length - 1)}% - 1px), var(--t-linea) 0 ${100 / (horas.length - 1)}%)` : undefined }}
+                >
+                  {dibujables.map((f) => (
+                    <span key={f.clave} className="absolute inset-y-0 bg-acento" style={{ left: `${pos(f.desde)}%`, width: `${pos(f.hasta) - pos(f.desde)}%` }} />
+                  ))}
+                </div>
+                {delDia.length === 0 && <p className="rotulo text-suave">Cerrado</p>}
                 {delDia.map((f, i) => (
                   <div key={f.clave} className="flex items-center gap-2">
                     <input
@@ -131,7 +162,7 @@ function Editor({ profesionalId, nombre, inicial }: { profesionalId: string; nom
                       aria-label={`${DIAS[dia]}, franja ${i + 1}: desde`}
                       value={f.desde}
                       onChange={(e) => cambiar(f.clave, { desde: e.target.value })}
-                      className="num h-11 min-w-0 max-w-40 flex-1 rounded-medio border border-linea bg-superficie px-2.5 text-[16px] outline-none focus:border-acento"
+                      className={cn(claseControl, 'num h-11 min-w-0 max-w-40 flex-1 px-2.5 text-[16px]')}
                     />
                     <span className="text-suave" aria-hidden>
                       a
@@ -142,7 +173,7 @@ function Editor({ profesionalId, nombre, inicial }: { profesionalId: string; nom
                       aria-label={`${DIAS[dia]}, franja ${i + 1}: hasta`}
                       value={f.hasta}
                       onChange={(e) => cambiar(f.clave, { hasta: e.target.value })}
-                      className="num h-11 min-w-0 max-w-40 flex-1 rounded-medio border border-linea bg-superficie px-2.5 text-[16px] outline-none focus:border-acento"
+                      className={cn(claseControl, 'num h-11 min-w-0 max-w-40 flex-1 px-2.5 text-[16px]')}
                     />
                     <button
                       type="button"
@@ -156,15 +187,11 @@ function Editor({ profesionalId, nombre, inicial }: { profesionalId: string; nom
                 ))}
                 <ErrorEnLinea texto={errores[dia]} />
               </div>
-              <Boton variante="fantasma" tamano="chico" className="self-start" onClick={() => agregar(dia)} aria-label={`Agregar franja al ${DIAS[dia].toLowerCase()}`}>
-                <Plus className="size-4" aria-hidden />
-                Franja
-              </Boton>
             </li>
           )
         })}
       </ul>
-      <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-linea pt-4">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <Boton cargando={accion.ocupado} onClick={() => void guardar()}>
           Guardar horarios
         </Boton>
@@ -194,7 +221,7 @@ function Francos() {
         ) : bloqueos.data.length === 0 ? (
           <p className="text-sm text-suave">No hay días bloqueados por delante.</p>
         ) : (
-          <ul className="-mx-4 divide-y divide-linea" aria-label="Bloqueos próximos">
+          <ul className="flex flex-col gap-2" aria-label="Bloqueos próximos">
             {bloqueos.data.map((b) => (
               <FilaBloqueo key={b.id} b={b} conDia />
             ))}

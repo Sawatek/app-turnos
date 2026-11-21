@@ -123,6 +123,7 @@ function App({ n, negocioId, tomaTurnos, sesion }: { n: Negocio; negocioId: stri
     },
   }
 
+  const vidriera = tab === 'inicio' && !uid
   return (
     <ContextoReal value={ctx}>
       <Notificacion
@@ -132,12 +133,17 @@ function App({ n, negocioId, tomaTurnos, sesion }: { n: Negocio; negocioId: stri
         onCerrar={() => setAviso(null)}
         autoCerrar={6000}
       />
+      {/* Hoja cuadriculada arriba, que se desvanece: el cuaderno del negocio. Decorativa. */}
+      <div aria-hidden className="cuadricula pointer-events-none absolute inset-x-0 top-0 -z-10 h-[26rem] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
       <div className="mx-auto min-h-dvh max-w-lg">
-        <header className="sticky top-0 z-30 flex items-center gap-3 bg-fondo/85 px-5 pt-segura pb-3 backdrop-blur-lg">
-          <Logo negocio={n} className="size-10 rounded-chico text-sm" />
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-linea/70 bg-fondo/90 px-5 pt-segura pb-3 backdrop-blur-lg">
+          {/* En la vidriera (sin sesión) la portada ya muestra logo y nombre: acá aparecen recién al bajar. */}
+          <div className={cn('flex min-w-0 flex-1 items-center gap-3', vidriera && 'revelar-al-bajar')}>
+          <Logo negocio={n} className="size-9 rounded-chico text-xs" />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-bold leading-tight">{n.nombre}</p>
-            {n.bajada && <p className="truncate text-xs text-suave">{n.bajada}</p>}
+            <p className="titulo truncate text-lg leading-tight">{n.nombre}</p>
+            {n.bajada && <p className="rotulo truncate text-[0.6875rem] text-suave">{n.bajada}</p>}
+          </div>
           </div>
           <button
             type="button"
@@ -149,7 +155,7 @@ function App({ n, negocioId, tomaTurnos, sesion }: { n: Negocio; negocioId: stri
           </button>
         </header>
 
-        <main className="px-5 pt-2 pb-32">
+        <main className="px-5 pt-3 pb-36">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={tab}
@@ -164,8 +170,9 @@ function App({ n, negocioId, tomaTurnos, sesion }: { n: Negocio; negocioId: stri
           </AnimatePresence>
         </main>
 
-        <nav aria-label="Principal" className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-lg px-4 pb-segura">
-          <div className="flex items-center gap-1 rounded-[26px] bg-superficie/90 p-1.5 sombra-flotante ring-1 ring-linea backdrop-blur-xl">
+        {/* Barra de abajo como una regla: pestañas planas con una marca de tinta arriba y el talón de "Reservar" a la derecha. */}
+        <nav aria-label="Principal" className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-lg border-t border-linea bg-fondo/95 px-3 pt-1.5 pb-segura backdrop-blur-xl">
+          <div className="flex items-center gap-1">
             {(
               [
                 { id: 'inicio', texto: 'Inicio', Icono: House },
@@ -179,11 +186,17 @@ function App({ n, negocioId, tomaTurnos, sesion }: { n: Negocio; negocioId: stri
                 aria-current={tab === id ? 'page' : undefined}
                 onClick={() => ctx.irA(id)}
                 className={cn(
-                  'relative flex h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-[20px] text-[11px] font-bold transition-colors',
-                  tab === id ? 'text-texto' : 'text-suave',
+                  'relative flex h-14 flex-1 flex-col items-center justify-center gap-1 text-[0.75rem] font-bold transition-colors',
+                  tab === id ? 'text-texto' : 'text-suave hover:text-texto',
                 )}
               >
-                {tab === id && <motion.span layoutId="tab-activa-real" className="absolute inset-0 rounded-[20px] bg-superficie-2" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
+                {tab === id && (
+                  <motion.span
+                    layoutId="tab-activa-real"
+                    className="absolute -top-1.5 h-[3px] w-8 rounded-b-full bg-acento"
+                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                  />
+                )}
                 <Icono className="relative size-5" aria-hidden />
                 <span className="relative">{texto}</span>
               </button>
@@ -193,7 +206,7 @@ function App({ n, negocioId, tomaTurnos, sesion }: { n: Negocio; negocioId: stri
                 type="button"
                 whileTap={{ scale: 0.94 }}
                 onClick={() => ctx.abrirReserva()}
-                className="flex h-14 items-center gap-1.5 rounded-[20px] bg-acento px-4 font-bold text-sobre-acento"
+                className="flex h-13 items-center gap-1.5 rounded-medio bg-acento px-5 font-bold text-sobre-acento shadow-[inset_0_-3px_0_rgb(0_0_0/0.16)]"
               >
                 <Plus className="size-5" strokeWidth={2.75} aria-hidden />
                 {n.textos?.reservar || 'Reservar'}

@@ -1,13 +1,21 @@
-import { CalendarPlus, CalendarX2 } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useDemo } from '@/datos/demo'
 import { capitalizar, diaCorto, horaCorta } from '@/dominio/tiempo'
 import type { Turno } from '@/dominio/tipos'
 import { Boton } from '@/ui/Boton'
 import { Hoja } from '@/ui/Hoja'
-import { InsigniaEstado } from '@/ui/Insignia'
+import { cn } from '@/ui/cn'
 import { profesionalDe, servicioDe, useCliente } from './contexto'
-import { Pase } from './Pase'
+import { numeroDeTalon, Pase } from './Pase'
+
+const TEXTO_ESTADO: Record<Turno['estado'], string> = {
+  confirmado: 'Vino',
+  pendiente: 'Vino',
+  asistio: 'Vino',
+  falto: 'No vino',
+  cancelado: 'Cancelado',
+}
 
 export function MisTurnos() {
   const { n, e, ahora, abrirReserva } = useCliente()
@@ -33,17 +41,23 @@ export function MisTurnos() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="pt-1 text-3xl">Mis turnos</h1>
+      <header className="pt-2">
+        <p className="rotulo text-suave">{proximos.length ? `${proximos.length} por venir` : 'Nada por venir'}</p>
+        <h1 className="mt-1 text-[2.75rem] leading-[0.95]">Mis turnos</h1>
+      </header>
 
       {proximos.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-grande bg-superficie px-6 py-10 text-center ring-1 ring-linea">
-          <CalendarPlus className="size-10 text-acento-texto" aria-hidden />
-          <p className="font-semibold">No tenés turnos próximos</p>
+        // Hoja en blanco del talonario: recuadro punteado sobre cuadrícula, esperando el primer turno.
+        <div className="cuadricula flex flex-col items-start gap-1 rounded-grande border border-dashed border-linea p-6">
+          <p className="titulo text-xl">No tenés turnos próximos</p>
           <p className="text-sm text-suave">Reservá en menos de 20 segundos.</p>
-          <Boton onClick={() => abrirReserva()} className="mt-2">{n.textos.reservar}</Boton>
+          <Boton onClick={() => abrirReserva()} className="mt-4">
+            <Plus className="size-4" strokeWidth={2.75} aria-hidden />
+            {n.textos.reservar}
+          </Boton>
         </div>
       ) : (
-        <section aria-labelledby="t-prox" className="flex flex-col gap-4">
+        <section aria-labelledby="t-prox" className="flex flex-col gap-5">
           <h2 id="t-prox" className="sr-only">Próximos</h2>
           {proximos.map((t) => (
             <Pase
@@ -72,18 +86,35 @@ export function MisTurnos() {
       )}
 
       {historial.length > 0 && (
+        // Historial como la libreta del mostrador: una línea por turno, el estado en letra de ticket (sin sellos: uno solo por pantalla).
         <section aria-labelledby="t-hist">
-          <h2 id="t-hist" className="titulo mb-2 text-lg">Historial</h2>
-          <ul className="divide-y divide-linea rounded-grande bg-superficie px-4 ring-1 ring-linea">
-            {historial.map((t) => (
-              <li key={t.id} className="flex items-center justify-between gap-3 py-3">
-                <div>
-                  <p className="font-semibold">{servicioDe(n, t.servicioId)?.nombre} · {profesionalDe(n, t.profesionalId)?.nombre}</p>
-                  <p className="num text-sm text-suave">{capitalizar(diaCorto(t.inicio))} · {horaCorta(t.inicio)}</p>
-                </div>
-                <InsigniaEstado estado={t.estado === 'pendiente' || t.estado === 'confirmado' ? 'asistio' : t.estado} />
-              </li>
-            ))}
+          <h2 id="t-hist" className="titulo border-b-2 border-texto pb-2 text-xl">Historial</h2>
+          <ul className="divide-y divide-linea">
+            {historial.map((t) => {
+              const estado = t.estado === 'pendiente' || t.estado === 'confirmado' ? 'asistio' : t.estado
+              return (
+                <li key={t.id} className="flex items-center gap-3 py-3">
+                  <div className="w-16 shrink-0">
+                    <p className="cifra text-2xl">{horaCorta(t.inicio)}</p>
+                    <p className="rotulo mt-1 text-suave">{capitalizar(diaCorto(t.inicio))}</p>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className={cn('truncate font-semibold', estado === 'cancelado' && 'text-suave line-through')}>{servicioDe(n, t.servicioId)?.nombre}</p>
+                    <p className="truncate text-sm text-suave">
+                      con {profesionalDe(n, t.profesionalId)?.nombre} · <span className="mono text-[0.8125rem]">N.º {numeroDeTalon(t.id)}</span>
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      'rotulo shrink-0',
+                      estado === 'cancelado' || estado === 'falto' ? 'text-peligro' : 'text-suave',
+                    )}
+                  >
+                    {TEXTO_ESTADO[estado]}
+                  </span>
+                </li>
+              )
+            })}
           </ul>
         </section>
       )}
@@ -91,17 +122,21 @@ export function MisTurnos() {
       <Hoja abierta={!!cancelando} onCerrar={() => setCancelando(undefined)} titulo="¿Cancelar el turno?">
         {cancelando && (
           <div className="flex flex-col gap-4 pb-2">
-            <div className="flex items-center gap-3 rounded-medio bg-superficie p-4 ring-1 ring-linea">
-              <CalendarX2 className="size-6 shrink-0 text-peligro" aria-hidden />
-              <p className="text-[15px]">
-                {servicioDe(n, cancelando.servicioId)?.nombre} del {diaCorto(cancelando.inicio)} a las <b className="num">{horaCorta(cancelando.inicio)}</b>.
+            <div className="flex items-center gap-4 border-y border-linea py-4">
+              <div className="shrink-0">
+                <p className="rotulo text-suave">{capitalizar(diaCorto(cancelando.inicio))}</p>
+                <p className="cifra mt-1 text-5xl">{horaCorta(cancelando.inicio)}</p>
+              </div>
+              <p className="min-w-0 flex-1 text-[15px]">
+                {servicioDe(n, cancelando.servicioId)?.nombre} con {profesionalDe(n, cancelando.profesionalId)?.nombre}.
                 {cancelando.senaPagada > 0 && ' La seña queda a favor para tu próximo turno.'}
               </p>
             </div>
+            <p className="text-sm text-suave">Si cancelás, el horario queda libre para otra persona.</p>
             <Boton variante="secundario" tamano="grande" onClick={() => { const t = cancelando; setCancelando(undefined); abrirReserva({ reprograma: t }) }}>
               Mejor cambiarlo de horario
             </Boton>
-            <Boton variante="peligro" tamano="grande" className="ring-1 ring-peligro/40" onClick={confirmarCancelacion}>
+            <Boton variante="peligro" tamano="grande" className="ring-1 ring-inset ring-peligro/40" onClick={confirmarCancelacion}>
               Sí, cancelar
             </Boton>
           </div>

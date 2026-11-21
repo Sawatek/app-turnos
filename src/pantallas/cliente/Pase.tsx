@@ -1,8 +1,10 @@
 import { CalendarPlus, Clock, MapPin, User } from 'lucide-react'
-import { diaRelativo, horaCorta, diaLargo, capitalizar } from '@/dominio/tiempo'
+import { useState } from 'react'
+import { capitalizar, diaLargo, diaRelativo, horaCorta } from '@/dominio/tiempo'
 import type { Negocio, Turno } from '@/dominio/tipos'
 import { InsigniaEstado } from '@/ui/Insignia'
 import { Logo } from '@/ui/Logo'
+import { Talon } from '@/ui/Talon'
 import { cn } from '@/ui/cn'
 import { profesionalDe, servicioDe } from './contexto'
 
@@ -15,6 +17,9 @@ export function faltaPara(inicio: string, ahora: Date) {
   const d = Math.round(h / 24)
   return `Faltan ${d} ${d === 1 ? 'día' : 'días'}`
 }
+
+/** Número de talón: las primeras cifras del turno, como el numerito que se saca en el mostrador. */
+export const numeroDeTalon = (id: string) => id.replace(/-/g, '').slice(0, 4).toUpperCase()
 
 function archivoCalendario(n: Negocio, t: Turno) {
   const f = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
@@ -44,89 +49,104 @@ interface Props {
   className?: string
 }
 
-/** El turno como "pase" (estilo tarjeta de embarque): lo importante grande, el resto a mano. */
+/**
+ * El turno como talón troquelado (igual que en la app real): arriba el día y la hora enormes, el sello del estado
+ * mordiendo el corte, y abajo el detalle. Si el estado cambia mientras se mira (el cliente tocó "Confirmo" en el
+ * WhatsApp), el papel se hunde y el sello nuevo cae con el golpe: es EL momento de la demo.
+ */
 export function Pase({ n, t, ahora, acciones, compacto, className }: Props) {
   const serv = servicioDe(n, t.servicioId)
   const prof = profesionalDe(n, t.profesionalId)
   const futuro = Date.parse(t.inicio) > ahora.getTime()
+  const activo = t.estado === 'pendiente' || t.estado === 'confirmado'
+  // Estado con el que se mostró por primera vez: si cambia, el sello nuevo cae con el golpe.
+  const [estadoInicial] = useState(t.estado)
+  const cambio = t.estado !== estadoInicial
   return (
-    <article
-      className={cn('relative overflow-hidden rounded-grande bg-superficie sombra-suave ring-1 ring-linea', className)}
+    <Talon
+      key={cambio ? 'cambio' : 'igual'}
+      className={cn(cambio && 'golpe', className)}
+      // El golpe espera a que se vaya la notificación de WhatsApp (que tapa la parte de arriba).
+      style={cambio ? ({ '--retraso': '160ms' } as React.CSSProperties) : undefined}
       aria-label={`Turno de ${serv?.nombre} ${diaRelativo(t.inicio, ahora)} a las ${horaCorta(t.inicio)}`}
-    >
-      <div className="flex items-center justify-between gap-3 bg-acento px-4 py-2.5 text-sobre-acento">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <Logo negocio={n} className="size-7 rounded-chico text-[11px] ring-2 ring-sobre-acento/20" />
-          <span className="truncate text-sm font-bold">{n.nombre}</span>
-        </div>
-        {futuro && t.estado !== 'cancelado' && <span className="shrink-0 text-xs font-bold opacity-85">{faltaPara(t.inicio, ahora)}</span>}
-      </div>
-
-      <div className="px-4 pt-3.5 pb-4">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-suave">{capitalizar(diaRelativo(t.inicio, ahora))}</p>
-            <p className="titulo num text-5xl leading-none">{horaCorta(t.inicio)}</p>
+      cuerpo={
+        <div className="px-4 pt-3.5 pb-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <Logo negocio={n} className="size-6 rounded-chico text-[10px]" />
+              <span className="rotulo truncate text-suave">{n.nombre}</span>
+            </div>
+            <span className="rotulo shrink-0 text-suave">
+              N.º <span className="text-texto">{numeroDeTalon(t.id)}</span>
+            </span>
           </div>
-          <InsigniaEstado estado={t.estado} />
-        </div>
-
-        {/* Troquel de la tarjeta */}
-        <div className="relative my-3.5" aria-hidden>
-          <div className="border-t-2 border-dashed border-linea" />
-          <div className="absolute top-1/2 -left-6 size-5 -translate-y-1/2 rounded-full bg-fondo" />
-          <div className="absolute top-1/2 -right-6 size-5 -translate-y-1/2 rounded-full bg-fondo" />
-        </div>
-
-        <dl className={cn('grid gap-x-4 gap-y-2.5 text-sm', compacto ? 'grid-cols-2' : 'grid-cols-2')}>
-          <div>
-            <dt className="text-xs font-semibold text-suave">Servicio</dt>
-            <dd className="font-semibold">{serv?.nombre}</dd>
-          </div>
-          <div>
-            <dt className="flex items-center gap-1 text-xs font-semibold text-suave"><User className="size-3" aria-hidden />Con</dt>
-            <dd className="font-semibold">{prof?.nombre}</dd>
-          </div>
-          {!compacto && (
-            <>
-              <div>
-                <dt className="flex items-center gap-1 text-xs font-semibold text-suave"><Clock className="size-3" aria-hidden />Duración</dt>
-                <dd className="font-semibold">{t.minutos} min</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold text-suave">Fecha</dt>
-                <dd className="font-semibold">{capitalizar(diaLargo(t.inicio).split(' de ')[0]!)}</dd>
-              </div>
-              <div className="col-span-2">
-                <dt className="flex items-center gap-1 text-xs font-semibold text-suave"><MapPin className="size-3" aria-hidden />Dónde</dt>
-                <dd className="font-semibold">{n.direccion}</dd>
-              </div>
-            </>
-          )}
-        </dl>
-
-        {t.senaPagada > 0 && (
-          <p className="mt-3 rounded-chico bg-acento-suave px-3 py-2 text-xs font-semibold text-acento-texto">
-            Seña de ${t.senaPagada.toLocaleString('es-AR')} pagada · se descuenta del total
+          <p className="mt-4 flex flex-wrap items-baseline justify-between gap-x-3">
+            <span className="titulo text-xl leading-tight">{capitalizar(diaRelativo(t.inicio, ahora))}</span>
+            {futuro && activo && <span className="rotulo text-acento-texto">{faltaPara(t.inicio, ahora)}</span>}
           </p>
-        )}
-
-        {(acciones || (futuro && !compacto)) && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {acciones}
-            {futuro && !compacto && t.estado !== 'cancelado' && (
-              <button
-                type="button"
-                onClick={() => archivoCalendario(n, t)}
-                className="inline-flex h-10 items-center gap-1.5 rounded-medio px-3 text-sm font-semibold text-acento-texto hover:bg-acento-suave"
-              >
-                <CalendarPlus className="size-4" aria-hidden />
-                Al calendario
-              </button>
+          <p className={cn('cifra mt-1 pb-2', compacto ? 'text-[4rem]' : 'text-[4.75rem]', t.estado === 'cancelado' && 'text-suave line-through decoration-4')}>
+            {horaCorta(t.inicio)}
+          </p>
+        </div>
+      }
+      sello={<InsigniaEstado key={t.estado} estado={t.estado} animar={cambio} className={cn('bg-superficie/85', cambio ? 'text-base' : 'text-sm')} />}
+      talon={
+        <div className="px-4 pt-8 pb-4">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            <Dato titulo="Servicio">{serv?.nombre}</Dato>
+            <Dato titulo="Con" icono={<User className="size-3" aria-hidden />}>
+              {prof?.nombre}
+            </Dato>
+            {!compacto && (
+              <>
+                <Dato titulo="Duración" icono={<Clock className="size-3" aria-hidden />}>
+                  <span className="mono">{t.minutos} min</span>
+                </Dato>
+                <Dato titulo="Fecha">{capitalizar(diaLargo(t.inicio))}</Dato>
+                {n.direccion && (
+                  <Dato titulo="Dónde" icono={<MapPin className="size-3" aria-hidden />} ancho>
+                    {n.direccion}
+                  </Dato>
+                )}
+              </>
             )}
-          </div>
-        )}
-      </div>
-    </article>
+          </dl>
+
+          {t.senaPagada > 0 && (
+            <p className="mt-3 rounded-chico border border-dashed border-acento-borde px-3 py-2 text-xs font-semibold text-acento-texto">
+              Seña de <span className="mono">${t.senaPagada.toLocaleString('es-AR')}</span> pagada · se descuenta del total
+            </p>
+          )}
+
+          {(acciones || (futuro && activo && !compacto)) && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {acciones}
+              {futuro && activo && !compacto && (
+                <button
+                  type="button"
+                  onClick={() => archivoCalendario(n, t)}
+                  className="inline-flex h-11 items-center gap-1.5 rounded-medio px-3 text-sm font-semibold text-acento-texto hover:bg-acento-suave"
+                >
+                  <CalendarPlus className="size-4" aria-hidden />
+                  Agregar al calendario
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      }
+    />
+  )
+}
+
+function Dato({ titulo, icono, ancho, children }: { titulo: string; icono?: React.ReactNode; ancho?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={cn('min-w-0', ancho && 'col-span-2')}>
+      <dt className="rotulo flex items-center gap-1 text-suave">
+        {icono}
+        {titulo}
+      </dt>
+      <dd className="mt-0.5 font-semibold">{children}</dd>
+    </div>
   )
 }

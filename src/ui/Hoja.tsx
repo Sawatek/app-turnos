@@ -53,11 +53,13 @@ export function Hoja({ abierta, onCerrar, titulo, descripcion, children, pie, cl
                   onPointerDown={(e) => arrastre.start(e)}
                   aria-hidden
                 >
-                  <div className="h-1.5 w-11 rounded-full bg-linea" />
+                  <div className="h-1 w-10 rounded-full bg-suave/40" />
                 </div>
-                <div className="flex shrink-0 items-start justify-between gap-3 px-5 pt-1 pb-3">
+                {/* Encabezado arrancado de un talonario: abajo, el renglón punteado del corte. */}
+                <div className="relative flex shrink-0 items-start justify-between gap-3 px-5 pt-1 pb-3.5">
+                  <div aria-hidden className="troquel absolute inset-x-5 bottom-0 h-[1.5px]" />
                   <div>
-                    <Dialog.Title className="titulo text-xl">{titulo}</Dialog.Title>
+                    <Dialog.Title className="titulo text-2xl">{titulo}</Dialog.Title>
                     {descripcion ? (
                       <Dialog.Description className="mt-0.5 text-sm text-suave">{descripcion}</Dialog.Description>
                     ) : (
@@ -68,7 +70,7 @@ export function Hoja({ abierta, onCerrar, titulo, descripcion, children, pie, cl
                     <X className="size-5" aria-hidden />
                   </Dialog.Close>
                 </div>
-                <div className="sin-barra min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4">{children}</div>
+                <div className="sin-barra min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-4">{children}</div>
                 {pie && <div className="shrink-0 border-t border-linea bg-fondo px-5 pt-3 pb-segura">{pie}</div>}
               </motion.div>
             </Dialog.Content>

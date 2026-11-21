@@ -4,11 +4,10 @@
 import { ArrowUpRight, Check } from 'lucide-react'
 import { cn } from '@/ui/cn'
 import { Enlace } from '@/ui/Enlace'
+import { Talon } from '@/ui/Talon'
 import { DEMOS, PLANES, hayPrecios, linkContacto, precioPlan, type Plan } from '../../marca'
 import { Folio, GRILLA, Seccion, TODO, TituloSeccion } from '../editorial'
 
-/** El recomendado se despega del fondo con el anillo de acento y más sombra. */
-const estiloPlan = (p: Plan) => (p.destacado ? 'bg-superficie ring-2 ring-acento sombra-flotante' : 'bg-superficie/60 ring-1 ring-linea')
 /**
  * Columnas de la grilla de planes en la compu, una por plan: el recomendado, más ancho. Sale de PLANES, así que agregar
  * o sacar un plan, o cambiar cuál se recomienda, no desarma la fila (con col-span a mano había que sumar 12 justo).
@@ -50,45 +49,67 @@ export function Precios() {
           {PLANES.map((p, i) => {
             const valor = precioPlan(p)
             const anteriores = PLANES.slice(0, i).filter((q) => !q.destacado).length
+            const tinta = p.destacado ? 'text-sobre-acento' : 'text-acento-texto'
             return (
-              <li key={p.nombre} className={cn('aparecer relative flex min-w-0 flex-col rounded-grande p-6 sm:p-8', estiloPlan(p), alturaPlan(p, anteriores))}>
-                {p.destacado && (
-                  <span aria-hidden className="absolute -top-3 left-6 rounded-full bg-acento px-3 py-1 text-xs font-bold text-sobre-acento sm:left-8">
-                    Recomendado
-                  </span>
-                )}
-                <p aria-hidden className="folio num text-suave">
-                  Plan {String(i + 1).padStart(2, '0')}
-                </p>
-                <h3 className="titular mt-3 text-3xl">
-                  {p.nombre}
-                  {p.destacado && <span className="sr-only"> (recomendado)</span>}
-                </h3>
-                <p className="mt-1 text-sm text-suave">{p.para}</p>
-                <p className="mt-6 border-t border-linea pt-6">
-                  {valor ? (
-                    <>
-                      <span className="titular num text-5xl">{valor}</span>
-                      <span className="text-suave"> /mes</span>
-                    </>
-                  ) : (
-                    <span className="titular text-4xl">A definir</span>
-                  )}
-                </p>
-                <ul role="list" className="mt-6 flex flex-1 flex-col gap-2.5">
-                  {p.incluye.map((x) => (
-                    <li key={x} className="flex gap-2">
-                      <Check className="mt-0.5 size-5 shrink-0 text-acento-texto" aria-hidden />
-                      {x}
-                    </li>
-                  ))}
-                </ul>
-                {/* Sin contacto cargado no hay a quién consultarle: no se muestran botones que prometan una persona */}
-                {conContacto && (
-                  <Enlace href={contacto.href} externo={contacto.externo} variante={p.destacado ? 'primario' : 'secundario'} className={cn('mt-8 w-full', p.destacado && 'sombra-suave')}>
-                    {valor ? `Quiero el plan ${p.nombre}` : `Consultar el plan ${p.nombre}`}
-                  </Enlace>
-                )}
+              // Cada plan es un talón: arriba nombre y precio; abajo del corte, lo que incluye. El recomendado va en tinta.
+              <li key={p.nombre} className={cn('aparecer relative min-w-0', alturaPlan(p, anteriores))}>
+                <Talon
+                  as="div"
+                  papel={p.destacado ? 'acento' : 'superficie'}
+                  className="h-full"
+                  sello={
+                    p.destacado ? (
+                      <span aria-hidden style={{ '--giro': '-6deg' } as React.CSSProperties} className="sello bg-acento text-sm text-sobre-acento">
+                        Recomendado
+                      </span>
+                    ) : undefined
+                  }
+                  cuerpo={
+                    <div className="p-6 sm:p-8">
+                      <p aria-hidden className={cn('folio', p.destacado ? 'text-sobre-acento/80' : 'text-suave')}>
+                        Plan {String(i + 1).padStart(2, '0')}
+                      </p>
+                      <h3 className="titular mt-3 text-3xl">
+                        {p.nombre}
+                        {p.destacado && <span className="sr-only"> (recomendado)</span>}
+                      </h3>
+                      <p className={cn('mt-1 text-sm', p.destacado ? 'text-sobre-acento/85' : 'text-suave')}>{p.para}</p>
+                      <p className="mt-6">
+                        {valor ? (
+                          <>
+                            <span className="cifra text-6xl">{valor}</span>
+                            <span className={p.destacado ? 'text-sobre-acento/85' : 'text-suave'}> /mes</span>
+                          </>
+                        ) : (
+                          <span className="titular text-4xl">A definir</span>
+                        )}
+                      </p>
+                    </div>
+                  }
+                  talon={
+                    <div className="flex flex-col p-6 pt-8 sm:p-8 sm:pt-9">
+                      <ul role="list" className="flex flex-1 flex-col gap-2.5">
+                        {p.incluye.map((x) => (
+                          <li key={x} className="flex gap-2">
+                            <Check className={cn('mt-0.5 size-5 shrink-0', tinta)} aria-hidden />
+                            {x}
+                          </li>
+                        ))}
+                      </ul>
+                      {/* Sin contacto cargado no hay a quién consultarle: no se muestran botones que prometan una persona */}
+                      {conContacto && (
+                        <Enlace
+                          href={contacto.href}
+                          externo={contacto.externo}
+                          variante={p.destacado ? 'secundario' : 'primario'}
+                          className="mt-8 w-full"
+                        >
+                          {valor ? `Quiero el plan ${p.nombre}` : `Consultar el plan ${p.nombre}`}
+                        </Enlace>
+                      )}
+                    </div>
+                  }
+                />
               </li>
             )
           })}

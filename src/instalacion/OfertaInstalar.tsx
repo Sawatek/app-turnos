@@ -52,20 +52,21 @@ export function OfertaInstalar({ n, variante = 'tarjeta', className }: Props) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0, transition: { delay: 0.35 } }}
           aria-labelledby="t-instalar"
-          className={cn('flex items-center gap-3 rounded-grande bg-superficie p-4 text-left ring-1 ring-linea', className)}
+          // Cupón para recortar: borde punteado de la marca (no compite con el talón del turno, que está arriba).
+          className={cn('flex items-center gap-3 rounded-grande border border-dashed border-acento-borde p-4 text-left', className)}
         >
           <Logo negocio={n} className="size-12 shrink-0 text-sm" />
           <div className="min-w-0 flex-1">
             <p id="t-instalar" className="font-bold leading-tight">Tené {n.nombre} en tu inicio</p>
             <p className="text-sm text-suave">Sacás el próximo turno en un toque y te llegan los avisos.</p>
           </div>
-          <Boton tamano="chico" onClick={() => void accion()} className="shrink-0">
+          <Boton tamano="chico" variante="secundario" onClick={() => void accion()} className="shrink-0">
             <Download className="size-4" aria-hidden />
             {navegadorInterno ? 'Ver cómo' : evento ? 'Instalar' : 'Agregar'}
           </Boton>
         </motion.section>
       ) : (
-        <Boton tamano="medio" onClick={() => void accion()} className={className}>
+        <Boton tamano="chico" variante="secundario" onClick={() => void accion()} className={className}>
           {textoBoton}
         </Boton>
       )}
@@ -90,8 +91,8 @@ export function OfertaInstalar({ n, variante = 'tarjeta', className }: Props) {
 
 function Paso({ numero, children, ilustracion }: { numero: number; children: React.ReactNode; ilustracion: React.ReactNode }) {
   return (
-    <li className="flex items-center gap-4 rounded-grande bg-superficie p-4 ring-1 ring-linea">
-      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-acento text-sm font-extrabold text-sobre-acento" aria-hidden>
+    <li className="flex items-center gap-4 py-4">
+      <span className="mono grid size-8 shrink-0 place-items-center rounded-chico text-sm font-bold ring-[1.5px] ring-inset ring-acento-borde text-acento-texto" aria-hidden>
         {numero}
       </span>
       <div className="min-w-0 flex-1 text-[15px] leading-snug">{children}</div>
@@ -109,30 +110,32 @@ function Tecla({ children, className }: { children: React.ReactNode; className?:
 
 function GuiaIphone({ n }: { n: Negocio }) {
   return (
-    <ol className="flex flex-col gap-3 pb-2">
-      <Paso numero={1} ilustracion={<Tecla><Share className="size-5" /></Tecla>}>
-        Tocá <b>Compartir</b> en la barra de Safari.
-        <span className="mt-1 block text-sm text-suave">
-          Si no lo ves, tocá primero <Ellipsis className="inline size-4 align-text-bottom" aria-label="los tres puntos" /> (en las versiones nuevas está ahí adentro).
-        </span>
-      </Paso>
-      <Paso numero={2} ilustracion={<Tecla><SquarePlus className="size-5" /></Tecla>}>
-        Bajá y elegí <b>Agregar a inicio</b>.
-      </Paso>
-      <Paso
-        numero={3}
-        ilustracion={<span className="inline-flex h-11 items-center rounded-xl bg-[#f2f2f7] px-3 text-[15px] font-semibold text-[#007aff] ring-1 ring-black/5">Agregar</span>}
-      >
-        Tocá <b>Agregar</b>. Te queda el ícono de <b>{n.nombre}</b> junto a tus apps.
-      </Paso>
-      <p className="mt-1 text-center text-sm text-suave">Tiene que ser desde Safari. Así también te llegan los avisos de tus turnos.</p>
-    </ol>
+    <div className="flex flex-col gap-3 pb-2">
+      <ol className="flex flex-col divide-y divide-linea border-b border-linea">
+        <Paso numero={1} ilustracion={<Tecla><Share className="size-5" /></Tecla>}>
+          Tocá <b>Compartir</b> en la barra de Safari.
+          <span className="mt-1 block text-sm text-suave">
+            Si no lo ves, tocá primero <Ellipsis className="inline size-4 align-text-bottom" aria-label="los tres puntos" /> (en las versiones nuevas está ahí adentro).
+          </span>
+        </Paso>
+        <Paso numero={2} ilustracion={<Tecla><SquarePlus className="size-5" /></Tecla>}>
+          Bajá y elegí <b>Agregar a inicio</b>.
+        </Paso>
+        <Paso
+          numero={3}
+          ilustracion={<span className="inline-flex h-11 items-center rounded-xl bg-[#f2f2f7] px-3 text-[15px] font-semibold text-[#007aff] ring-1 ring-black/5">Agregar</span>}
+        >
+          Tocá <b>Agregar</b>. Te queda el ícono de <b>{n.nombre}</b> junto a tus apps.
+        </Paso>
+      </ol>
+      <p className="text-sm text-suave">Tiene que ser desde Safari. Así también te llegan los avisos de tus turnos.</p>
+    </div>
   )
 }
 
 function GuiaAndroid({ n }: { n: Negocio }) {
   return (
-    <ol className="flex flex-col gap-3 pb-2">
+    <ol className="flex flex-col divide-y divide-linea border-b border-linea">
       <Paso numero={1} ilustracion={<Tecla className="text-[#3c4043]"><EllipsisVertical className="size-5" /></Tecla>}>
         Tocá el menú <b>⋮</b> del navegador (arriba a la derecha).
       </Paso>
@@ -151,7 +154,7 @@ function GuiaNavegadorInterno({ plataforma }: { plataforma: string }) {
   const navegador = plataforma === 'ios' ? 'Safari' : 'Chrome'
   return (
     <div className="flex flex-col gap-3 pb-2">
-      <ol className="flex flex-col gap-3">
+      <ol className="flex flex-col divide-y divide-linea border-b border-linea">
         <Paso numero={1} ilustracion={<Tecla className="text-[#3c4043]">{plataforma === 'ios' ? <Ellipsis className="size-5" /> : <EllipsisVertical className="size-5" />}</Tecla>}>
           Tocá los <b>tres puntos</b> de arriba.
         </Paso>

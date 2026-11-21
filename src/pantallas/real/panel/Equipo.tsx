@@ -19,6 +19,7 @@ import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
 import { Hoja } from '@/ui/Hoja'
 import { iniciales } from '@/ui/Logo'
+import { Sello } from '@/ui/Sello'
 import { cn } from '@/ui/cn'
 import { BotonConfirmar, Cargando, Encabezado, ErrorEnLinea, Exito, FalloCarga, Interruptor, Selector, Tarjeta, Vacio, useAccion, usePanel } from './comunes'
 
@@ -30,12 +31,12 @@ export function Equipo() {
   const invitaciones = useInvitaciones(negocioId)
   const [editando, setEditando] = useState<Profesional | 'nuevo' | null>(null)
 
-  const estadoUsuario = (p: Profesional) => {
+  const estadoUsuario = (p: Profesional): { texto: string; clase: string } => {
     const m = miembros.data?.find((x) => x.profesionalId === p.id)
-    if (m) return `Entra con ${m.nombre ? `${m.nombre} (${m.email})` : m.email}`
+    if (m) return { texto: `Entra con ${m.nombre ? `${m.nombre} (${m.email})` : m.email}`, clase: 'text-exito' }
     const inv = invitaciones.data?.find((i) => i.profesional_id === p.id)
-    if (inv) return `Invitación pendiente: ${inv.email}`
-    return 'Sin acceso al panel'
+    if (inv) return { texto: `Invitación pendiente: ${inv.email}`, clase: 'text-aviso' }
+    return { texto: 'Sin acceso al panel', clase: 'text-suave' }
   }
   const queHace = (p: Profesional) =>
     p.servicios.length === 0
@@ -61,32 +62,42 @@ export function Equipo() {
       ) : profs.data.length === 0 ? (
         <Vacio>Todavía no cargaste profesionales.</Vacio>
       ) : (
-        <section aria-label="Profesionales" className="overflow-hidden rounded-grande bg-superficie ring-1 ring-linea">
-          <ul className="divide-y divide-linea">
-            {profs.data.map((p) => (
-              <li key={p.id}>
-                <button
-                  type="button"
-                  onClick={() => setEditando(p)}
-                  aria-label={`Editar a ${p.nombre}`}
-                  className={cn('flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left hover:bg-superficie-2/60', !p.activo && 'opacity-60')}
-                >
-                  <div className="grid size-10 shrink-0 place-items-center rounded-full bg-superficie-2 text-sm font-bold" aria-hidden>
-                    {iniciales(p.nombre)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-2 font-semibold">
-                      {p.nombre}
-                      {p.rol && <span className="font-normal text-suave">· {p.rol}</span>}
-                      {!p.activo && <span className="inline-flex h-6 items-center rounded-full bg-superficie-2 px-2.5 text-xs font-bold text-suave">Inactivo</span>}
-                    </p>
-                    <p className="truncate text-sm text-suave">{queHace(p)}</p>
-                    <p className="truncate text-xs text-suave">{estadoUsuario(p)}</p>
-                  </div>
-                  <ChevronRight className="size-5 shrink-0 text-suave" aria-hidden />
-                </button>
-              </li>
-            ))}
+        // Una ficha por profesional, en renglones: las iniciales como un sello cuadrado, qué hace y si entra al panel.
+        <section aria-label="Profesionales">
+          <ul className="divide-y divide-linea border-b border-linea">
+            {profs.data.map((p) => {
+              const acceso = estadoUsuario(p)
+              return (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onClick={() => setEditando(p)}
+                    aria-label={`Editar a ${p.nombre}`}
+                    className="group flex min-h-18 w-full items-center gap-4 py-3.5 text-left transition-colors hover:bg-superficie sm:px-2"
+                  >
+                    <span
+                      aria-hidden
+                      className={cn('mono grid size-12 shrink-0 place-items-center rounded-chico text-sm font-bold ring-2 ring-inset', p.activo ? 'text-acento-texto ring-acento-borde' : 'text-suave ring-linea')}
+                    >
+                      {iniciales(p.nombre)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-baseline gap-x-2">
+                        <span className={cn('titulo text-lg', !p.activo && 'text-suave line-through')}>{p.nombre}</span>
+                        {p.rol && <span className="text-sm text-suave">{p.rol}</span>}
+                        {!p.activo && <Sello tono="suave" vacio giro={-3}>Inactivo</Sello>}
+                      </span>
+                      <span className="block truncate text-sm text-suave">{queHace(p)}</span>
+                      <span className={cn('mt-0.5 flex items-center gap-1.5 text-sm font-semibold', acceso.clase)}>
+                        <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />
+                        <span className="truncate">{acceso.texto}</span>
+                      </span>
+                    </span>
+                    <ChevronRight className="size-5 shrink-0 text-suave transition-transform group-hover:translate-x-0.5" aria-hidden />
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         </section>
       )}
@@ -109,7 +120,7 @@ export function Equipo() {
           )}
           {!!invitaciones.data?.length && (
             <>
-              <h4 className="mt-4 mb-1 text-sm font-bold text-suave">Invitaciones pendientes</h4>
+              <h4 className="rotulo mt-5 mb-1 text-suave">Invitaciones pendientes</h4>
               <ul className="flex flex-col divide-y divide-linea" aria-label="Invitaciones pendientes">
                 {invitaciones.data.map((i) => (
                   <FilaInvitacion key={i.id} id={i.id} email={i.email} profesional={profs.data?.find((p) => p.id === i.profesional_id)?.nombre} />
@@ -373,10 +384,10 @@ function FormProfesional({ p, ordenSiguiente, onListo }: { p?: Profesional; orde
       <Interruptor etiqueta="Activo" ayuda={activo ? 'Recibe turnos.' : 'No aparece para reservar.'} activo={activo} onCambiar={setActivo} />
       <Interruptor etiqueta="Hace todos los servicios" activo={todos} onCambiar={setTodos} />
       {!todos && (
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1.5 text-sm font-semibold text-suave">Servicios que hace</legend>
+        <fieldset className="flex flex-col">
+          <legend className="rotulo mb-1 text-suave">Servicios que hace</legend>
           {(servicios.data ?? []).map((s) => (
-            <label key={s.id} className="flex min-h-11 items-center gap-3 rounded-medio bg-superficie px-4 ring-1 ring-linea">
+            <label key={s.id} className="flex min-h-12 items-center gap-3 border-b border-linea">
               <input
                 type="checkbox"
                 className="size-5 accent-[var(--t-acento)]"

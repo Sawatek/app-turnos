@@ -1,5 +1,5 @@
 // Negocios reales: lista con búsqueda y estado, y la ficha de cada uno (estado, plan, notas, marca, equipo, borrar).
-import { ArrowLeft, ChevronRight, ImageUp, KeyRound, LayoutDashboard, Search, Smartphone, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ImageUp, KeyRound, LayoutDashboard, Search, Smartphone, Trash2, X } from 'lucide-react'
 import { useId, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import {
@@ -19,9 +19,10 @@ import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
 import { Logo } from '@/ui/Logo'
 import { Pastillas } from '@/ui/Pastillas'
+import { clasesBoton } from '@/ui/clasesBoton'
 import { cn } from '@/ui/cn'
 import { achicarLogo } from './Alta'
-import { AreaTexto, Cargando, Cifra, ErrorEnLinea, Exito, FalloCarga, Insignia, Selector, Tarjeta, fechaCorta, useAccion } from './comunes'
+import { AreaTexto, Cargando, Cifra, ErrorEnLinea, Exito, FalloCarga, Insignia, Planilla, Selector, Tarjeta, fechaCorta, useAccion } from './comunes'
 
 const textoEstado = (e: string) => ESTADOS.find((x) => x.id === e)?.texto ?? e
 const ROLES: Record<string, string> = { dueno: 'Dueño', profesional: 'Profesional' }
@@ -56,7 +57,7 @@ function Lista() {
           <Campo etiqueta="Buscar negocio" type="search" placeholder="Nombre, link o mail del dueño" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
           <Search className="pointer-events-none absolute right-4 bottom-4 size-5 text-suave" aria-hidden />
         </div>
-        <Link to="/admin/nuevo" className="inline-flex h-13 items-center justify-center gap-2 rounded-medio bg-acento px-5 font-semibold text-sobre-acento">
+        <Link to="/admin/nuevo" className={clasesBoton({ tamano: 'grande' })}>
           Nuevo negocio real
         </Link>
       </div>
@@ -68,46 +69,71 @@ function Lista() {
         onCambiar={setFiltro}
       />
 
-      <section aria-labelledby="t-reales" className="rounded-grande bg-superficie p-2 ring-1 ring-linea sm:p-3">
-        <h2 id="t-reales" className="titulo px-2 pt-2 pb-1 text-base">
+      {/* Planilla de negocios: una fila por negocio, columnas con rótulo arriba (en la compu). */}
+      <section aria-labelledby="t-reales">
+        <h2 id="t-reales" className="titulo border-b-2 border-texto pb-2 text-xl">
           Negocios reales
         </h2>
         {visibles.length === 0 ? (
-          <p className="p-6 text-center text-suave">{q.data.length ? 'Ningún negocio coincide con la búsqueda.' : 'Todavía no hay negocios reales.'}</p>
+          <p className="cuadricula mt-3 rounded-medio border border-dashed border-linea p-6 text-center text-suave">
+            {q.data.length ? 'Ningún negocio coincide con la búsqueda.' : 'Todavía no hay negocios reales.'}
+          </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-linea">
-            {visibles.map((n) => (
-              <li key={n.id} className="flex items-center gap-3 px-2 py-3">
-                <span aria-hidden className="size-10 shrink-0 rounded-medio ring-1 ring-linea" style={{ background: n.color ?? undefined }} />
-                <Link to={`/admin/negocios?id=${n.id}`} className="min-w-0 flex-1" aria-label={`Ver ficha de ${n.nombre}`}>
-                  <p className="flex flex-wrap items-center gap-2">
-                    <span className="truncate font-semibold">{n.nombre}</span>
+          <>
+            <div aria-hidden className={cn(COLUMNAS, 'rotulo hidden gap-x-3 border-b border-linea py-2 text-suave md:grid')}>
+              <span />
+              <span>Negocio</span>
+              <span>Estado</span>
+              <span className="text-right">Este mes</span>
+              <span className="text-right">Clientes</span>
+              <span className="text-right">Equipo</span>
+              <span />
+            </div>
+            <ul className="flex flex-col divide-y divide-linea border-b border-linea">
+              {visibles.map((n) => (
+                <li key={n.id} className={cn(COLUMNAS, 'grid items-center gap-x-3 gap-y-1 py-3')}>
+                  <span aria-hidden className="size-9 shrink-0 rounded-chico ring-1 ring-linea" style={{ background: n.color ?? undefined }} />
+                  <Link to={`/admin/negocios?id=${n.id}`} className="group min-w-0" aria-label={`Ver ficha de ${n.nombre}`}>
+                    <p className="truncate font-semibold group-hover:underline">{n.nombre}</p>
+                    <p className="truncate text-sm text-suave">
+                      <span className="mono text-[0.8125rem]">/{n.slug}</span> ·{' '}
+                      {n.duenos.length ? n.duenos.map((d) => d.nombre ?? d.email).join(', ') : n.invitaciones_pendientes ? 'Dueño invitado' : 'Sin dueño'}
+                    </p>
+                    <p className="mono text-xs text-suave md:hidden">
+                      {n.turnos_mes} turnos · {n.clientes} clientes · {n.equipo} en el equipo
+                    </p>
+                  </Link>
+                  <span className="flex flex-col items-start gap-0.5 max-md:hidden">
                     <Insignia estado={n.estado}>{textoEstado(n.estado)}</Insignia>
-                    {n.plan && <span className="text-xs font-semibold text-suave">{n.plan}</span>}
-                  </p>
-                  <p className="truncate text-sm text-suave">
-                    /{n.slug} · {n.duenos.length ? n.duenos.map((d) => d.nombre ?? d.email).join(', ') : n.invitaciones_pendientes ? 'Dueño invitado' : 'Sin dueño'}
-                  </p>
-                  <p className="text-xs text-suave">
-                    {n.turnos_mes} turnos este mes · {n.clientes} clientes · {n.equipo} en el equipo
-                  </p>
-                </Link>
-                <Link
-                  to={`/${n.slug}/panel`}
-                  className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-medio bg-acento-suave px-3 text-xs font-bold text-acento-texto"
-                >
-                  <LayoutDashboard className="size-4" aria-hidden />
-                  Panel
-                </Link>
-                <ChevronRight className="hidden size-5 shrink-0 text-suave sm:block" aria-hidden />
-              </li>
-            ))}
-          </ul>
+                    {n.plan && <span className="text-xs text-suave">{n.plan}</span>}
+                  </span>
+                  <span className="mono text-right max-md:hidden">{n.turnos_mes}</span>
+                  <span className="mono text-right max-md:hidden">{n.clientes}</span>
+                  <span className="mono text-right max-md:hidden">{n.equipo}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="md:hidden">
+                      <Insignia estado={n.estado}>{textoEstado(n.estado)}</Insignia>
+                    </span>
+                    <Link
+                      to={`/${n.slug}/panel`}
+                      className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-medio px-3 text-sm font-semibold text-acento-texto ring-1 ring-inset ring-acento-borde transition-colors hover:bg-acento-suave"
+                    >
+                      <LayoutDashboard className="size-4" aria-hidden />
+                      Panel
+                    </Link>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </section>
     </div>
   )
 }
+
+/** Columnas de la planilla de negocios (en el celular: color, negocio y acciones). */
+const COLUMNAS = 'grid-cols-[2.25rem_minmax(0,1fr)_auto] md:grid-cols-[2.25rem_minmax(0,1fr)_8.5rem_6rem_6rem_5rem_auto]'
 
 // ---------- Ficha ----------
 
@@ -128,38 +154,37 @@ function FichaCargada({ f }: { f: FichaNegocio }) {
   const c = f.config
   return (
     <div className="flex flex-col gap-4">
-      <section aria-label="Datos del negocio" className="flex flex-wrap items-center gap-4 rounded-grande bg-superficie p-4 ring-1 ring-linea sm:p-5">
+      <section aria-label="Datos del negocio" className="flex flex-wrap items-center gap-4 border-b-2 border-texto pb-4">
         <div style={estiloTema(c)} data-personalidad={c.personalidad}>
           <Logo negocio={c} className="size-16 text-lg" />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="titulo flex flex-wrap items-center gap-2 text-2xl">
-            {c.nombre}
+          <h2 className="titulo text-3xl">{c.nombre}</h2>
+          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-suave">
             <Insignia estado={f.estado}>{textoEstado(f.estado)}</Insignia>
-          </h2>
-          <p className="text-sm text-suave">
-            /{f.slug} · alta {fechaCorta(f.creado)}
-            {f.plan ? ` · ${f.plan}` : ''}
+            <span className="mono text-[0.8125rem]">/{f.slug}</span>
+            <span>alta {fechaCorta(f.creado)}</span>
+            {f.plan && <span>{f.plan}</span>}
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-          <Link to={`/${f.slug}`} className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-medio bg-superficie-2 px-4 text-sm font-semibold sm:flex-none">
+          <Link to={`/${f.slug}`} className={cn(clasesBoton({ variante: 'secundario', tamano: 'chico' }), 'flex-1 sm:flex-none')}>
             <Smartphone className="size-4" aria-hidden />
             Abrir su app
           </Link>
-          <Link to={`/${f.slug}/panel`} className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-medio bg-acento-suave px-4 text-sm font-semibold text-acento-texto sm:flex-none">
+          <Link to={`/${f.slug}/panel`} className={cn(clasesBoton({ tamano: 'chico' }), 'flex-1 sm:flex-none')}>
             <LayoutDashboard className="size-4" aria-hidden />
             Abrir su panel
           </Link>
         </div>
       </section>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <Planilla>
         <Cifra etiqueta="Turnos este mes" valor={f.metricas.turnos_mes} />
         <Cifra etiqueta="Próximos turnos" valor={f.metricas.proximos} />
         <Cifra etiqueta="Clientes" valor={f.metricas.clientes} />
         <Cifra etiqueta="Mensajes con error" valor={f.metricas.mensajes_con_error} tono={f.metricas.mensajes_con_error ? 'peligro' : undefined} />
-      </div>
+      </Planilla>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Estado f={f} />
@@ -193,8 +218,12 @@ function Estado({ f }: { f: FichaNegocio }) {
             aria-pressed={f.estado === e.id}
             onClick={() => setElegido(e.id === f.estado ? null : e.id)}
             className={cn(
-              'h-12 rounded-medio px-2 text-sm font-semibold',
-              f.estado === e.id ? 'bg-acento text-sobre-acento' : elegido === e.id ? 'bg-superficie-2 ring-2 ring-acento' : 'bg-superficie-2 ring-1 ring-linea',
+              'h-12 rounded-chico px-2 text-sm font-semibold ring-inset transition-colors',
+              f.estado === e.id
+                ? 'bg-acento text-sobre-acento shadow-[inset_0_-3px_0_rgb(0_0_0/0.16)]'
+                : elegido === e.id
+                  ? 'ring-2 ring-acento'
+                  : 'ring-1 ring-linea hover:bg-superficie-2',
             )}
           >
             {e.texto}
@@ -202,7 +231,7 @@ function Estado({ f }: { f: FichaNegocio }) {
         ))}
       </fieldset>
       {destino && (
-        <div role="alertdialog" aria-label="Confirmar cambio de estado" className="mt-3 flex flex-col gap-3 rounded-medio bg-superficie-2 p-3.5">
+        <div role="alertdialog" aria-label="Confirmar cambio de estado" className="mt-3 flex flex-col gap-3 rounded-medio border border-dashed border-linea p-3.5">
           <p className="text-sm">
             {bloquear ? (
               <>
@@ -316,12 +345,12 @@ function Marca({ f }: { f: FichaNegocio }) {
           <Campo etiqueta="Frase de la app (claim)" value={claim} maxLength={160} onChange={(e) => setClaim(e.target.value)} />
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor={idColor} className="text-sm font-semibold text-suave">
+              <label htmlFor={idColor} className="rotulo text-suave">
                 Color de marca
               </label>
               <input id={idColor} type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-13 w-20 cursor-pointer rounded-medio border border-linea bg-superficie p-1" />
             </div>
-            <label htmlFor={idLogo} className="inline-flex h-13 cursor-pointer items-center gap-2 rounded-medio bg-superficie-2 px-4 text-sm font-semibold">
+            <label htmlFor={idLogo} className={cn(clasesBoton({ variante: 'secundario' }), 'h-13 cursor-pointer')}>
               <ImageUp className="size-4" aria-hidden />
               {logo ? 'Cambiar logo' : 'Subir logo'}
             </label>
@@ -350,7 +379,7 @@ function Marca({ f }: { f: FichaNegocio }) {
           </div>
           <ErrorEnLinea texto={a.error} />
         </div>
-        <div style={estiloTema(vista)} data-personalidad={vista.personalidad} className="flex w-full flex-col items-center justify-center gap-2 rounded-grande bg-fondo p-5 text-center text-texto md:w-56">
+        <div style={estiloTema(vista)} data-personalidad={vista.personalidad} className="flex w-full flex-col items-center justify-center gap-2 rounded-grande bg-fondo p-5 text-center text-texto ring-1 ring-linea md:w-56">
           <Logo negocio={vista} className="size-14 text-lg" />
           <p className="titulo text-lg">{vista.nombre}</p>
           <p className="text-xs text-suave">{claim}</p>
@@ -374,7 +403,7 @@ function Equipo({ f }: { f: FichaNegocio }) {
                 <p className="truncate font-semibold">{p.nombre ?? 'Sin nombre'}</p>
                 <p className="truncate text-sm text-suave">{p.email}</p>
               </div>
-              <span className="shrink-0 text-sm font-semibold text-suave">{ROLES[p.rol] ?? p.rol}</span>
+              <span className="rotulo shrink-0 text-suave">{ROLES[p.rol] ?? p.rol}</span>
             </li>
           ))}
         </ul>
@@ -430,7 +459,7 @@ function Borrar({ f }: { f: FichaNegocio }) {
   const [texto, setTexto] = useState('')
   const a = useAccion()
   return (
-    <section aria-label="Borrar negocio" className="rounded-grande p-4 ring-1 ring-peligro/40 sm:p-5">
+    <section aria-label="Borrar negocio" className="rounded-medio border border-dashed border-peligro/60 p-4 sm:p-5">
       <h2 className="titulo text-lg text-peligro">Borrar negocio</h2>
       <p className="mt-0.5 text-sm text-suave">Borra el negocio con sus turnos, clientes, equipo y mensajes. No se puede deshacer.</p>
       {paso === 0 ? (

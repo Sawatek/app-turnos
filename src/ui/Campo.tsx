@@ -2,8 +2,10 @@ import { useId } from 'react'
 import { cn } from './cn'
 
 /** Clases base de un control de formulario (input, select, textarea). Cada uno le suma su alto. */
+// Renglón de formulario en papel: fondo apenas marcado y una línea firme abajo (con contraste 3:1 para ubicar el campo).
+// Al enfocar, la línea se engrosa en el color de la marca.
 export const claseControl =
-  'rounded-medio border border-linea bg-superficie px-4 text-[17px] text-texto outline-none transition-colors placeholder:text-suave/70 focus:border-acento aria-invalid:border-peligro'
+  'rounded-t-chico rounded-b-none border-0 border-b-2 border-suave bg-superficie-2/70 px-3.5 text-[17px] text-texto outline-none transition-[border-color,background-color,box-shadow] placeholder:text-suave/70 hover:bg-superficie-2 focus:border-acento focus:bg-superficie-2 focus:shadow-[inset_0_-1px_0_var(--t-acento)] focus-visible:outline-none aria-invalid:border-peligro'
 
 interface PropsMarco {
   etiqueta: string
@@ -14,8 +16,8 @@ interface PropsMarco {
 /** Etiqueta arriba, control en el medio y ayuda o error abajo (el error pisa a la ayuda). */
 function Marco({ id, etiqueta, ayuda, error, className, children }: PropsMarco & { id: string; className?: string; children: React.ReactNode }) {
   return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
-      <label htmlFor={id} className="text-sm font-semibold text-suave">
+    <div className={cn('flex flex-col gap-2', className)}>
+      <label htmlFor={id} className="rotulo text-suave">
         {etiqueta}
       </label>
       {children}

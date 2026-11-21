@@ -36,8 +36,8 @@ export function Folio({ className }: { className?: string }) {
   const { folio } = SECCIONES.find((s) => s.id === id)!
   return (
     <p className={cn('folio flex items-center gap-3 text-acento-texto', className)}>
-      <span className="num">{numeroSeccion(id)}</span>
-      <span aria-hidden className="h-px w-8 bg-acento-borde" />
+      <span className="rounded-chico border border-current px-1.5 py-0.5">{numeroSeccion(id)}</span>
+      <span aria-hidden className="troquel h-[1.5px] w-10 [--t-linea:var(--t-acento-borde)]" />
       <span>{folio}</span>
     </p>
   )
@@ -78,13 +78,16 @@ export function Entrada({
   )
 }
 
-/** Resplandor decorativo del color de acento (un degradé radial, sin desenfoque). `className` lo ubica y le da tamaño. */
+/**
+ * Un pedazo de hoja cuadriculada que se desvanece en los bordes (decorativo, detrás del contenido).
+ * `className` lo ubica y le da tamaño. Reemplaza al resplandor de color: acá el papel es el protagonista.
+ */
 export function Halo({ className }: { className?: string }) {
   return (
     <div
       aria-hidden
       className={cn(
-        'pointer-events-none absolute -z-10 rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklch,var(--t-acento)_16%,transparent),transparent)]',
+        'cuadricula pointer-events-none absolute -z-10 [--cuadro:28px] [mask-image:radial-gradient(closest-side,black_35%,transparent)]',
         className,
       )}
     />

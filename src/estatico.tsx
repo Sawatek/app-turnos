@@ -6,7 +6,7 @@ import { renderToString } from 'react-dom/server'
 import { StaticRouter } from 'react-router'
 import InicioPublico from '@/pantallas/publico/Inicio'
 import { MARCA, PLANES, hayPrecios } from '@/pantallas/publico/marca'
-import { generarTema } from '@/tema/paleta'
+import { TEMA_SITIO, cssTemaSitio } from '@/pantallas/publico/temaSitio'
 
 /** El HTML de la portada, tal cual lo dibuja React (sin hidratar: el navegador la vuelve a dibujar con createRoot). */
 export function htmlDeLaPortada(): string {
@@ -19,15 +19,12 @@ export function htmlDeLaPortada(): string {
   )
 }
 
-/** Lo que useTemaNegocio pone en <html> al cargar la portada: así no hay un cuadro con otros colores. */
+/** Lo que useMarcaSitio pone al cargar la portada (el <style> del tema claro/oscuro): así no hay un cuadro con otros colores. */
 export function temaDeLaPortada() {
-  const tema = generarTema(MARCA.color, MARCA.modo)
   return {
-    estilo: Object.entries(tema)
-      .map(([k, v]) => `${k}:${v}`)
-      .join(';'),
+    css: cssTemaSitio(),
     personalidad: MARCA.personalidad,
-    colorBarra: tema['--t-fondo']!,
+    colorBarra: TEMA_SITIO.light['--t-fondo']!,
   }
 }
 

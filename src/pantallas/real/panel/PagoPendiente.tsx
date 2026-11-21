@@ -1,13 +1,16 @@
 // Cartel del panel cuando SawaTek bloqueó el negocio por falta de pago. Reemplaza al panel entero:
 // la base ya no le da ningún permiso al equipo, así que no se carga nada más.
 // Más adelante lo va a prender y apagar solo la integración con Mercado Pago.
-import { CreditCard, LogOut, MessageCircle } from 'lucide-react'
+import { LogOut, MessageCircle } from 'lucide-react'
 import { salir } from '@/datos/sesion'
 import type { RolPanel } from '@/datos/real/panel'
 import type { Negocio } from '@/dominio/tipos'
 import { CONTACTO, MARCA } from '@/pantallas/publico/marca'
 import { Boton } from '@/ui/Boton'
+import { clasesBoton } from '@/ui/clasesBoton'
 import { Logo } from '@/ui/Logo'
+import { Sello } from '@/ui/Sello'
+import { Talon } from '@/ui/Talon'
 
 /** A dónde escribirle a SawaTek para regularizar (WhatsApp, si no mail; null si no hay contacto cargado). */
 function linkPago(negocio: string): { href: string; texto: string; wa: boolean } | null {
@@ -24,60 +27,63 @@ export function PagoPendiente({ n, rol, email }: { n: Negocio; rol: RolPanel; em
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 pt-segura pb-segura sm:px-6">
-      <section aria-labelledby="t-pago" className="my-8 rounded-grande bg-superficie p-6 text-center ring-1 ring-linea sm:p-8">
-        <div className="mx-auto flex w-fit items-center gap-2 rounded-full bg-superficie-2 py-1.5 pr-3.5 pl-1.5">
-          <Logo negocio={n} className="size-8 text-xs" />
-          <span className="text-sm font-semibold">{n.nombre}</span>
-        </div>
+      {/* El aviso como un talón sellado: arriba el negocio y el sello de "Pausado"; abajo del corte, qué pasa y qué hacer. */}
+      <Talon
+        as="section"
+        aria-labelledby="t-pago"
+        className="my-8"
+        cuerpo={
+          <div className="px-5 pt-5 pb-7 sm:px-7">
+            <div className="flex items-center gap-2.5">
+              <Logo negocio={n} className="size-8 rounded-chico text-xs" />
+              <span className="rotulo truncate text-suave">{n.nombre}</span>
+            </div>
+            <h1 id="t-pago" className="mt-6 text-[2.25rem] leading-none">
+              Pago pendiente
+            </h1>
+            <p className="mt-3 text-suave">
+              {esDueno
+                ? `El panel de ${n.nombre} está pausado por falta de pago del servicio de ${MARCA.nombre}.`
+                : `El panel de ${n.nombre} está pausado por un pago pendiente con ${MARCA.nombre}.`}
+            </p>
+          </div>
+        }
+        sello={
+          <Sello tono="peligro" tamano="medio" giro={-6} className="bg-superficie/85">
+            Pausado
+          </Sello>
+        }
+        talon={
+          <div className="px-5 pt-8 pb-5 sm:px-7">
+            <ul className="flex flex-col divide-y divide-linea border-y border-linea text-sm">
+              <li className="py-2.5">Tus clientes no pueden reservar turnos nuevos.</li>
+              <li className="py-2.5">No salen recordatorios ni confirmaciones por WhatsApp.</li>
+              <li className="py-2.5">Tus datos, turnos y clientes quedan guardados.</li>
+            </ul>
 
-        <span className="mx-auto mt-6 grid size-14 place-items-center rounded-grande bg-peligro/12 text-peligro">
-          <CreditCard className="size-7" aria-hidden />
-        </span>
-        <h1 id="t-pago" className="mt-4 text-2xl">
-          Pago pendiente
-        </h1>
-        <p className="mt-2 text-suave">
-          {esDueno
-            ? `El panel de ${n.nombre} está pausado por falta de pago del servicio de ${MARCA.nombre}.`
-            : `El panel de ${n.nombre} está pausado por un pago pendiente con ${MARCA.nombre}.`}
-        </p>
+            <p className="mt-4 text-sm text-suave">
+              {esDueno
+                ? 'Apenas se regularice el pago, todo vuelve a funcionar solo, como lo dejaste.'
+                : 'Avisale al dueño del negocio para que lo regularice. Apenas se pague, vas a poder volver a entrar.'}
+            </p>
 
-        <ul className="mt-5 flex flex-col gap-2 rounded-medio bg-superficie-2 p-4 text-left text-sm">
-          <li>Tus clientes no pueden reservar turnos nuevos.</li>
-          <li>No salen recordatorios ni confirmaciones por WhatsApp.</li>
-          <li>Tus datos, turnos y clientes quedan guardados.</li>
-        </ul>
-
-        <p className="mt-5 text-sm text-suave">
-          {esDueno
-            ? 'Apenas se regularice el pago, todo vuelve a funcionar solo, como lo dejaste.'
-            : 'Avisale al dueño del negocio para que lo regularice. Apenas se pague, vas a poder volver a entrar.'}
-        </p>
-
-        <div className="mt-6 flex flex-col gap-2">
-          {contacto && (
-            <a
-              href={contacto.href}
-              target="_blank"
-              rel="noreferrer"
-              className={
-                contacto.wa
-                  ? 'inline-flex h-12 items-center justify-center gap-2 rounded-medio bg-wa px-5 font-semibold text-[#062b14] transition-[filter] hover:brightness-105'
-                  : 'inline-flex h-12 items-center justify-center gap-2 rounded-medio bg-acento px-5 font-semibold text-sobre-acento transition-[filter] hover:brightness-105'
-              }
-            >
-              <MessageCircle className="size-5" aria-hidden />
-              {contacto.texto}
-            </a>
-          )}
-          {esDueno && !contacto && <p className="text-sm font-semibold">Escribile a {MARCA.nombre} para regularizar el pago.</p>}
-          <Boton variante="secundario" onClick={() => void salir()}>
-            <LogOut className="size-4" aria-hidden />
-            Salir
-          </Boton>
-        </div>
-        <p className="mt-4 text-xs text-suave">Entraste como {email}</p>
-      </section>
+            <div className="mt-5 flex flex-col gap-2">
+              {contacto && (
+                <a href={contacto.href} target="_blank" rel="noreferrer" className={clasesBoton({ variante: contacto.wa ? 'wa' : 'primario' })}>
+                  <MessageCircle className="size-5" aria-hidden />
+                  {contacto.texto}
+                </a>
+              )}
+              {esDueno && !contacto && <p className="text-sm font-semibold">Escribile a {MARCA.nombre} para regularizar el pago.</p>}
+              <Boton variante="secundario" onClick={() => void salir()}>
+                <LogOut className="size-4" aria-hidden />
+                Salir
+              </Boton>
+            </div>
+            <p className="rotulo mt-4 text-suave">Entraste como {email}</p>
+          </div>
+        }
+      />
     </main>
   )
 }

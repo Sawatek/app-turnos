@@ -43,8 +43,8 @@ export function Mensajes() {
         </Selector>
       </fieldset>
 
-      <section aria-labelledby="t-registro" className="rounded-grande bg-superficie p-2 ring-1 ring-linea sm:p-3">
-        <h2 id="t-registro" className="titulo px-2 pt-2 pb-1 text-base">
+      <section aria-labelledby="t-registro">
+        <h2 id="t-registro" className="titulo border-b-2 border-texto pb-2 text-xl">
           Registro de mensajes
         </h2>
         {q.isPending ? (
@@ -52,16 +52,16 @@ export function Mensajes() {
         ) : q.isError ? (
           <FalloCarga error={q.error} onReintentar={() => void q.refetch()} />
         ) : filas.length === 0 ? (
-          <p className="p-6 text-center text-suave">No hay mensajes con esos filtros.</p>
+          <p className="cuadricula mt-3 rounded-medio border border-dashed border-linea p-6 text-center text-suave">No hay mensajes con esos filtros.</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-linea">
+          <ul className="flex flex-col divide-y divide-linea border-b border-linea">
             {filas.map((m) => (
               <FilaRegistro key={m.id} m={m} />
             ))}
           </ul>
         )}
         {q.hasNextPage && (
-          <div className="flex justify-center p-2">
+          <div className="flex justify-center pt-4">
             <Boton variante="secundario" tamano="chico" className="h-11" cargando={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>
               Ver más viejos
             </Boton>
@@ -75,15 +75,15 @@ export function Mensajes() {
 function FilaRegistro({ m }: { m: FilaMensaje }) {
   const Icono = m.canal === 'push' ? BellRing : MessageCircle
   return (
-    <li className="flex flex-col gap-1 px-2 py-3">
+    <li className="flex flex-col gap-1 py-3">
       <div className="flex flex-wrap items-center gap-2">
         <Icono className="size-4 shrink-0 text-suave" aria-label={m.canal === 'push' ? 'Push' : 'WhatsApp'} />
         <span className="font-semibold">{TIPOS_MENSAJE[m.tipo] ?? m.tipo}</span>
         <Insignia estado={m.estado}>{ESTADOS_MENSAJE[m.estado] ?? m.estado}</Insignia>
-        <span className="ml-auto text-xs text-suave">{fechaHora(m.creado)}</span>
+        <span className="mono ml-auto text-xs text-suave">{fechaHora(m.creado)}</span>
       </div>
       <p className="text-sm text-suave">
-        {m.negocio ?? 'Plataforma'} · a {m.destino}
+        {m.negocio ?? 'Plataforma'} · a <span className="mono text-[0.8125rem]">{m.destino}</span>
         {m.intentos > 1 ? ` · ${m.intentos} intentos` : ''}
         {m.estado === 'pendiente' && Date.parse(m.programado) - Date.parse(m.creado) > 60_000 ? ` · programado para el ${fechaHora(m.programado)}` : ''}
       </p>
@@ -93,7 +93,7 @@ function FilaRegistro({ m }: { m: FilaMensaje }) {
           Código de ingreso: no se muestra.
         </p>
       ) : (
-        m.texto && <p className="text-sm">{m.texto}</p>
+        m.texto && <p className="border-l-2 border-linea pl-3 text-sm">{m.texto}</p>
       )}
       {m.error && <p className="text-sm font-semibold text-peligro">Error: {m.error}</p>}
     </li>

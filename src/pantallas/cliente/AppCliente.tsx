@@ -5,6 +5,7 @@ import { useAhora, useDemo, useEstadoNegocio } from '@/datos/demo'
 import { useEnVivo } from '@/datos/envivo'
 import { useSala } from '@/datos/sala'
 import { useNegocio } from '@/datos/negocios'
+import { PLANTILLA_GRACIAS, diaDeWhatsApp, textoMensaje } from '@/dominio/mensajes'
 import type { Aviso, Negocio } from '@/dominio/tipos'
 import { useMarcaInstalable } from '@/instalacion/marca'
 import { useTemaNegocio } from '@/tema/TemaNegocio'
@@ -43,6 +44,7 @@ function App({ n }: { n: Negocio }) {
   const marcarVistos = useDemo((s) => s.marcarAvisosVistos)
   const cambiarEstado = useDemo((s) => s.cambiarEstado)
   const reabrirAviso = useDemo((s) => s.reabrirUltimoAviso)
+  const avisar = useDemo((s) => s.avisar)
   const [tab, setTab] = useState<Tab>('inicio')
   const [reserva, setReserva] = useState<{ abierta: boolean; opciones: OpcionesReserva }>({ abierta: false, opciones: {} })
 
@@ -91,6 +93,18 @@ function App({ n }: { n: Negocio }) {
               onClick={() => {
                 cambiarEstado(n.slug, turnoDelAviso.id, 'confirmado')
                 cerrarAviso()
+                // Como en la app real: llega el "¡Gracias!" por WhatsApp, después de que el sello cae sobre el pase.
+                const turno = turnoDelAviso
+                setTimeout(
+                  () =>
+                    avisar(n.slug, {
+                      tipo: 'confirmacion',
+                      canal: 'whatsapp',
+                      turnoId: turno.id,
+                      texto: textoMensaje(n, PLANTILLA_GRACIAS, turno, e.usuario?.nombre ?? '', ahora, diaDeWhatsApp),
+                    }),
+                  1500,
+                )
               }}
             >
               Confirmo
@@ -124,10 +138,12 @@ function App({ n }: { n: Negocio }) {
   return (
     <ContextoCliente value={ctx}>
       {notificacion}
+      {/* Hoja cuadriculada arriba, que se desvanece: el cuaderno del negocio. Decorativa. */}
+      <div aria-hidden className="cuadricula pointer-events-none absolute inset-x-0 top-0 -z-10 h-[26rem] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
       <div className="mx-auto min-h-dvh max-w-lg">
         <EncabezadoCliente n={n} noVistos={noVistos} onAvisos={() => reabrirAviso(n.slug)} />
 
-        <main className="px-5 pt-2 pb-32">
+        <main className="px-5 pt-3 pb-36">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={tab}

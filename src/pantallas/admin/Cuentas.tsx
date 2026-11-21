@@ -138,8 +138,8 @@ function ListaCuentas() {
     (c) => !b || c.email.includes(b) || c.nombre?.toLowerCase().includes(b) || c.negocios.some((n) => n.nombre.toLowerCase().includes(b) || n.slug.includes(b)),
   )
   return (
-    <section aria-labelledby="t-cuentas" className="flex flex-col gap-3 rounded-grande bg-superficie p-4 ring-1 ring-linea sm:p-5">
-      <h2 id="t-cuentas" className="titulo text-lg">
+    <section aria-labelledby="t-cuentas" className="flex flex-col gap-3">
+      <h2 id="t-cuentas" className="titulo border-b-2 border-texto pb-2 text-xl">
         Cuentas
       </h2>
       <div className="relative">
@@ -147,9 +147,9 @@ function ListaCuentas() {
         <Search className="pointer-events-none absolute right-4 bottom-4 size-5 text-suave" aria-hidden />
       </div>
       {visibles.length === 0 ? (
-        <p className="p-4 text-center text-suave">No hay cuentas que coincidan.</p>
+        <p className="cuadricula rounded-medio border border-dashed border-linea p-6 text-center text-suave">No hay cuentas que coincidan.</p>
       ) : (
-        <ul className="flex flex-col divide-y divide-linea">
+        <ul className="flex flex-col divide-y divide-linea border-y border-linea">
           {visibles.map((c) => (
             <FilaCuenta key={c.user_id} c={c} />
           ))}
@@ -171,7 +171,7 @@ function FilaCuenta({ c }: { c: Cuenta }) {
             <span className="truncate font-semibold">{c.nombre ?? 'Sin nombre'}</span>
             {c.es_superadmin && <Insignia estado="activo">SawaTek</Insignia>}
           </p>
-          <p className="truncate text-sm text-suave">{c.email}</p>
+          <p className="mono truncate text-[0.8125rem] text-suave">{c.email}</p>
           <p className="text-xs text-suave">
             {c.negocios.length ? c.negocios.map((n) => `${n.nombre} · ${ROLES[n.rol] ?? n.rol}`).join(' | ') : 'Sin negocio'}
             {' · '}
@@ -186,7 +186,7 @@ function FilaCuenta({ c }: { c: Cuenta }) {
         )}
       </div>
       {confirmando && (
-        <div role="alertdialog" aria-label={`Confirmar reseteo de ${c.email}`} className="flex flex-col gap-2 rounded-medio bg-superficie-2 p-3">
+        <div role="alertdialog" aria-label={`Confirmar reseteo de ${c.email}`} className="flex flex-col gap-2 rounded-medio border border-dashed border-linea p-3">
           <p className="text-sm">La contraseña actual deja de andar y se genera una nueva para pasarle a {c.nombre ?? c.email}.</p>
           <div className="flex flex-wrap gap-2">
             <Boton

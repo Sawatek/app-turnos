@@ -7,7 +7,6 @@ import { recuperarCliente, useParaRecuperar, type ParaRecuperar } from '@/datos/
 import { capitalizar, diaCorto, mesCorto, numeroDia } from '@/dominio/tiempo'
 import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
-import { iniciales } from '@/ui/Logo'
 import { Cargando, ErrorEnLinea, FalloCarga, Tarjeta, Vacio, useAccion, usePanel } from './comunes'
 import { InsigniaMensaje } from './Mensajes'
 
@@ -42,9 +41,11 @@ export function Recuperar({ onAbrir }: { onAbrir: (clienteId: string) => void })
             onChange={(e) => setTexto(e.target.value)}
             error={valido ? undefined : 'Entre 1 y 3650 días.'}
           />
-          <p className="flex-1 text-sm text-suave">
-            Se les manda por WhatsApp: “{plantilla.replaceAll('{nombre}', 'Ana')}”. El texto se cambia en Marca.
-          </p>
+          <div className="flex-1 text-sm">
+            <p className="rotulo mb-1.5 text-suave">Les llega por WhatsApp</p>
+            <p className="rounded-medio rounded-tl-none bg-wa-fondo px-3 py-2 text-wa-tinta">{plantilla.replaceAll('{nombre}', 'Ana')}</p>
+            <p className="mt-1.5 text-suave">El texto se cambia en Marca.</p>
+          </div>
         </div>
       </Tarjeta>
 
@@ -55,8 +56,8 @@ export function Recuperar({ onAbrir }: { onAbrir: (clienteId: string) => void })
       ) : lista.data.length === 0 ? (
         <Vacio>No hay clientes que lleven más de {dias} días sin venir. ¡Bien ahí!</Vacio>
       ) : (
-        <section aria-label="Clientes para recuperar" className="overflow-hidden rounded-grande bg-superficie ring-1 ring-linea">
-          <p className="border-b border-linea px-4 py-2.5 text-sm text-suave">
+        <section aria-label="Clientes para recuperar" className="overflow-hidden rounded-grande ring-1 ring-linea">
+          <p className="rotulo border-b border-linea bg-superficie px-4 py-2.5 text-suave">
             {lista.data.length === 1 ? '1 cliente' : `${lista.data.length} clientes`} sin venir hace más de {dias} días.
           </p>
           <ul className="divide-y divide-linea">
@@ -78,17 +79,20 @@ function Fila({ c, ahora, onAbrir }: { c: ParaRecuperar; ahora: number; onAbrir:
   const reciente = !!c.enviado && ahora - Date.parse(c.enviado) < 30 * DIA_MS && c.estadoEnvio !== 'error'
 
   return (
-    <li className="flex flex-wrap items-center gap-3 px-4 py-3">
-      <button type="button" onClick={onAbrir} className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left" aria-label={`Ver la ficha de ${c.nombre}`}>
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-superficie-2 text-xs font-bold" aria-hidden>
-          {iniciales(c.nombre)}
-        </span>
+    // En el margen, cuántos días hace que no viene, grande: es lo que ordena la lista y lo que importa de un vistazo.
+    <li className="grid grid-cols-[3.25rem_minmax(0,1fr)] sm:grid-cols-[4.5rem_minmax(0,1fr)]">
+      <p aria-hidden className="border-r border-acento-borde pt-3 text-center leading-none">
+        <span className="cifra block text-[1.75rem] text-acento-texto sm:text-[2.25rem]">{hace}</span>
+        <span className="rotulo text-suave">días</span>
+      </p>
+      <div className="flex min-w-0 flex-wrap items-center gap-3 px-4 py-3">
+      <button type="button" onClick={onAbrir} className="flex min-h-11 min-w-0 flex-1 basis-56 text-left" aria-label={`Ver la ficha de ${c.nombre}`}>
         <span className="min-w-0">
           <span className="block truncate font-semibold">{c.nombre}</span>
           <span className="block text-sm text-suave">
             Vino por última vez el {numeroDia(c.ultimaVisita)} de {mesCorto(c.ultimaVisita)} (hace {hace} días) · {c.ultimoServicio}
           </span>
-          <span className="block text-xs text-suave">{c.visitas === 1 ? '1 visita' : `${c.visitas} visitas`}</span>
+          <span className="mono block text-xs text-suave">{c.visitas === 1 ? '1 visita' : `${c.visitas} visitas`}</span>
         </span>
       </button>
       <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
@@ -118,6 +122,7 @@ function Fila({ c, ahora, onAbrir }: { c: ParaRecuperar; ahora: number; onAbrir:
           </Boton>
         )}
         <ErrorEnLinea texto={accion.error} />
+      </div>
       </div>
     </li>
   )

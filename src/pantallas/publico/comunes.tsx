@@ -1,20 +1,69 @@
 // Piezas compartidas del sitio público: tema de la marca, encabezado, pie y el botón "Pedí tu demo".
 // role="list" a propósito: Safari con VoiceOver les saca el rol de lista a las listas sin viñeta (y Tailwind se las saca a todas).
 /* oxlint-disable jsx-a11y/no-redundant-roles */
-import { Menu } from 'lucide-react'
-import { Suspense, lazy, useState } from 'react'
+import { Menu, Moon, Sun } from 'lucide-react'
+import { Suspense, lazy, useEffect, useLayoutEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { useTemaNegocio } from '@/tema/TemaNegocio'
 import type { Tamano } from '@/ui/Boton'
 import { cn } from '@/ui/cn'
 import { Enlace } from '@/ui/Enlace'
 // Las secciones de la navegación (y su número de folio) salen de la misma lista que arma la landing.
 import { NAV } from './inicio/secciones'
 import { CONTACTO, DEMOS, MARCA, linkContacto } from './marca'
+import { TEMA_SITIO, alternarEsquema, cssTemaSitio, escucharEsquema, esquemaVisible } from './temaSitio'
 
 /** Aplica la marca de la plataforma (colores, personalidad, título de la pestaña). */
 export function useMarcaSitio(titulo?: string) {
-  useTemaNegocio(MARCA, titulo ? `${titulo} · ${MARCA.nombre}` : `${MARCA.nombre} · ${MARCA.slogan}`)
+  const textoTitulo = titulo ? `${titulo} · ${MARCA.nombre}` : `${MARCA.nombre} · ${MARCA.slogan}`
+  useLayoutEffect(() => {
+    const raiz = document.documentElement
+    // Los colores del sitio van en <style id="tema-sitio"> (claro u oscuro según el <meta name="color-scheme">).
+    // La portada pre-generada ya lo trae; en el resto de las páginas se agrega acá la primera vez.
+    if (!document.getElementById('tema-sitio')) {
+      const estilo = document.createElement('style')
+      estilo.id = 'tema-sitio'
+      estilo.textContent = cssTemaSitio()
+      document.head.append(estilo)
+    }
+    // Si se viene de la app de un negocio, su tema quedó en variables en línea (pisarían al <style>): se sacan.
+    for (const k of Object.keys(TEMA_SITIO.light)) raiz.style.removeProperty(k)
+    raiz.dataset.sitio = ''
+    raiz.dataset.personalidad = MARCA.personalidad
+    document.title = textoTitulo
+    // Al ir a la app de un negocio, el tema del sitio deja de valer (ese negocio pone el suyo).
+    return () => {
+      delete raiz.dataset.sitio
+    }
+  }, [textoTitulo])
+  // Color de la barra del celular: el fondo del esquema que se ve (y se actualiza si cambia).
+  useEffect(() => {
+    const pintar = () => document.querySelector('meta[name=theme-color]')?.setAttribute('content', TEMA_SITIO[esquemaVisible()]['--t-fondo']!)
+    pintar()
+    return escucharEsquema(pintar)
+  }, [])
+}
+
+/**
+ * Botón de modo claro / oscuro (dos estados: el del sistema y el opuesto). Los dos íconos están en el HTML y el CSS
+ * muestra el que corresponde (variante sitio-oscuro): sale bien pre-generado y sigue al sistema sin JS.
+ */
+function BotonEsquema() {
+  return (
+    <button
+      type="button"
+      onClick={alternarEsquema}
+      className="grid size-11 shrink-0 place-items-center rounded-full text-texto ring-1 ring-linea transition-colors hover:bg-superficie-2"
+    >
+      <span className="inline-flex sitio-oscuro:hidden">
+        <Moon className="size-5" aria-hidden />
+        <span className="sr-only">Pasar a modo oscuro</span>
+      </span>
+      <span className="hidden sitio-oscuro:inline-flex">
+        <Sun className="size-5" aria-hidden />
+        <span className="sr-only">Pasar a modo claro</span>
+      </span>
+    </button>
+  )
 }
 
 interface PropsCta {
@@ -146,6 +195,7 @@ export function Encabezado({ secciones = false }: { secciones?: boolean }) {
           </nav>
         )}
         <div className="flex items-center gap-2">
+          <BotonEsquema />
           {secciones && <MenuSecciones />}
           <CtaDemo tamano="chico" className="whitespace-nowrap" />
         </div>

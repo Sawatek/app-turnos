@@ -7,6 +7,7 @@ import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
 import { Hoja } from '@/ui/Hoja'
 import { Etiqueta } from '@/ui/Insignia'
+import { Sello } from '@/ui/Sello'
 import { cn } from '@/ui/cn'
 import { Cargando, Encabezado, ErrorEnLinea, FalloCarga, Interruptor, Vacio, useAccion, usePanel } from './comunes'
 
@@ -31,28 +32,29 @@ export function Servicios() {
       ) : servicios.data.length === 0 ? (
         <Vacio>Todavía no cargaste servicios.</Vacio>
       ) : (
-        <section aria-label="Lista de servicios" className="overflow-hidden rounded-grande bg-superficie ring-1 ring-linea">
-          <ul className="divide-y divide-linea">
+        // La lista de precios del mostrador: nombre, puntitos guía y precio en letra de ticket. Lo inactivo, tachado.
+        <section aria-label="Lista de servicios">
+          <ul className="divide-y divide-linea border-b border-linea">
             {servicios.data.map((s) => (
               <li key={s.id}>
                 <button
                   type="button"
                   onClick={() => setEditando(s)}
                   aria-label={`Editar ${s.nombre}`}
-                  className={cn('flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left hover:bg-superficie-2/60', !s.activo && 'opacity-60')}
+                  className="group flex min-h-16 w-full flex-col justify-center gap-1 py-3 text-left transition-colors hover:bg-superficie sm:px-2"
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-2 font-semibold">
-                      {s.nombre}
-                      {s.etiqueta && <Etiqueta>{s.etiqueta}</Etiqueta>}
-                      {!s.activo && <span className="inline-flex h-6 items-center rounded-full bg-superficie-2 px-2.5 text-xs font-bold text-suave">Inactivo</span>}
-                    </p>
-                    <p className="truncate text-sm text-suave">
-                      {s.minutos} min · {s.precio ? precio(s.precio) : 'Sin precio'}
-                      {s.detalle ? ` · ${s.detalle}` : ''}
-                    </p>
-                  </div>
-                  <ChevronRight className="size-5 shrink-0 text-suave" aria-hidden />
+                  <span className="flex w-full items-baseline gap-2">
+                    <span className={cn('font-semibold', !s.activo && 'text-suave line-through')}>{s.nombre}</span>
+                    <span aria-hidden className="mb-1 min-w-4 flex-1 border-b-2 border-dotted border-linea" />
+                    <span className={cn('mono font-bold', !s.activo && 'text-suave')}>{s.precio ? precio(s.precio) : 'Sin precio'}</span>
+                    <ChevronRight className="size-4 shrink-0 self-center text-suave transition-transform group-hover:translate-x-0.5" aria-hidden />
+                  </span>
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-suave">
+                    <span className="mono text-[0.8125rem]">{s.minutos} min</span>
+                    {s.detalle && <span>· {s.detalle}</span>}
+                    {s.etiqueta && <Etiqueta>{s.etiqueta}</Etiqueta>}
+                    {!s.activo && <Sello tono="suave" vacio giro={-3}>Inactivo</Sello>}
+                  </span>
                 </button>
               </li>
             ))}

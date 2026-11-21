@@ -73,15 +73,16 @@ Links reservados (ningún negocio puede usarlos): `SLUGS_RESERVADOS` en `src/dat
 - `plantillas/` — plantillas por rubro y demos fijas.
 - `estilos.css` — Tailwind + tokens.
 
-## Sistema de diseño actual (punto de partida del rediseño)
+## Sistema de diseño: "Talón y sello"
 
-- **Tokens en 3 capas** (`src/estilos.css`): primitivos (tipografía, radios, espacios) → semánticos `--t-*` (los genera `generarTema`: fondo, superficie, superficie-2, linea, texto, suave, acento, sobre-acento, acento-texto, acento-suave, acento-borde, peligro, exito, aviso) → clases Tailwind (`bg-fondo`, `text-suave`, `bg-acento`, `text-sobre-acento`, `rounded-medio`…). **Nunca hex sueltos en componentes** (excepciones a propósito: verde de WhatsApp, azul de Mercado Pago simulado, marcos de celular).
-- **Marca por negocio**: cada negocio cambia solo color + logo + modo (claro/oscuro) + **personalidad** (`moderna` / `clasica` / `serena`, vía `data-personalidad`: cambia radios, peso de títulos y aire). Todo lo demás se deriva. El rediseño tiene que seguir funcionando con CUALQUIER color de marca (los tests de `paleta.test.ts` lo garantizan).
-- Tipografía Plus Jakarta Sans; números tabulares (`num`) para horas y precios.
-- Patrones: bottom sheets para acciones, barra inferior en celular / lateral en compu, "pase" del turno estilo tarjeta de embarque, grid bento en el inicio del cliente, notificaciones tipo WhatsApp.
-- Reglas (de ui-ux-pro-max, mantenerlas): objetivos táctiles ≥ 44 px, etiquetas visibles (no solo placeholder), errores al lado del campo, contraste AA (4.5:1), foco visible, sin emojis como íconos (lucide), respetar `prefers-reduced-motion`, mobile-first sin scroll horizontal, safe areas del celular.
-- Para diseñar usar las skills `ui-ux-pro-max:*` (ui-ux-pro-max, design-system, ui-styling…).
-- **Deuda para el rediseño**: hay piezas repetidas por superficie (`pantallas/admin/comunes.tsx`, `pantallas/real/panel/comunes.tsx`, `pantallas/publico/comunes.tsx`, y pantallas demo vs reales que se parecen: `cliente/` vs `real/cliente/`). Conviene consolidar en `src/ui/` un set de componentes común (selector/segmented, interruptor, tarjeta, tabla, lista, estado vacío/error, encabezado de sección, navegación) y que las pantallas lo usen.
+Contrato completo en **`docs/REDISENO.md`** (leelo antes de tocar una pantalla). En corto:
+
+- **Idea**: un turno "se saca" (talón del mostrador, agenda de papel, sello del consultorio). Hoja cuadriculada (`cuadricula`), estructura con líneas finas a la vista, datos en letra de ticket (Martian Mono: `mono`, `cifra`, `rotulo`), títulos en Bricolage Grotesque, el turno como **talón troquelado** (`ui/Talon`) y el estado como **sello de goma** (`ui/Sello`, `InsigniaEstado`) que cae con un golpe al confirmar.
+- **Tokens en 3 capas** (`src/estilos.css`): primitivos (tipografía, radios, espacios) → semánticos `--t-*` (los genera `generarTema`) → clases Tailwind (`bg-fondo`, `text-suave`, `bg-acento`…). **Nunca hex sueltos en componentes** (excepciones a propósito: verde de WhatsApp, azul de Mercado Pago simulado, marcos de celular).
+- **Marca por negocio**: color + logo + modo + **personalidad** (`moderna` / `clasica` / `serena`: radios, peso y ANCHO de los títulos, aire). Tiene que funcionar con CUALQUIER color (tests de `paleta.test.ts`).
+- **Sitio de la plataforma**: papel cálido con tinta azul de sello, personalidad `clasica`, con **modo claro y oscuro** (`PAPEL_SITIO` / `PAPEL_SITIO_OSCURO` en `publico/marca.ts`; lógica en `publico/temaSitio.ts`). Sigue al sistema; el botón del encabezado lo invierte y se guarda en `<meta name="color-scheme">` + localStorage (script de una línea en `index.html` para que no destelle). Variante Tailwind `sitio-oscuro:`.
+- Reglas (de ui-ux-pro-max, mantenerlas): objetivos táctiles ≥ 44 px, etiquetas visibles, errores al lado del campo, contraste AA, foco visible, sin emojis como íconos (lucide), `prefers-reduced-motion` caso por caso, mobile-first sin scroll horizontal, safe areas, nada de texto < 12 px. Y las del rediseño: un solo gesto fuerte por pantalla, nada tapa un dato.
+- **Deuda**: piezas repetidas por superficie (`admin/comunes.tsx`, `real/panel/comunes.tsx`, `publico/comunes.tsx`, demo vs real en `cliente/` y `real/cliente/`). Conviene consolidarlas en `src/ui/`.
 
 ## Rediseño: qué se puede tocar y qué no
 
@@ -105,7 +106,7 @@ Migraciones en `supabase/migrations/` (13, en orden; nombres `AAAAMMDDHHMMSS_des
 
 - `tests/soporte/mundo.ts`: arma un "mundo" aislado por archivo (2 negocios reales, servicios, profesionales, usuarios de cada rol) y lo limpia.
 - `tests/permisos/`: reglas de la base rol por rol (sin navegador). `tests/e2e/`: navegador (Pixel 7) contra la app en :5190 conectada a la Supabase local; `tests/e2e/ayudantes.ts` falla el test si hay errores de consola.
-- Estado al 17/11/2026: 264 Playwright + 8 Edge Functions + 50 Vitest. **Un test intermitente** documentado en `HOJA-DE-RUTA.md` ("Para probar mañana").
+- Estado al 21/11/2026 (rama `feat/redesign`): 301 Playwright + 8 Edge Functions + 91 Vitest. **Un test intermitente** documentado en `HOJA-DE-RUTA.md` ("Para probar mañana").
 
 ## Nube
 

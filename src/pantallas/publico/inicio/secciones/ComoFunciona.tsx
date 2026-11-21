@@ -29,7 +29,8 @@ export function ComoFunciona() {
             <li key={titulo} className={cn('aparecer', ESCALERA[i])}>
               <div className="flex items-end justify-between gap-4 border-b border-linea pb-4">
                 {/* Calado con más trazo y en el color de texto del acento: el borde fino de .calado casi no se ve acá */}
-                <span aria-hidden className="titular num text-numeral text-transparent opacity-70 [-webkit-text-stroke:2px_var(--t-acento-texto)]">
+                {/* El número del paso como el visor de "sacá número": mono angosta, calada en la tinta de la marca */}
+                <span aria-hidden className="cifra text-numeral text-transparent [-webkit-text-stroke:2px_var(--t-acento-texto)]">
                   {i + 1}
                 </span>
                 {Icono && <Icono className="mb-2 size-6 text-acento-texto" aria-hidden />}

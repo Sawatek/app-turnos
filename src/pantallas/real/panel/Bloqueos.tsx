@@ -7,7 +7,8 @@ import { capitalizar, claveDia, diaCorto, enHora, horaCorta, sumarDias } from '@
 import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
 import { Hoja } from '@/ui/Hoja'
-import { BotonConfirmar, ErrorEnLinea, Interruptor, Selector, useAccion, usePanel } from './comunes'
+import { cn } from '@/ui/cn'
+import { BotonConfirmar, ErrorEnLinea, Interruptor, RAYADO, Selector, useAccion, usePanel } from './comunes'
 
 const esMedianoche = (iso: string) => horaCorta(iso) === '00:00'
 
@@ -37,33 +38,37 @@ export function FilaBloqueo({ b, conDia }: { b: Bloqueo; conDia?: boolean }) {
   const accion = useAccion()
   const quien = b.profesionalId ? (profs.data?.find((p) => p.id === b.profesionalId)?.nombre ?? 'Profesional') : 'Todo el negocio'
   return (
-    <li className="flex flex-wrap items-center gap-3 bg-superficie-2/40 px-4 py-3">
-      <div className="grid size-9 shrink-0 place-items-center rounded-full bg-superficie-2 text-suave" aria-hidden>
-        <Lock className="size-4" />
+    // Lo bloqueado se ve tachado (rayado), como en la libreta; el texto va sobre papel liso para que se lea.
+    <li className="flex overflow-hidden rounded-medio bg-fondo ring-1 ring-inset ring-linea">
+      <span aria-hidden className={cn('w-3.5 shrink-0 border-r border-linea', RAYADO)} />
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 py-2 pr-2 pl-3">
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-1.5 font-semibold">
+            <Lock className="size-3.5 shrink-0 text-suave" aria-hidden />
+            <span>
+              Bloqueado · <span className="mono text-[0.9375rem] whitespace-nowrap">{textoBloqueo(b, !!conDia)}</span>
+            </span>
+          </p>
+          <p className="truncate text-sm text-suave">
+            {quien}
+            {b.motivo ? ` · ${b.motivo}` : ''}
+          </p>
+          <ErrorEnLinea texto={accion.error} />
+        </div>
+        {puede && (
+          <BotonConfirmar
+            tamano="chico"
+            texto="Quitar"
+            confirmar="Sí, quitar"
+            cargando={accion.ocupado}
+            onConfirmar={() => void accion.correr(async () => {
+              await borrarBloqueo(b.id)
+              await refrescar('bloqueos')
+              await refrescar('turnos')
+            })}
+          />
+        )}
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold">
-          Bloqueado · <span className="num">{textoBloqueo(b, !!conDia)}</span>
-        </p>
-        <p className="truncate text-sm text-suave">
-          {quien}
-          {b.motivo ? ` · ${b.motivo}` : ''}
-        </p>
-        <ErrorEnLinea texto={accion.error} />
-      </div>
-      {puede && (
-        <BotonConfirmar
-          tamano="chico"
-          texto="Quitar"
-          confirmar="Sí, quitar"
-          cargando={accion.ocupado}
-          onConfirmar={() => void accion.correr(async () => {
-            await borrarBloqueo(b.id)
-            await refrescar('bloqueos')
-            await refrescar('turnos')
-          })}
-        />
-      )}
     </li>
   )
 }

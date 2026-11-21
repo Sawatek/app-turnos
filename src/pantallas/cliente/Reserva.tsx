@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, CreditCard, Lock, Sparkles, Users } from 'lucide-react'
+import { ArrowRight, Check, CreditCard, Lock, Users } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { textoMensaje, useDemo } from '@/datos/demo'
 import { capacidadDelDia, huecosDelDia, profesionalesPara, type Hueco } from '@/dominio/horarios'
@@ -124,24 +124,16 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
 
   if (vista === 'listo' && turnoListo) {
     return (
-      <div className="flex flex-col items-center pt-2 pb-4 text-center">
-        <motion.div
-          className="grid size-20 place-items-center rounded-full bg-exito/15 text-exito"
-          initial={{ scale: 0.4, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 380, damping: 18 }}
-        >
-          <motion.span initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}>
-            <Check className="size-10" strokeWidth={3} aria-hidden />
-          </motion.span>
-        </motion.div>
-        <h3 className="titulo mt-4 text-2xl">¡Listo, {e.usuario?.nombre.split(' ')[0]}!</h3>
+      <div className="flex flex-col pt-1 pb-4">
+        <p className="rotulo text-acento-texto">Turno reservado</p>
+        <h3 className="titulo mt-1 text-3xl">¡Listo, {e.usuario?.nombre.split(' ')[0]}!</h3>
         <p className="mt-1 text-[15px] text-suave">Te mandamos la confirmación por WhatsApp. Antes del turno te avisamos para que confirmes.</p>
-        <motion.div className="mt-5 w-full text-left" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15, type: 'spring', stiffness: 300, damping: 28 }}>
+        {/* El talón sale de la impresora, a saltitos, como el ticket del mostrador. */}
+        <div className="imprimir mt-5" style={{ '--retraso': '120ms' } as React.CSSProperties}>
           <Pase n={n} t={turnoListo} ahora={ahora} />
-        </motion.div>
+        </div>
         {/* El mejor momento para ofrecer la app: recién reservó. */}
-        <OfertaInstalar n={n} className="mt-4 w-full" />
+        <OfertaInstalar n={n} className="mt-5 w-full" />
         <div className="mt-5 grid w-full grid-cols-2 gap-2">
           <Boton variante="secundario" onClick={() => { onCerrar(); irA('turnos') }}>Mis turnos</Boton>
           <Boton onClick={onCerrar}>Listo</Boton>
@@ -152,18 +144,20 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
 
   if (vista === 'pago' && servicio && hueco) {
     return (
-      <div className="flex flex-col gap-4 pb-2">
-        <div className="rounded-grande bg-superficie p-4 ring-1 ring-linea">
-          <p className="text-sm text-suave">Seña para reservar</p>
-          <p className="titulo num mt-0.5 text-4xl">{precio(n.sena)}</p>
-          <p className="mt-2 text-sm text-suave">
-            {servicio.nombre} · {capitalizar(diaRelativo(hueco.inicio, ahora))} {horaCorta(hueco.inicio)}. Se descuenta del total ({precio(servicio.precio)}).
+      <div className="flex flex-col gap-5 pb-2">
+        <div className="border-b border-linea pb-4">
+          <p className="rotulo text-suave">Seña para reservar</p>
+          <p className="cifra mt-2 text-6xl">{precio(n.sena)}</p>
+          <p className="mt-3 text-sm text-suave">
+            {servicio.nombre} · {capitalizar(diaRelativo(hueco.inicio, ahora))} <span className="mono">{horaCorta(hueco.inicio)}</span>. Se descuenta del total (
+            <span className="mono">{precio(servicio.precio)}</span>).
           </p>
         </div>
-        <div className="overflow-hidden rounded-grande bg-white text-[#1d1d1f] ring-1 ring-black/10">
+        {/* Mercado Pago simulado: se ve como Mercado Pago a propósito (el prospecto lo reconoce al instante). */}
+        <div className="overflow-hidden rounded-xl bg-white text-[#1d1d1f] ring-1 ring-black/10">
           <div className="flex items-center justify-between bg-[#009ee3] px-4 py-3 text-white">
             <b>Mercado Pago</b>
-            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide">Simulado</span>
+            <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold tracking-wide uppercase">Simulado</span>
           </div>
           <div className="flex flex-col gap-2 p-4">
             {[
@@ -174,7 +168,7 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
                 <CreditCard className="size-5 text-[#009ee3]" aria-hidden />
                 <div className="flex-1">
                   <p className="text-sm font-semibold">{m.t}</p>
-                  <p className="text-xs text-black/55">{m.s}</p>
+                  <p className="text-xs text-black/60">{m.s}</p>
                 </div>
                 {m.activo && <Check className="size-5 text-[#009ee3]" aria-hidden />}
               </div>
@@ -187,7 +181,7 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
             >
               {pagando ? 'Procesando pago…' : `Pagar ${precio(n.sena)}`}
             </button>
-            <p className="flex items-center justify-center gap-1 text-xs text-black/55">
+            <p className="flex items-center justify-center gap-1 text-xs text-black/60">
               <Lock className="size-3" aria-hidden />
               En la demo no se cobra nada.
             </p>
@@ -199,27 +193,33 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
   }
 
   return (
-    <div className="flex flex-col gap-7 pb-2">
-      {/* Progreso */}
-      <div className="-mt-1 flex items-center gap-2" aria-label={`Paso ${paso} de 4`}>
-        {[1, 2, 3, 4].map((p) => (
-          <div key={p} className={cn('h-1.5 flex-1 rounded-full transition-colors duration-300', p <= paso ? 'bg-acento' : 'bg-superficie-2')} />
-        ))}
+    <div className="flex flex-col gap-8 pb-2">
+      {/* Progreso: una regla con cuatro tramos que se van entintando. */}
+      <div className="-mt-1 flex items-center gap-3">
+        <p className="rotulo shrink-0 text-suave">
+          Paso <span className="text-texto">{paso}</span>
+          <span aria-hidden>/</span>
+          <span className="sr-only"> de </span>4
+        </p>
+        <div className="flex flex-1 gap-1" aria-hidden>
+          {[1, 2, 3, 4].map((p) => (
+            <div key={p} className={cn('h-[3px] flex-1 transition-colors duration-300', p <= paso ? 'bg-acento' : 'bg-linea')} />
+          ))}
+        </div>
       </div>
 
-      {error && <p role="alert" className="rounded-medio bg-peligro/12 px-4 py-3 text-sm font-semibold text-peligro">{error}</p>}
+      {error && <p role="alert" className="border-l-2 border-peligro py-1 pl-3 text-sm font-semibold text-peligro">{error}</p>}
 
-      {/* 1. Servicio */}
+      {/* 1. Servicio: la lista de precios del mostrador; la elegida queda marcada con tinta. */}
       <section aria-labelledby="t-serv">
-        <h3 id="t-serv" className="titulo mb-3 text-lg">{n.textos.pregunta}</h3>
-        <div className="flex flex-col gap-2">
+        <Titulo id="t-serv" numero={1}>{n.textos.pregunta}</Titulo>
+        <div className="flex flex-col divide-y divide-linea border-y border-linea">
           {n.servicios.map((s) => {
             const activo = s.id === servicioId
             return (
               <button
                 key={s.id}
                 type="button"
-               
                 aria-pressed={activo}
                 onClick={() => {
                   setServicioId(s.id)
@@ -229,18 +229,31 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
                   irSuave(profesionalId === undefined ? refProf : refDia)
                 }}
                 className={cn(
-                  'flex min-h-16 items-center justify-between gap-3 rounded-medio border-2 px-4 py-3 text-left transition-colors',
-                  activo ? 'border-acento bg-acento-suave' : 'border-transparent bg-superficie ring-1 ring-linea hover:ring-acento-borde',
+                  'relative flex min-h-16 items-center gap-3 px-3 py-3 text-left transition-colors',
+                  activo ? 'bg-acento-suave' : 'hover:bg-superficie',
                 )}
               >
-                <div className="min-w-0">
-                  <p className="flex flex-wrap items-center gap-2 font-semibold">
-                    {s.nombre}
+                {activo && <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-acento" />}
+                <span className="min-w-0 flex-1">
+                  <span className="flex w-full items-baseline gap-2">
+                    <span className="font-semibold">{s.nombre}</span>
+                    <span aria-hidden className={cn('mb-1 min-w-4 flex-1 border-b-2 border-dotted', s.precio > 0 ? 'border-linea' : 'border-transparent')} />
+                    {s.precio > 0 && <span className="mono shrink-0 font-bold">{precio(s.precio)}</span>}
+                  </span>
+                  <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-suave">
+                    <span>
+                      <span className="mono text-[0.8125rem]">{s.minutos} min</span>
+                      {s.detalle ? ` · ${s.detalle}` : ''}
+                    </span>
                     {s.etiqueta && <Etiqueta>{s.etiqueta}</Etiqueta>}
-                  </p>
-                  <p className="text-sm text-suave">{s.minutos} min{s.detalle ? ` · ${s.detalle}` : ''}</p>
-                </div>
-                {s.precio > 0 && <span className="num shrink-0 font-bold">{precio(s.precio)}</span>}
+                  </span>
+                </span>
+                <span
+                  aria-hidden
+                  className={cn('grid size-6 shrink-0 place-items-center rounded-full', activo ? 'bg-acento text-sobre-acento' : 'ring-1 ring-linea')}
+                >
+                  {activo && <Check className="size-4" strokeWidth={3} />}
+                </span>
               </button>
             )
           })}
@@ -250,7 +263,7 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
       {/* 2. Profesional */}
       {servicioId && (
         <motion.section ref={refProf} aria-labelledby="t-prof" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="scroll-mt-4">
-          <h3 id="t-prof" className="titulo mb-3 text-lg">{n.textos.conQuien}</h3>
+          <Titulo id="t-prof" numero={2}>{n.textos.conQuien}</Titulo>
           <div className="grid grid-cols-2 gap-2">
             {[{ id: null, nombre: 'Cualquiera', rol: 'Más horarios' }, ...staffPosible].map((p) => {
               const activo = profesionalId === p.id
@@ -258,7 +271,6 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
                 <button
                   key={p.id ?? 'cualquiera'}
                   type="button"
-                 
                   aria-pressed={activo}
                   onClick={() => {
                     setProfesionalId(p.id)
@@ -266,11 +278,14 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
                     irSuave(refDia)
                   }}
                   className={cn(
-                    'flex min-h-16 items-center gap-3 rounded-medio border-2 p-3 text-left transition-colors',
-                    activo ? 'border-acento bg-acento-suave' : 'border-transparent bg-superficie ring-1 ring-linea hover:ring-acento-borde',
+                    'flex min-h-16 items-center gap-3 rounded-medio p-3 text-left ring-inset transition-colors',
+                    activo ? 'bg-acento-suave ring-2 ring-acento' : 'bg-superficie ring-1 ring-linea hover:ring-acento-borde',
                   )}
                 >
-                  <span className={cn('grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold', p.id ? 'bg-superficie-2' : 'bg-acento text-sobre-acento')} aria-hidden>
+                  <span
+                    className={cn('grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold', p.id ? 'mono bg-superficie-2' : 'bg-acento text-sobre-acento')}
+                    aria-hidden
+                  >
                     {p.id ? iniciales(p.nombre) : <Users className="size-5" />}
                   </span>
                   <span className="min-w-0">
@@ -284,14 +299,14 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
         </motion.section>
       )}
 
-      {/* 3. Día */}
+      {/* 3. Día: hojas de almanaque. La que se elige queda entintada. */}
       {servicioId && profesionalId !== undefined && (
         <motion.section ref={refDia} aria-labelledby="t-dia" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="scroll-mt-4">
-          <div className="mb-3 flex items-baseline justify-between">
-            <h3 id="t-dia" className="titulo text-lg">¿Qué día?</h3>
-            {diaElegido && <span className="text-sm font-semibold text-suave">{capitalizar(mesCorto(`${diaElegido}T12:00:00-03:00`))}</span>}
+          <div className="flex items-baseline justify-between gap-3">
+            <Titulo id="t-dia" numero={3}>¿Qué día?</Titulo>
+            {diaElegido && <span className="rotulo text-suave">{capitalizar(mesCorto(`${diaElegido}T12:00:00-03:00`))}</span>}
           </div>
-          <div className="sin-barra -mx-5 flex snap-x gap-2 overflow-x-auto px-5 pb-1">
+          <div className="sin-barra -mx-5 flex snap-x scroll-px-5 gap-2 overflow-x-auto px-5 pt-1 pb-1">
             {dias.map((d) => {
               const fecha = `${d.dia}T12:00:00-03:00`
               const cerrado = d.nivel < 0
@@ -301,7 +316,6 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
                 <button
                   key={d.dia}
                   type="button"
-                 
                   aria-pressed={activo}
                   disabled={cerrado || lleno}
                   aria-label={`${diaRelativo(fecha, ahora)}: ${cerrado ? 'cerrado' : lleno ? 'sin lugar' : `${d.huecos.length} horarios`}`}
@@ -311,16 +325,18 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
                     irSuave(refHora)
                   }}
                   className={cn(
-                    'flex h-20 w-15 shrink-0 snap-start flex-col items-center justify-center gap-0.5 rounded-medio border-2 transition-colors disabled:opacity-40',
-                    activo ? 'border-acento bg-acento text-sobre-acento' : 'border-transparent bg-superficie ring-1 ring-linea',
+                    'flex h-22 w-15 shrink-0 snap-start flex-col items-center overflow-hidden rounded-medio ring-inset transition-colors disabled:opacity-40',
+                    activo ? 'bg-acento text-sobre-acento' : 'bg-superficie ring-1 ring-linea hover:ring-acento-borde',
                   )}
                 >
-                  <span className="text-[11px] font-bold uppercase">{d.dia === hoy ? 'Hoy' : nombreDia(fecha)}</span>
-                  <span className="num text-xl font-bold">{numeroDia(fecha)}</span>
-                  {/* Densidad: cuántos horarios quedan */}
-                  <span className="flex gap-0.5" aria-hidden>
+                  <span className={cn('rotulo w-full py-1 text-center', activo ? 'bg-sobre-acento/15' : 'border-b border-linea text-suave')}>
+                    {d.dia === hoy ? 'Hoy' : nombreDia(fecha)}
+                  </span>
+                  <span className="cifra grid flex-1 place-items-center text-[2rem]">{numeroDia(fecha)}</span>
+                  {/* Cuántos horarios quedan: tres rayitas, como las marcas de una regla. */}
+                  <span className="mb-2 flex gap-0.5" aria-hidden>
                     {[0.15, 0.4, 0.7].map((u) => (
-                      <span key={u} className={cn('size-1 rounded-full', d.nivel > u ? (activo ? 'bg-sobre-acento' : 'bg-acento') : activo ? 'bg-sobre-acento/30' : 'bg-linea')} />
+                      <span key={u} className={cn('h-1 w-2', d.nivel > u ? (activo ? 'bg-sobre-acento' : 'bg-acento') : activo ? 'bg-sobre-acento/30' : 'bg-linea')} />
                     ))}
                   </span>
                 </button>
@@ -330,17 +346,17 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
         </motion.section>
       )}
 
-      {/* 4. Horario */}
+      {/* 4. Horario: teclas con la hora en letra de ticket. */}
       {servicioId && profesionalId !== undefined && diaElegido && (
         <motion.section ref={refHora} aria-labelledby="t-hora" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="scroll-mt-4">
-          <h3 id="t-hora" className="titulo mb-3 text-lg">¿A qué hora?</h3>
+          <Titulo id="t-hora" numero={4}>¿A qué hora?</Titulo>
           {grupos.length === 0 ? (
-            <p className="rounded-medio bg-superficie p-4 text-sm text-suave">No quedan horarios este día. Probá otro.</p>
+            <p className="cuadricula rounded-medio border border-dashed border-linea p-4 text-sm text-suave">No quedan horarios este día. Probá otro.</p>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-5">
               {grupos.map((g) => (
                 <div key={g.titulo}>
-                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-suave">{g.titulo}</p>
+                  <p className="rotulo mb-2 text-suave">{g.titulo}</p>
                   <div className="grid grid-cols-4 gap-2">
                     {g.items.map((h) => {
                       const activo = hueco?.inicio.getTime() === h.inicio.getTime()
@@ -348,13 +364,14 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
                         <motion.button
                           key={h.inicio.toISOString()}
                           type="button"
-                         
                           aria-pressed={activo}
                           whileTap={{ scale: 0.94 }}
                           onClick={() => setHueco(h)}
                           className={cn(
-                            'num h-12 rounded-chico text-[15px] font-semibold transition-colors',
-                            activo ? 'bg-acento text-sobre-acento' : 'bg-superficie ring-1 ring-linea hover:ring-acento-borde',
+                            'mono h-12 rounded-chico text-[15px] font-semibold transition-colors',
+                            activo
+                              ? 'bg-acento text-sobre-acento shadow-[inset_0_-3px_0_rgb(0_0_0/0.16)]'
+                              : 'bg-superficie ring-1 ring-inset ring-linea hover:ring-acento-borde',
                           )}
                         >
                           {horaCorta(h.inicio)}
@@ -369,26 +386,46 @@ function Contenido({ opciones, onCerrar }: { opciones: OpcionesReserva; onCerrar
         </motion.section>
       )}
 
-      {/* Resumen + confirmar */}
+      {/* Resumen + confirmar: el talón listo para cortar. */}
       <AnimatePresence>
         {servicio && hueco && (
           <motion.div
-            className="sticky bottom-0 -mx-5 border-t border-linea bg-fondo/95 px-5 pt-3 pb-1 backdrop-blur"
+            className="sticky bottom-0 -mx-5 border-t-2 border-texto bg-fondo/95 px-5 pt-3 pb-1 backdrop-blur"
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 40, opacity: 0 }}
           >
-            <p className="mb-2.5 text-sm">
-              <b>{capitalizar(diaRelativo(hueco.inicio, ahora))} {horaCorta(hueco.inicio)}</b>
-              <span className="text-suave"> · {servicio.nombre} con {profesionalDe(n, hueco.profesionalId)?.nombre}{servicio.precio ? ` · ${precio(servicio.precio)}` : ''}</span>
-            </p>
+            <div className="mb-3 flex items-end gap-3">
+              <p className="cifra text-[2.75rem]">{horaCorta(hueco.inicio)}</p>
+              <p className="min-w-0 flex-1 pb-0.5 text-sm leading-snug">
+                <span className="flex items-baseline justify-between gap-2">
+                  <b>{capitalizar(diaRelativo(hueco.inicio, ahora))}</b>
+                  {servicio.precio > 0 && <span className="mono font-bold">{precio(servicio.precio)}</span>}
+                </span>
+                <span className="block truncate text-suave">
+                  {servicio.nombre} con {profesionalDe(n, hueco.profesionalId)?.nombre}
+                </span>
+              </p>
+            </div>
             <Boton tamano="grande" ancho onClick={() => (conSena ? setVista('pago') : confirmar(0))}>
               {conSena ? `Seguir · seña ${precio(n.sena)}` : opciones.reprograma ? 'Cambiar a este horario' : 'Confirmar turno'}
-              <Sparkles className="size-4" aria-hidden />
+              <ArrowRight className="size-4" aria-hidden />
             </Boton>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
+  )
+}
+
+/** Título de cada paso, con su número en letra de ticket. */
+function Titulo({ id, numero, children }: { id: string; numero: number; children: React.ReactNode }) {
+  return (
+    <h3 id={id} className="titulo mb-3 flex items-baseline gap-2.5 text-xl">
+      <span aria-hidden className="mono text-sm font-bold text-acento-texto">
+        0{numero}
+      </span>
+      {children}
+    </h3>
   )
 }

@@ -5,6 +5,7 @@
 //   · Aviso en vivo cuando entra un turno nuevo (salvo los que cargó el propio usuario).
 // Los permisos los hace cumplir la base; acá solo se muestra lo que corresponde a cada rol.
 import { ArrowLeft, CalendarDays, ChartColumn, Clock, LogOut, Palette, Scissors, Settings, Smartphone, UserRound, Users, type LucideIcon } from 'lucide-react'
+import { motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useAcceso, useTurnosEnVivo, type TurnoPanel } from '@/datos/real/panel'
@@ -121,77 +122,118 @@ function Estructura({ email, nombre }: { email: string; nombre: string | null })
   const permitidas = esDueno ? SECCIONES.map((s) => s.id) : DEL_PROFESIONAL
   const actual: IdSeccion = permitidas.includes(seccion as IdSeccion) ? (seccion as IdSeccion) : 'agenda'
   const rolTexto = acceso.superadmin ? 'SawaTek (como dueño)' : esDueno ? 'Dueño' : 'Profesional'
+  const conNavegacion = visibles.length > 1
+  // Alto del encabezado fijo: lo que se pega arriba al bajar (ej.: los nombres de la libreta) va justo debajo.
+  const [altoEncabezado, setAltoEncabezado] = useState(0)
+  const medirEncabezado = (el: HTMLElement | null) => {
+    if (!el) return
+    const obs = new ResizeObserver(() => setAltoEncabezado(el.offsetHeight))
+    obs.observe(el)
+    return () => obs.disconnect()
+  }
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
-      {/* Navegación lateral (compu) */}
-      {visibles.length > 1 && (
-        <aside className="hidden border-r border-linea lg:block">
-          <div className="sticky top-0 flex h-dvh flex-col gap-6 p-4">
-            <div className="flex items-center gap-3 px-1 pt-2">
-              <Logo negocio={n} className="size-10 text-sm" />
-              <p className="titulo truncate text-base">{n.nombre}</p>
+    <div
+      className={cn('min-h-dvh', conNavegacion && 'lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]')}
+      style={{ '--alto-encabezado': `${altoEncabezado}px` } as React.CSSProperties}
+    >
+      {/* Compu: el índice de una carpeta de archivo. Cartón (superficie) con pestañas numeradas;
+          la sección actual es la pestaña que se mete en la hoja (mismo fondo que la página, sin el borde de por medio). */}
+      {conNavegacion && (
+        <aside className="hidden border-r border-linea bg-superficie lg:block">
+          <div className="sticky top-0 flex h-dvh flex-col gap-8 py-6 pl-5">
+            <div className="flex items-center gap-3 pr-5">
+              <Logo negocio={n} className="size-10 rounded-chico text-sm" />
+              <p className="rotulo leading-tight text-suave">
+                Panel
+                <br />
+                del negocio
+              </p>
             </div>
             <Navegacion visibles={visibles} actual={actual} slug={n.slug} lateral />
+            <Link
+              to={`/${n.slug}`}
+              className="mt-auto mr-5 inline-flex min-h-11 items-center gap-2 border-t border-linea pt-4 text-sm font-semibold text-suave transition-colors hover:text-texto"
+            >
+              <Smartphone className="size-4" aria-hidden />
+              Ver la app de {n.textos.clientes || 'clientes'}
+            </Link>
           </div>
         </aside>
       )}
 
-      <div className={cn('mx-auto w-full max-w-5xl px-4 pt-segura sm:px-6', visibles.length > 1 ? 'pb-28 lg:pb-12' : 'pb-12')}>
-        <header className="flex items-center justify-between gap-3 py-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <Logo negocio={n} className={cn('size-11 text-sm', visibles.length > 1 && 'lg:hidden')} />
-            <div className="min-w-0">
-              <h1 className="truncate text-xl leading-tight">{esDueno ? n.nombre : 'Tu agenda'}</h1>
-              <p className="truncate text-sm text-suave">
-                {nombre ? `Hola, ${nombre.split(' ')[0]} · ` : ''}
-                {rolTexto} · {hoy}
-              </p>
+      <div className="relative min-w-0">
+        {/* Hoja cuadriculada arriba, que se desvanece (decorativa). */}
+        <div aria-hidden className="cuadricula pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 [mask-image:linear-gradient(to_bottom,black,transparent)]" />
+        <header ref={medirEncabezado} className="sticky top-0 z-30 border-b border-linea bg-fondo/92 pt-segura backdrop-blur-lg">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 pb-3 sm:px-6 lg:px-10">
+            <div className="flex min-w-0 items-center gap-3">
+              <Logo negocio={n} className={cn('size-10 rounded-chico text-sm', conNavegacion && 'lg:hidden')} />
+              <div className="min-w-0">
+                <h1 className="truncate text-xl leading-tight sm:text-2xl">{esDueno ? n.nombre : 'Tu agenda'}</h1>
+                <p className="truncate text-sm text-suave">
+                  {nombre ? `Hola, ${nombre.split(' ')[0]} · ` : ''}
+                  {rolTexto} · {hoy}
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              to={`/${n.slug}`}
-              className="hidden h-11 items-center gap-2 rounded-medio bg-superficie px-3.5 text-sm font-semibold ring-1 ring-linea sm:inline-flex"
-            >
-              <Smartphone className="size-4" aria-hidden />
-              Ver la app
-            </Link>
-            <BotonMiCuenta nombre={nombre} email={email} rol={rolTexto} />
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                to={`/${n.slug}`}
+                className={cn(
+                  'hidden min-h-11 items-center gap-2 rounded-medio px-3.5 text-sm font-semibold ring-1 ring-inset ring-linea transition-colors hover:bg-superficie-2 sm:inline-flex',
+                  conNavegacion && 'lg:hidden',
+                )}
+              >
+                <Smartphone className="size-4" aria-hidden />
+                Ver la app
+              </Link>
+              <BotonMiCuenta nombre={nombre} email={email} rol={rolTexto} />
+            </div>
           </div>
         </header>
 
-        {!nombre && <PedirNombre />}
+        <div className={cn('mx-auto w-full max-w-6xl px-4 pt-5 sm:px-6 lg:px-10 lg:pt-8', conNavegacion ? 'pb-32 lg:pb-16' : 'pb-16')}>
+          {!nombre && <PedirNombre />}
 
-        {!esDueno && actual === 'reportes' && (
-          <Link to={`/${n.slug}/panel`} className="mb-3 inline-flex h-11 items-center gap-2 rounded-medio px-1 text-sm font-semibold text-acento-texto">
-            <ArrowLeft className="size-4" aria-hidden />
-            Volver a la agenda
-          </Link>
-        )}
+          {!esDueno && actual === 'reportes' && (
+            <Link to={`/${n.slug}/panel`} className="mb-3 -ml-1 inline-flex h-11 items-center gap-2 rounded-medio px-1 text-sm font-semibold text-acento-texto">
+              <ArrowLeft className="size-4" aria-hidden />
+              Volver a la agenda
+            </Link>
+          )}
 
-        <main>
-          {actual === 'agenda' && <Agenda />}
-          {actual === 'clientes' && <Clientes />}
-          {actual === 'reportes' && <Reportes />}
-          {actual === 'servicios' && <Servicios />}
-          {actual === 'equipo' && <Equipo />}
-          {actual === 'horarios' && <Horarios />}
-          {actual === 'marca' && <Marca />}
-          {actual === 'ajustes' && <Ajustes />}
-        </main>
+          <main>
+            {actual === 'agenda' && <Agenda />}
+            {actual === 'clientes' && <Clientes />}
+            {actual === 'reportes' && <Reportes />}
+            {actual === 'servicios' && <Servicios />}
+            {actual === 'equipo' && <Equipo />}
+            {actual === 'horarios' && <Horarios />}
+            {actual === 'marca' && <Marca />}
+            {actual === 'ajustes' && <Ajustes />}
+          </main>
+        </div>
       </div>
 
       <AvisosEnVivo turnos={nuevos} onCerrar={(id) => setNuevos((l) => l.filter((x) => x.id !== id))} />
 
-      {/* Barra inferior (celular) */}
-      {visibles.length > 1 && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-linea bg-fondo/95 pb-segura backdrop-blur lg:hidden">
+      {/* Celular: la barra de abajo es una regla (marcas de milímetros arriba) y la sección actual lleva la marca de tinta. */}
+      {conNavegacion && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-linea bg-fondo/95 pb-segura backdrop-blur-xl lg:hidden">
           <Navegacion visibles={visibles} actual={actual} slug={n.slug} />
         </div>
       )}
     </div>
   )
+}
+
+/** Marcas de regla: una chica cada 8 px y una larga cada 40 px (decorativas, con los tokens del tema). */
+const REGLA: React.CSSProperties = {
+  backgroundImage: 'linear-gradient(to right, var(--t-linea) 1px, transparent 1px), linear-gradient(to right, var(--t-suave) 1px, transparent 1px)',
+  backgroundSize: '8px 5px, 40px 9px',
+  backgroundRepeat: 'repeat-x',
+  backgroundPosition: '4px 0, 4px 0',
 }
 
 function Navegacion({ visibles, actual, slug, lateral }: { visibles: typeof SECCIONES; actual: IdSeccion; slug: string; lateral?: boolean }) {
@@ -201,25 +243,63 @@ function Navegacion({ visibles, actual, slug, lateral }: { visibles: typeof SECC
     if (lateral) return
     lista.current?.querySelector(`[data-seccion="${actual}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
   }, [actual, lateral])
+  const link = (id: IdSeccion) => (id === 'agenda' ? `/${slug}/panel` : `/${slug}/panel/${id}`)
+
+  if (lateral)
+    return (
+      <nav aria-label="Secciones del panel" className="-mr-px">
+        {/* El número de cada pestaña sale de un contador de CSS: no es parte del nombre del link. */}
+        <ul className="flex flex-col gap-0.5 [counter-reset:seccion]">
+          {visibles.map(({ id, texto }) => {
+            const activo = id === actual
+            return (
+              <li key={id} className="[counter-increment:seccion]">
+                <Link
+                  to={link(id)}
+                  aria-current={activo ? 'page' : undefined}
+                  className={cn(
+                    'mono relative flex h-12 items-center gap-3 rounded-l-medio pr-4 pl-4 text-[0.8125rem] font-semibold tracking-[0.06em] uppercase transition-colors',
+                    'before:w-5 before:text-[0.75rem] before:font-medium before:content-[counter(seccion,decimal-leading-zero)]',
+                    activo
+                      ? 'border-y border-l border-linea bg-fondo text-texto before:text-acento-texto'
+                      : 'text-suave before:text-suave/70 hover:bg-fondo/50 hover:text-texto',
+                  )}
+                >
+                  {activo && <span aria-hidden className="absolute inset-y-2.5 left-0 w-[3px] rounded-r-full bg-acento" />}
+                  {texto}
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      </nav>
+    )
+
   return (
     <nav aria-label="Secciones del panel">
-      <ul ref={lista} className={lateral ? 'flex flex-col gap-1' : 'sin-barra mx-auto flex max-w-2xl snap-x overflow-x-auto'}>
+      <ul ref={lista} style={REGLA} className="sin-barra mx-auto flex max-w-2xl snap-x overflow-x-auto pt-1.5">
         {visibles.map(({ id, texto, Icono }) => {
           const activo = id === actual
           return (
-            <li key={id} className={lateral ? undefined : 'min-w-[3.9rem] flex-1 snap-start'}>
+            <li key={id} className="min-w-[4.5rem] flex-1 snap-start">
               <Link
-                to={id === 'agenda' ? `/${slug}/panel` : `/${slug}/panel/${id}`}
+                to={link(id)}
                 aria-current={activo ? 'page' : undefined}
                 data-seccion={id}
                 className={cn(
-                  'flex items-center font-semibold transition-colors',
-                  lateral
-                    ? cn('h-11 gap-3 rounded-medio px-3 text-[15px]', activo ? 'bg-acento-suave text-acento-texto' : 'text-suave hover:bg-superficie hover:text-texto')
-                    : cn('h-15 flex-col justify-center gap-1 text-[11px]', activo ? 'text-acento-texto' : 'text-suave'),
+                  'relative flex h-15 flex-col items-center justify-center gap-1 text-xs font-bold transition-colors',
+                  activo ? 'text-texto' : 'text-suave hover:text-texto',
                 )}
               >
-                <Icono className={lateral ? 'size-5' : 'size-5.5'} aria-hidden />
+                {activo && (
+                  <motion.span
+                    layoutId="seccion-activa-panel"
+                    aria-hidden
+                    className="absolute -top-1.5 h-[3px] w-9 rounded-b-full bg-acento"
+                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                  />
+                )}
+                <Icono className="size-5" aria-hidden />
                 {texto}
               </Link>
             </li>

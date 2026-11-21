@@ -6,6 +6,7 @@ import type { Negocio } from '@/dominio/tipos'
 import { Boton } from '@/ui/Boton'
 import { Campo } from '@/ui/Campo'
 import { Logo } from '@/ui/Logo'
+import { cn } from '@/ui/cn'
 
 const soloDigitos = (s: string) => s.replace(/\D/g, '')
 const formatoTel = (s: string) => {
@@ -58,22 +59,24 @@ export function Ingreso({ n }: { n: Negocio }) {
   })
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-segura pb-segura">
+    <main className="relative mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-segura pb-segura">
+      {/* Hoja cuadriculada arriba, que se desvanece: la tapa de la libreta del negocio. Decorativa. */}
+      <div aria-hidden className="cuadricula pointer-events-none absolute inset-x-0 top-0 -z-10 h-[24rem] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
       <motion.div
-        className="flex flex-1 flex-col justify-center gap-8 py-8"
+        className="flex flex-1 flex-col justify-center gap-9 py-8"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
       >
-        <header className="flex flex-col items-center text-center">
-          <Logo negocio={n} className="size-22 text-3xl sombra-suave" />
-          <h1 className="mt-5 text-3xl">{n.nombre}</h1>
-          <p className="mt-1 text-sm font-semibold text-acento-texto">{n.bajada}</p>
-          <p className="mt-3 max-w-xs text-[15px] text-suave">{n.claim}</p>
+        <header className="flex flex-col items-start">
+          <Logo negocio={n} className="size-16 text-2xl" />
+          <h1 className="mt-5 text-[2.75rem] leading-[0.95]">{n.nombre}</h1>
+          {n.bajada && <p className="rotulo mt-3 text-acento-texto">{n.bajada}</p>}
+          {n.claim && <p className="mt-2 max-w-xs text-[15px] text-suave">{n.claim}</p>}
         </header>
 
         {paso === 'datos' ? (
-          <form className="flex flex-col gap-4" onSubmit={pedirCodigo} noValidate>
+          <form className="flex flex-col gap-5 border-t-2 border-texto pt-5" onSubmit={pedirCodigo} noValidate>
             <Campo etiqueta="Tu nombre" autoComplete="given-name" placeholder="Ej.: Martín" value={nombre} onChange={(e) => setNombre(e.target.value)} error={errores.nombre} />
             <Campo
               etiqueta="Tu celular"
@@ -84,25 +87,27 @@ export function Ingreso({ n }: { n: Negocio }) {
               value={tel}
               onChange={(e) => setTel(formatoTel(e.target.value))}
               error={errores.tel}
+              className="[&_input]:font-mono [&_input]:tabular-nums"
             />
             <Boton type="submit" tamano="grande" ancho cargando={enviando} className="mt-1">
               <MessageCircle className="size-5" aria-hidden />
               Recibir código por WhatsApp
             </Boton>
             <p className="flex items-center justify-center gap-1.5 text-center text-sm text-suave">
-              <ShieldCheck className="size-4" aria-hidden />
+              <ShieldCheck className="size-4 shrink-0" aria-hidden />
               Sin contraseñas: te llega un código de 4 números.
             </p>
           </form>
         ) : (
-          <div className="flex flex-col gap-4">
-            <div className="text-center">
-              <p className="text-[15px]">
-                Te mandamos un código por WhatsApp al <b className="num">{tel}</b>
-              </p>
-            </div>
-            <label className="sr-only" htmlFor="codigo">Código de 4 números</label>
-            <div className="relative mx-auto">
+          <div className="flex flex-col gap-5 border-t-2 border-texto pt-5">
+            <p className="text-[15px]">
+              Te mandamos un código por WhatsApp al <b className="mono font-bold whitespace-nowrap">{tel}</b>
+            </p>
+            <label className="rotulo text-suave" htmlFor="codigo">
+              Código de 4 números
+            </label>
+            {/* El visor del "sacá número": cuatro cifras grandes. El input real está encima, invisible. */}
+            <div className="group relative -mt-3 self-start">
               <input
                 ref={refCodigo}
                 id="codigo"
@@ -115,23 +120,25 @@ export function Ingreso({ n }: { n: Negocio }) {
                 aria-describedby="codigo-ayuda"
                 className="absolute inset-0 z-10 opacity-0"
               />
-              <div className="flex gap-3" aria-hidden>
+              <div className="flex gap-2.5" aria-hidden>
                 {[0, 1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className={`num grid size-16 place-items-center rounded-medio border-2 bg-superficie text-3xl font-bold transition-colors ${
-                      errores.codigo ? 'border-peligro' : codigo.length === i ? 'border-acento' : 'border-linea'
-                    }`}
+                    className={cn(
+                      'cifra grid h-20 w-16 place-items-center rounded-medio bg-superficie text-5xl ring-inset transition-shadow',
+                      // El casillero que sigue se marca con la marca solo mientras el campo tiene el foco (es el cursor).
+                      errores.codigo ? 'text-peligro ring-2 ring-peligro' : codigo.length === i ? 'ring-1 ring-linea group-focus-within:ring-2 group-focus-within:ring-acento' : 'ring-1 ring-linea',
+                    )}
                   >
-                    {codigo[i] ?? ''}
+                    {codigo[i] ?? <span className="text-linea">·</span>}
                   </div>
                 ))}
               </div>
             </div>
-            <p id="codigo-ayuda" className={`text-center text-sm ${errores.codigo ? 'text-peligro' : 'text-suave'}`}>
+            <p id="codigo-ayuda" className={cn('text-sm', errores.codigo ? 'font-semibold text-peligro' : 'text-suave')}>
               {errores.codigo ?? 'Tocá la notificación de WhatsApp para completarlo solo.'}
             </p>
-            <Boton variante="fantasma" onClick={() => { setPaso('datos'); setCodigo('') }}>
+            <Boton variante="fantasma" className="self-start" onClick={() => { setPaso('datos'); setCodigo('') }}>
               Cambiar el número
             </Boton>
           </div>

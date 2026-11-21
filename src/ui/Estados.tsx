@@ -25,14 +25,18 @@ export function Exito({ texto }: { texto?: string }) {
 
 export function Cargando({ texto = 'Cargando' }: { texto?: string }) {
   return (
-    <div className="grid place-items-center py-10" aria-busy="true">
-      <LoaderCircle className="size-7 animate-spin text-suave" aria-label={texto} />
+    <div className="flex items-center justify-center gap-2.5 py-10 text-suave" aria-busy="true">
+      <LoaderCircle className="size-5 animate-spin" aria-label={texto} />
+      <span className="rotulo" aria-hidden>
+        {texto}…
+      </span>
     </div>
   )
 }
 
 export function Vacio({ children }: { children: React.ReactNode }) {
-  return <p className="rounded-grande bg-superficie p-8 text-center text-suave ring-1 ring-linea">{children}</p>
+  // Hoja en blanco: recuadro punteado sobre la cuadrícula, como un renglón todavía sin escribir.
+  return <p className="cuadricula rounded-grande border border-dashed border-linea p-8 text-center text-suave">{children}</p>
 }
 
 export interface PropsFalloCarga {
@@ -43,7 +47,7 @@ export interface PropsFalloCarga {
 /** Error al cargar una consulta, con botón para reintentar. `mensaje` traduce el error a texto. */
 export function FalloCarga({ error, onReintentar, mensaje }: PropsFalloCarga & { mensaje: (e: unknown) => string }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-grande bg-superficie p-6 text-center ring-1 ring-linea">
+    <div className="flex flex-col items-center gap-3 rounded-grande border border-dashed border-peligro/50 p-6 text-center">
       <ErrorEnLinea texto={mensaje(error)} />
       <Boton variante="secundario" tamano="chico" onClick={onReintentar}>
         Reintentar

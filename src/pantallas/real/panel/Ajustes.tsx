@@ -129,6 +129,7 @@ function Formulario({ inicial }: { inicial: DatosAjustes }) {
         <Exito texto={guardado ? 'Ajustes guardados' : undefined} />
         <ErrorEnLinea texto={accion.error} />
       </div>
+      <div className="flex flex-col gap-2 border-t border-linea pt-4">
       <p className="text-sm text-suave">
         El logo, los colores, la frase, las promos y los textos de los mensajes están en{' '}
         <Link to={`/${n.slug}/panel/marca`} className="font-semibold text-acento-texto underline underline-offset-4">
@@ -137,6 +138,7 @@ function Formulario({ inicial }: { inicial: DatosAjustes }) {
         .
       </p>
       <p className="text-sm text-suave">El link del negocio y el estado de la cuenta los maneja SawaTek. Si necesitás cambiarlos, escribinos.</p>
+      </div>
     </form>
   )
 }

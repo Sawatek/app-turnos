@@ -3,11 +3,12 @@
 // Todo se guarda en negocios.config (la base no deja tocar el link, el estado ni si es demo).
 import { useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
-import { CalendarCheck, Check, Eye, Gift, ImageUp, Megaphone, MessageCircle, Moon, Plus, Sun, Trash2, Wand2 } from 'lucide-react'
+import { Check, Eye, Gift, ImageUp, Megaphone, MessageCircle, Moon, Plus, Sun, Trash2, Wand2 } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { useAjustes, useProfesionales, useRefrescar, useServicios } from '@/datos/real/panel'
 import { guardarMarca, type Marca as DatosMarca } from '@/datos/real/panel-gestion'
 import type { Modo, Negocio, Personalidad, Promo } from '@/dominio/tipos'
+import { precio } from '@/dominio/tiempo'
 import { colorDelLogo } from '@/tema/paleta'
 import { estiloTema } from '@/tema/TemaNegocio'
 import { Boton } from '@/ui/Boton'
@@ -189,7 +190,7 @@ function Editor({ inicial }: { inicial: DatosMarca }) {
             <div className="flex flex-wrap items-center gap-4">
               <label
                 htmlFor={idLogo}
-                className="flex size-24 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-grande border-2 border-dashed border-linea bg-superficie text-xs font-semibold text-suave transition-colors hover:border-acento"
+                className="rotulo flex size-24 shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 overflow-hidden rounded-medio border-2 border-dashed border-linea bg-superficie text-center text-suave transition-colors hover:border-acento"
               >
                 {m.logo ? (
                   <img src={m.logo} alt="Logo actual" className="size-full bg-white object-contain" />
@@ -242,7 +243,7 @@ function Editor({ inicial }: { inicial: DatosMarca }) {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <fieldset>
-                <legend className="mb-2 text-sm font-semibold text-suave">Fondo</legend>
+                <legend className="rotulo mb-2 text-suave">Fondo</legend>
                 <div className="grid grid-cols-2 gap-2">
                   {(
                     [
@@ -255,7 +256,10 @@ function Editor({ inicial }: { inicial: DatosMarca }) {
                       type="button"
                       aria-pressed={m.modo === id}
                       onClick={() => cambiar({ modo: id as Modo })}
-                      className={cn('flex h-12 items-center justify-center gap-2 rounded-medio font-semibold', m.modo === id ? 'bg-acento text-sobre-acento' : 'bg-superficie-2')}
+                      className={cn(
+                        'flex h-12 items-center justify-center gap-2 rounded-chico font-semibold transition-colors',
+                        m.modo === id ? 'bg-acento text-sobre-acento shadow-[inset_0_-3px_0_rgb(0_0_0/0.16)]' : 'bg-superficie ring-1 ring-inset ring-linea hover:ring-suave/60',
+                      )}
                     >
                       <Icono className="size-4" aria-hidden />
                       {texto}
@@ -264,7 +268,7 @@ function Editor({ inicial }: { inicial: DatosMarca }) {
                 </div>
               </fieldset>
               <fieldset>
-                <legend className="mb-2 text-sm font-semibold text-suave">Estilo</legend>
+                <legend className="rotulo mb-2 text-suave">Estilo</legend>
                 <div className="grid grid-cols-3 gap-2">
                   {PERSONALIDADES.map((p) => (
                     <button
@@ -273,12 +277,12 @@ function Editor({ inicial }: { inicial: DatosMarca }) {
                       aria-pressed={m.personalidad === p.id}
                       onClick={() => cambiar({ personalidad: p.id })}
                       className={cn(
-                        'flex h-12 flex-col items-center justify-center rounded-medio text-sm leading-tight font-semibold',
-                        m.personalidad === p.id ? 'bg-acento text-sobre-acento' : 'bg-superficie-2',
+                        'flex h-13 flex-col items-center justify-center rounded-chico text-sm leading-tight font-semibold transition-colors',
+                        m.personalidad === p.id ? 'bg-acento text-sobre-acento shadow-[inset_0_-3px_0_rgb(0_0_0/0.16)]' : 'bg-superficie ring-1 ring-inset ring-linea hover:ring-suave/60',
                       )}
                     >
                       {p.nombre}
-                      <span className="text-[11px] font-medium opacity-80">{p.detalle}</span>
+                      <span className="mono text-xs font-medium opacity-80">{p.detalle}</span>
                     </button>
                   ))}
                 </div>
@@ -360,7 +364,7 @@ function Editor({ inicial }: { inicial: DatosMarca }) {
           </div>
         </Tarjeta>
 
-        <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-20 flex flex-wrap items-center gap-3 rounded-grande bg-fondo/95 py-3 backdrop-blur lg:bottom-4">
+        <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] z-20 flex flex-wrap items-center gap-3 border-t-2 border-texto bg-fondo/95 py-3 backdrop-blur lg:bottom-0">
           <Boton type="submit" cargando={accion.ocupado}>
             Guardar marca
           </Boton>
@@ -368,7 +372,7 @@ function Editor({ inicial }: { inicial: DatosMarca }) {
             <Eye className="size-4" aria-hidden />
             Vista previa
           </Boton>
-          {hayCambios && !accion.ocupado && <span className="text-sm text-suave">Tenés cambios sin guardar.</span>}
+          {hayCambios && !accion.ocupado && <span className="rotulo text-aviso">Cambios sin guardar</span>}
           <Exito texto={guardado ? 'Marca guardada: ya se ve en tu app' : undefined} />
           <ErrorEnLinea texto={accion.error} />
         </div>
@@ -384,7 +388,7 @@ function ListaAvisos({ avisos, onCambiar, error }: { avisos: NonNullable<Negocio
       <div className="flex flex-col gap-3">
         <p className="text-sm text-suave">Aparecen arriba de todo en la app. Ej.: “El 24 cerramos a las 14”.</p>
         {avisos.map((a, i) => (
-          <fieldset key={i} className="grid gap-3 rounded-medio bg-superficie-2/50 p-3 ring-1 ring-linea sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] sm:items-end">
+          <fieldset key={i} className="grid gap-3 border-l-2 border-acento-borde pl-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] sm:items-end">
             <legend className="sr-only">Aviso {i + 1}</legend>
             <Campo etiqueta={`Aviso ${i + 1}: título`} maxLength={80} value={a.titulo} onChange={(e) => poner(i, { titulo: e.target.value })} />
             <Campo etiqueta={`Aviso ${i + 1}: detalle (opcional)`} maxLength={200} value={a.detalle ?? ''} onChange={(e) => poner(i, { detalle: e.target.value })} />
@@ -424,7 +428,7 @@ function ListaPromos({
       <div className="flex flex-col gap-3">
         <Campo etiqueta="Título de la sección" placeholder="Promos" maxLength={40} value={titulo} onChange={(e) => onTitulo(e.target.value)} />
         {promos.map((p, i) => (
-          <fieldset key={i} className="grid gap-3 rounded-medio bg-superficie-2/50 p-3 ring-1 ring-linea sm:grid-cols-[8rem_minmax(0,1fr)]">
+          <fieldset key={i} className="grid gap-3 border-l-2 border-acento-borde pl-3 sm:grid-cols-[8rem_minmax(0,1fr)]">
             <legend className="sr-only">Promo {i + 1}</legend>
             <Campo etiqueta={`Promo ${i + 1}: etiqueta`} placeholder="Ej.: -20%" maxLength={24} value={p.etiqueta} onChange={(e) => poner(i, { etiqueta: e.target.value })} />
             <Campo etiqueta={`Promo ${i + 1}: título`} placeholder="Ej.: Martes de barba" maxLength={60} value={p.titulo} onChange={(e) => poner(i, { titulo: e.target.value })} />
@@ -464,7 +468,7 @@ function armarEjemplo(plantilla: string, n: Negocio) {
 
 function Burbuja({ texto }: { texto: string }) {
   return (
-    <div className="flex items-start gap-2 rounded-medio bg-wa-fondo px-3 py-2 text-sm text-wa-tinta">
+    <div className="flex items-start gap-2 rounded-medio rounded-tl-none bg-wa-fondo px-3 py-2 text-sm text-wa-tinta">
       <MessageCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
       <p>
         <span className="sr-only">Ejemplo de cómo le llega: </span>
@@ -490,65 +494,81 @@ function VistaPrevia({ n }: { n: Negocio }) {
           data-personalidad={n.personalidad}
           className="sin-barra flex h-[540px] w-[270px] flex-col gap-3 overflow-y-auto rounded-[36px] bg-fondo px-4 pt-6 pb-6 text-texto transition-colors duration-300"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col items-start gap-2">
             <Logo negocio={n} className="size-11 text-sm" />
-            <div className="min-w-0">
-              <p className="titulo truncate text-base">{n.nombre}</p>
-              {n.bajada && <p className="truncate text-[11px] font-semibold text-acento-texto">{n.bajada}</p>}
-            </div>
+            <p className="titulo text-2xl leading-none">{n.nombre}</p>
+            {n.bajada && <p className="rotulo text-[0.75rem] text-acento-texto">{n.bajada}</p>}
           </div>
           {n.claim && <p className="text-xs text-suave">{n.claim}</p>}
           {(n.avisos ?? []).slice(0, 2).map((a, i) => (
-            <div key={i} className="rounded-medio bg-acento-suave p-2.5 text-acento-texto">
-              <p className="text-[11px] font-bold">{a.titulo}</p>
-              {a.detalle && <p className="text-[10px] opacity-90">{a.detalle}</p>}
+            <div key={i} className="border-l-2 border-acento py-0.5 pl-2.5">
+              <p className="text-xs font-bold">{a.titulo}</p>
+              {a.detalle && <p className="text-xs text-suave">{a.detalle}</p>}
             </div>
           ))}
-          <div className="rounded-grande bg-acento p-3 text-sobre-acento">
-            <p className="text-[10px] font-bold opacity-85">Próximo libre</p>
-            <p className="titulo text-lg">Hoy 17:30</p>
-            <p className="truncate text-[11px] font-semibold opacity-90">
-              {servicios[0]?.nombre ?? 'Tu servicio'}
-              {prof ? ` con ${prof.nombre}` : ''}
-            </p>
-            <div className="mt-2 grid h-8 place-items-center rounded-chico bg-sobre-acento/15 text-[11px] font-bold">{n.textos?.reservar || 'Reservar'}</div>
+          {/* El talón de "Próximo libre", como en la app. */}
+          <div className="contorno-talon">
+            <div className="muesca-abajo rounded-t-grande bg-acento px-3 pt-2.5 pb-3 text-sobre-acento">
+              <p className="rotulo text-[0.75rem] opacity-90">Próximo libre</p>
+              <p className="mt-1 flex items-baseline gap-2">
+                <span className="titulo text-base">Hoy</span>
+                <span className="cifra text-[2.25rem]">17:30</span>
+              </p>
+              <p className="truncate text-xs font-semibold">
+                {servicios[0]?.nombre ?? 'Tu servicio'}
+                {prof ? ` con ${prof.nombre}` : ''}
+              </p>
+            </div>
+            <div className="muesca-arriba rounded-b-grande bg-acento px-3 pt-2 pb-3 text-sobre-acento">
+              <div className="grid h-8 place-items-center rounded-medio bg-sobre-acento text-xs font-bold text-acento">{n.textos?.reservar || 'Reservar'}</div>
+            </div>
           </div>
           {meta > 0 && (
-            <div className="rounded-grande bg-superficie p-3 ring-1 ring-linea">
-              <p className="text-[11px] font-bold">Tu tarjeta</p>
-              {n.fidelidad.texto && <p className="text-[10px] text-suave">{n.fidelidad.texto}</p>}
-              <div className="mt-2 flex flex-wrap gap-1">
+            <div className="rounded-grande border border-dashed border-acento-borde p-3">
+              <p className="titulo text-sm">Tu tarjeta</p>
+              {n.fidelidad.texto && <p className="text-xs text-suave">{n.fidelidad.texto}</p>}
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {Array.from({ length: meta }, (_, i) => (
-                  <span key={i} className={cn('grid size-5 place-items-center rounded-full text-[9px] font-bold', i < 2 ? 'bg-acento text-sobre-acento' : 'bg-superficie-2 text-suave')}>
+                  <span
+                    key={i}
+                    className={cn(
+                      'grid size-6 place-items-center rounded-full text-xs font-bold',
+                      i === meta - 1 ? 'border border-dashed border-acento-borde text-acento-texto' : i < 2 ? 'border-2 border-acento-texto text-acento-texto' : 'mono border border-linea text-suave',
+                    )}
+                  >
                     {i === meta - 1 ? <Gift className="size-3" aria-hidden /> : i < 2 ? <Check className="size-3" aria-hidden /> : i + 1}
                   </span>
                 ))}
               </div>
             </div>
           )}
-          <div className="flex flex-col gap-1.5">
-            {servicios.slice(0, 3).map((s) => (
-              <div key={s.id} className="flex items-center justify-between rounded-medio bg-superficie px-3 py-2 text-[11px] font-semibold ring-1 ring-linea">
-                <span className="truncate">{s.nombre}</span>
-                <CalendarCheck className="size-3.5 shrink-0 text-acento-texto" aria-hidden />
-              </div>
-            ))}
-          </div>
+          {servicios.length > 0 && (
+            <div>
+              <p className="titulo border-b-2 border-texto pb-1 text-sm">Servicios</p>
+              {servicios.slice(0, 3).map((s) => (
+                <div key={s.id} className="flex items-baseline gap-1.5 border-b border-linea py-1.5 text-xs">
+                  <span className="truncate font-semibold">{s.nombre}</span>
+                  <span aria-hidden className="mb-0.5 min-w-2 flex-1 border-b border-dotted border-linea" />
+                  {s.precio > 0 && <span className="mono shrink-0 font-bold">{precio(s.precio)}</span>}
+                </div>
+              ))}
+            </div>
+          )}
           {promos.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <p className="titulo text-xs">{n.promosTitulo || 'Promos'}</p>
+              <p className="titulo border-b-2 border-texto pb-1 text-sm">{n.promosTitulo || 'Promos'}</p>
               {promos.slice(0, 2).map((p, i) => (
-                <div key={i} className="rounded-medio bg-superficie p-2.5 ring-1 ring-linea">
-                  {p.etiqueta && <span className="rounded-full bg-acento px-1.5 py-0.5 text-[9px] font-extrabold text-sobre-acento">{p.etiqueta}</span>}
-                  <p className="mt-1 text-[11px] font-bold">{p.titulo}</p>
-                  {p.detalle && <p className="text-[10px] text-suave">{p.detalle}</p>}
+                <div key={i} className="rounded-medio bg-acento-suave p-2.5">
+                  {p.etiqueta && <span className="rotulo rounded-chico bg-fondo/60 px-1.5 text-[0.75rem] text-acento-texto">{p.etiqueta}</span>}
+                  <p className="titulo mt-1 text-sm">{p.titulo}</p>
+                  {p.detalle && <p className="text-xs text-suave">{p.detalle}</p>}
                 </div>
               ))}
             </div>
           )}
         </motion.div>
       </div>
-      <p className="text-xs text-suave">Así se ve tu app</p>
+      <p className="rotulo text-suave">Así se ve tu app</p>
     </div>
   )
 }

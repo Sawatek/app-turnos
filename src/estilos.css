@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/plus-jakarta-sans';
+/* Lenguaje "talón y sello": títulos en Bricolage (todos los ejes: ancho, peso y tamaño óptico) y datos en Martian Mono
+   (horas, precios, rótulos: la letra del ticket). Las dos son variables: cada personalidad elige su ancho y su peso. */
+@import '@fontsource-variable/bricolage-grotesque/standard.css';
+@import '@fontsource-variable/martian-mono/standard.css';
 
 /*
   Tokens en 3 capas:
@@ -26,11 +30,27 @@
   line-gap-override: 0%;
 }
 
+/* Modo oscuro del sitio de la plataforma (ver pantallas/publico/temaSitio.ts): el sistema lo pide y no se eligió claro,
+   o se eligió oscuro. Lo usa el botón del encabezado para mostrar el ícono que corresponde sin depender del JS. */
+@custom-variant sitio-oscuro {
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not(:has(> head > meta[name='color-scheme'][content='light'])) *) {
+      @slot;
+    }
+  }
+  &:where(:root:has(> head > meta[name='color-scheme'][content='dark']) *) {
+    @slot;
+  }
+}
+
 @theme inline {
   --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
   /* Titulares editoriales del sitio público. La fuente (Bricolage Grotesque) la carga solo la landing.
      Mientras baja, 'Titulos Respaldo' (abajo) ocupa el mismo lugar: no saltan las líneas al cambiar. */
   --font-editorial: 'Bricolage Grotesque Variable', 'Titulos Respaldo', ui-sans-serif, system-ui, sans-serif;
+  /* Títulos de la app (mismo dibujo que la landing) y letra de ticket para datos: horas, precios, números, rótulos. */
+  --font-titulo: 'Bricolage Grotesque Variable', 'Titulos Respaldo', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Martian Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
 
   /* Escalas fluidas de la landing: rem + vw dentro de clamp() (el máximo no pasa 2,5× el mínimo, así el zoom sigue andando). */
   --text-portada: clamp(3.25rem, 1.4rem + 6vw, 7rem);
@@ -107,37 +127,46 @@
   color-scheme: dark;
 }
 
-/* Personalidades por rubro: cambian forma, peso y aire, no el color. */
+/* Personalidades por rubro: cambian forma, ancho y peso de la letra y aire; nunca el color.
+   - moderna: esquinas chicas, títulos angostos y pesados (cartel de barbería).
+   - clasica: casi sin redondeo, títulos anchos y negros (papelería, sello de consultorio).
+   - serena: más redondeo, títulos medianos y livianos, más aire (uñas, estética, bienestar). */
 [data-personalidad='moderna'] {
-  --p-radio-chico: 12px;
-  --p-radio-medio: 18px;
-  --p-radio-grande: 28px;
-  --p-titulo-peso: 750;
-  --p-titulo-tracking: -0.025em;
+  --p-radio-chico: 6px;
+  --p-radio-medio: 10px;
+  --p-radio-grande: 16px;
+  --p-titulo-peso: 760;
+  --p-titulo-ancho: 86%;
+  --p-titulo-tracking: -0.03em;
   --p-aire: 1;
 }
 [data-personalidad='clasica'] {
-  --p-radio-chico: 8px;
-  --p-radio-medio: 12px;
-  --p-radio-grande: 18px;
+  --p-radio-chico: 2px;
+  --p-radio-medio: 4px;
+  --p-radio-grande: 6px;
   --p-titulo-peso: 800;
-  --p-titulo-tracking: -0.01em;
+  --p-titulo-ancho: 100%;
+  --p-titulo-tracking: -0.02em;
   --p-aire: 0.95;
 }
 [data-personalidad='serena'] {
-  --p-radio-chico: 14px;
-  --p-radio-medio: 22px;
-  --p-radio-grande: 32px;
-  --p-titulo-peso: 650;
-  --p-titulo-tracking: -0.015em;
+  --p-radio-chico: 12px;
+  --p-radio-medio: 18px;
+  --p-radio-grande: 26px;
+  --p-titulo-peso: 600;
+  --p-titulo-ancho: 94%;
+  --p-titulo-tracking: -0.02em;
   --p-aire: 1.1;
 }
 :root {
-  --p-radio-chico: 12px;
-  --p-radio-medio: 18px;
-  --p-radio-grande: 28px;
-  --p-titulo-peso: 750;
-  --p-titulo-tracking: -0.02em;
+  --p-radio-chico: 6px;
+  --p-radio-medio: 10px;
+  --p-radio-grande: 16px;
+  --p-titulo-peso: 760;
+  --p-titulo-ancho: 86%;
+  --p-titulo-tracking: -0.03em;
+  /* Tamaño de las muescas del talón (los semicírculos del troquel). */
+  --muesca: 11px;
 }
 
 @layer base {
@@ -162,9 +191,12 @@
     overscroll-behavior-y: none;
   }
   h1, h2, h3, .titulo {
+    font-family: var(--font-titulo);
     font-weight: var(--p-titulo-peso);
+    font-stretch: var(--p-titulo-ancho);
+    font-optical-sizing: auto;
     letter-spacing: var(--p-titulo-tracking);
-    line-height: 1.15;
+    line-height: 1.1;
     text-wrap: balance;
   }
   button, [role='button'], a, label[for], select { cursor: pointer; }
@@ -177,6 +209,117 @@
 }
 
 @utility num { font-variant-numeric: tabular-nums; }
+
+/* ---------- Lenguaje "talón y sello" ---------- */
+
+/* Dato de ticket: horas, precios, códigos, contadores. Mono, ancho normal. */
+@utility mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+/* Hora o número protagonista: mono angosta y apretada (se lee de lejos, como el visor de "sacá número"). */
+@utility cifra {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-stretch: 75%;
+  font-weight: 640;
+  letter-spacing: -0.045em;
+  line-height: 0.9;
+}
+/* Rótulo de ticket: mono, versalitas, espaciado. Para etiquetas de dato, folios y encabezados chicos (nunca texto corrido). */
+@utility rotulo {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 560;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+/* Hoja cuadriculada (cuaderno): líneas muy suaves teñidas con la marca. Decorativa, va de fondo de una zona. */
+@utility cuadricula {
+  --cuadro: 22px;
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--t-linea) 60%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--t-linea) 60%, transparent) 1px, transparent 1px);
+  background-size: var(--cuadro) var(--cuadro);
+  background-position: -1px -1px;
+}
+/* Renglón punteado (troquel) horizontal, como el corte de un talonario. */
+@utility troquel {
+  background-image: linear-gradient(to right, var(--t-linea) 55%, transparent 0);
+  background-size: 9px 1.5px;
+  background-repeat: repeat-x;
+  background-position: left top;
+}
+/* Muescas del talón: semicírculos calados en las esquinas de abajo (parte de arriba del talón)
+   o de arriba (parte de abajo). Juntas, las dos partes dejan el troquel exacto en la unión, mida lo que mida cada una. */
+@utility muesca-abajo {
+  mask:
+    radial-gradient(circle at 0 100%, #0000 var(--muesca), #000 calc(var(--muesca) + 0.5px)) left / 51% 100% no-repeat,
+    radial-gradient(circle at 100% 100%, #0000 var(--muesca), #000 calc(var(--muesca) + 0.5px)) right / 51% 100% no-repeat;
+}
+@utility muesca-arriba {
+  mask:
+    radial-gradient(circle at 0 0, #0000 var(--muesca), #000 calc(var(--muesca) + 0.5px)) left / 51% 100% no-repeat,
+    radial-gradient(circle at 100% 0, #0000 var(--muesca), #000 calc(var(--muesca) + 0.5px)) right / 51% 100% no-repeat;
+}
+/* Borde de abajo arrancado en zigzag, como el ticket de una caja registradora. */
+@utility borde-roto {
+  --diente: 9px;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(2 * var(--diente)) 100%;
+}
+/* Contorno fino que sigue la forma calada (las muescas): drop-shadow sobre el contenedor de las partes con máscara. */
+@utility contorno-talon {
+  filter:
+    drop-shadow(1px 0 0 var(--t-linea)) drop-shadow(-1px 0 0 var(--t-linea))
+    drop-shadow(0 1px 0 var(--t-linea)) drop-shadow(0 -1px 0 var(--t-linea));
+}
+/* Sello de goma: doble filete, versalitas mono, apenas torcido y con la tinta despareja (máscara de ruido).
+   El color lo da currentColor (text-exito, text-aviso…). --giro lo puede cambiar cada uso. */
+@utility sello {
+  --giro: -7deg;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.28em 0.6em 0.22em;
+  border: 2px solid currentColor;
+  border-radius: 5px;
+  /* Filete interno: un outline hacia adentro deja el aire transparente (sirve sobre cualquier fondo). */
+  outline: 1.25px solid currentColor;
+  outline-offset: -5px;
+  font-family: var(--font-mono);
+  font-weight: 760;
+  font-stretch: 88%;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  rotate: var(--giro);
+  mask-image: var(--tinta);
+  mask-size: 140px 140px;
+}
+/* Sello sin tinta todavía (estado "a confirmar"): solo el contorno punteado, esperando el golpe. */
+@utility sello-vacio {
+  border-style: dashed;
+  outline: none;
+  mask-image: none;
+}
+
+/* Aparece a medida que se baja la página (scroll-driven): para lo que arriba de todo ya está a la vista en otro lado.
+   Sin soporte o con "reducir movimiento", está siempre visible. */
+@keyframes revelar {
+  from { opacity: 0; translate: 0 6px; }
+}
+@utility revelar-al-bajar {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports ((animation-timeline: scroll()) and (animation-range: 0px 1px)) {
+      animation: revelar linear both;
+      animation-timeline: scroll(root);
+      animation-range: 90px 200px;
+    }
+  }
+}
 @utility sombra-suave { box-shadow: 0 1px 2px hsl(var(--t-sombra) / 0.08), 0 8px 24px -12px hsl(var(--t-sombra) / 0.25); }
 @utility sombra-flotante { box-shadow: 0 2px 6px hsl(var(--t-sombra) / 0.12), 0 24px 48px -16px hsl(var(--t-sombra) / 0.45); }
 /* Safe areas del celular. --segura-arriba/--segura-abajo las fija un celular dibujado (la vitrina de la landing)
@@ -201,10 +344,11 @@
 }
 /* Antetítulo de sección ("01 — El problema"). */
 @utility folio {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  line-height: 1.3;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  line-height: 1.35;
   text-transform: uppercase;
 }
 /* Letra capitular del primer párrafo de una sección. */
@@ -228,6 +372,47 @@
 @utility sin-barra {
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
+}
+
+/* Textura de tinta del sello: ruido fractal pasado a alfa (zonas sin tinta), como un sello de goma real. */
+:root {
+  --tinta: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.2 1.75'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23r)'/%3E%3C/svg%3E");
+}
+
+/* El golpe del sello: baja grande y torcido, pega, rebota apenas. Solo sin "reducir movimiento" (si no, aparece quieto). */
+@keyframes sellar {
+  0% { opacity: 0; scale: 2.4; rotate: calc(var(--giro) - 10deg); }
+  55% { opacity: 1; scale: 0.92; rotate: var(--giro); }
+  75% { scale: 1.04; }
+  100% { opacity: 1; scale: 1; rotate: var(--giro); }
+}
+@utility sellar {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: sellar 0.42s cubic-bezier(0.3, 0.7, 0.2, 1) backwards;
+    animation-delay: var(--retraso, 0ms);
+  }
+}
+/* El papel que recibe el golpe se hunde un toque. */
+@keyframes golpe {
+  0%, 100% { scale: 1; }
+  40% { scale: 0.985; }
+}
+@utility golpe {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: golpe 0.42s ease-out backwards;
+    animation-delay: calc(var(--retraso, 0ms) + 0.18s);
+  }
+}
+/* El talón sale de la impresora: baja a saltitos (steps), como el ticket de un posnet. */
+@keyframes imprimir {
+  from { clip-path: inset(0 0 100% 0); translate: 0 -12px; }
+  to { clip-path: inset(0 0 0 0); translate: 0 0; }
+}
+@utility imprimir {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: imprimir 0.9s steps(9, end) backwards;
+    animation-delay: var(--retraso, 0ms);
+  }
 }
 
 /* Transiciones entre pantallas (View Transitions API). */
@@ -294,6 +479,39 @@
     animation: asomar 0.5s var(--ease-suave) backwards;
     animation-delay: var(--retraso, 0ms);
   }
+}
+/* El sello que baja a medida que su bloque entra en pantalla (atado al scroll: lo maneja quien lee). */
+@utility sellar-al-ver {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports ((animation-timeline: view()) and (animation-range: entry)) {
+      /* Capa propia: escala, giro y opacidad los resuelve la placa de video sin volver a pintar. */
+      will-change: scale, rotate, opacity;
+      animation: sellar linear both;
+      animation-timeline: view();
+      animation-range: entry 30% cover 42%;
+    }
+  }
+}
+/* La cinta de talones de la portada: mientras su franja cruza la pantalla, se corre de costado exactamente su largo
+   (el % del translate es del ancho de la cinta): arranca con el primer talón contra el margen y termina con el último.
+   La línea de tiempo es la de la franja (--franja), no la de la cinta, que es más ancha que la pantalla. */
+@keyframes cinta {
+  from { translate: 0 0; }
+  /* --recorrido: qué parte de la cinta pasa (en el celular, la mitad: si no, corre demasiado rápido para leerla). */
+  to { translate: calc((-100% + 100vw) * var(--recorrido, 1)) 0; }
+}
+@utility cinta {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports ((animation-timeline: view()) and (animation-range: entry)) {
+      will-change: translate;
+      animation: cinta linear both;
+      animation-timeline: --franja;
+      animation-range: entry 50% exit 50%;
+    }
+  }
+}
+@utility franja-cinta {
+  view-timeline: --franja block;
 }
 @utility retraso-* {
   --retraso: calc(--value(integer) * 1ms);

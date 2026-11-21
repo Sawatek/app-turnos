@@ -99,7 +99,7 @@ test.describe('Tiempo real entre dispositivos', () => {
 
     // El otro dispositivo de la misma sala se entera por Realtime y adelanta su reloj.
     await expect.poll(async () => (await estadoDemo(b.page))?.desfase, { timeout: 10_000 }).toBe(HORA)
-    await expect(b.page.getByText('(simulado)')).toBeVisible()
+    await expect(b.page.getByText('Simulado', { exact: true })).toBeVisible()
     await expect(b.page.getByRole('button', { name: 'Volver a hoy' })).toBeVisible()
 
     sinErrores(a.v, b.v)

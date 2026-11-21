@@ -99,7 +99,7 @@ function portadaPreGenerada(): Plugin {
           logLevel: 'warn',
           build: { ssr: 'src/estatico.tsx', outDir: salida, emptyOutDir: true, copyPublicDir: false, minify: false },
         })
-        let portada: string, tema: { estilo: string; personalidad: string; colorBarra: string }, jsonLd: string
+        let portada: string, tema: { css: string; personalidad: string; colorBarra: string }, jsonLd: string
         try {
           const m = (await import(`${pathToFileURL(join(salida, 'estatico.js')).href}?v=${Date.now()}`)) as typeof import('./src/estatico')
           portada = m.htmlDeLaPortada()
@@ -126,7 +126,7 @@ function portadaPreGenerada(): Plugin {
           }
         }
         juntar(inicio)
-        const fuente = Object.keys(bundle).find((f) => /bricolage-grotesque-latin-opsz-normal-[\w-]+\.woff2$/.test(f))
+        const fuente = Object.keys(bundle).find((f) => /bricolage-grotesque-latin-standard-normal-[\w-]+\.woff2$/.test(f))
         if (!fuente) this.warn('No encontré la fuente latin de Bricolage: la portada sale sin preload de la fuente.')
         const url = (archivo: string) => base + archivo
         const enShell = (archivo: string) => original.includes(`"${url(archivo)}"`)
@@ -137,11 +137,13 @@ function portadaPreGenerada(): Plugin {
           // data-pre-generado: src/main.tsx lo saca al arrancar (React pone el suyo por ruta).
           ...(sitio ? [`<link rel="canonical" href="${sitio}/" data-pre-generado>`] : []),
           `<script type="application/ld+json">${jsonLd}</script>`,
+          // El tema del sitio (claro u oscuro según <meta name="color-scheme">), igual al que pone useMarcaSitio.
+          `<style id="tema-sitio">${tema.css}</style>`,
         ]
 
         const escaparAtributo = (v: string) => v.replaceAll('&', '&amp;').replaceAll('"', '&quot;')
         let html = original
-          .replace('<html lang="es-AR">', `<html lang="es-AR" style="${escaparAtributo(tema.estilo)}" data-personalidad="${tema.personalidad}">`)
+          .replace('<html lang="es-AR">', `<html lang="es-AR" data-sitio data-personalidad="${escaparAtributo(tema.personalidad)}">`)
           .replace(/(<meta name="theme-color" content=")[^"]*"/, `$1${escaparAtributo(tema.colorBarra)}"`)
           .replace('</head>', `    ${etiquetas.join('\n    ')}\n  </head>`)
         if (html === original || !html.includes('data-personalidad')) return this.error('No pude poner el tema en <html lang="es-AR">.')
@@ -172,10 +174,11 @@ export default defineConfig(({ isSsrBuild }) => ({
         navigateFallback: '/app.html',
         navigateFallbackDenylist: [/^\/$/, /^\/m\//, /^\/(robots\.txt|sitemap\.xml)$/],
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'],
-        // Fuera del precache: la consola de SawaTek (solo en la compu, con conexión), subsets de fuentes que no usamos
-        // y la fuente de títulos de la portada. Las fuentes que falten se guardan al usarse ("fuentes", abajo).
-        // Ojo: la app del cliente y el panel SÍ van (son lo que se instala y tiene que andar sin conexión).
-        globIgnores: ['**/Admin-*', '**/*-vietnamese-*', '**/*-cyrillic*', '**/*-greek*', '**/bricolage-*'],
+        // Fuera del precache: la consola de SawaTek (solo en la compu, con conexión) y subsets de fuentes que no usamos
+        // (latin-ext de los títulos casi no aparece). Las fuentes que falten se guardan al usarse ("fuentes", abajo).
+        // Ojo: la app del cliente y el panel SÍ van (son lo que se instala y tiene que andar sin conexión), con sus fuentes
+        // de títulos (Bricolage) y de datos (Martian Mono): son parte del dibujo de la app.
+        globIgnores: ['**/Admin-*', '**/*-vietnamese-*', '**/*-cyrillic*', '**/*-greek*', '**/bricolage-*-latin-ext-*'],
         skipWaiting: true,
         clientsClaim: true,
         importScripts: ['push-sw.js'],
@@ -202,5 +205,11 @@ export default defineConfig(({ isSsrBuild }) => ({
   // Solo variables públicas: VITE_* y las NEXT_PUBLIC_SUPABASE_* de la integración con Vercel.
   // Nunca exponer SUPABASE_SECRET_KEY ni SUPABASE_SERVICE_ROLE_KEY (no tienen estos prefijos).
   envPrefix: ['VITE_', 'NEXT_PUBLIC_SUPABASE_'],
-  server: { port: 5180, host: true },
+  server: {
+    port: 5180,
+    host: true,
+    // Pre-compila las pantallas apenas arranca: la primera carga no espera a transformar todo (en los e2e, varios
+    // navegadores piden la app a la vez con el servidor recién levantado y la primera página tardaba más de 5 s).
+    warmup: { clientFiles: ['./src/main.tsx', './src/pantallas/**/*.tsx', './src/ui/*.tsx'] },
+  },
 }))

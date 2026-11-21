@@ -24,7 +24,7 @@ function Deslizador(props: {
     <div>
       <div className="flex items-baseline justify-between gap-3">
         <label htmlFor={id} className="text-sm font-semibold">{props.etiqueta}</label>
-        <span className="num text-lg font-bold" aria-hidden>{props.mostrar(props.valor)}</span>
+        <span className="mono text-lg font-bold" aria-hidden>{props.mostrar(props.valor)}</span>
       </div>
       {props.ayuda && <p id={`${id}-ayuda`} className="text-xs text-suave">{props.ayuda}</p>}
       <input
@@ -50,7 +50,7 @@ function CampoPrecio({ texto, cambiar, error }: { texto: string; cambiar: (t: st
     <div>
       <label htmlFor={id} className="text-sm font-semibold">Precio promedio del turno</label>
       <div className="relative mt-1.5">
-        <span aria-hidden className="num pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg font-bold text-suave">$</span>
+        <span aria-hidden className="mono pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-lg font-bold text-suave">$</span>
         <input
           id={id}
           type="number"
@@ -61,7 +61,7 @@ function CampoPrecio({ texto, cambiar, error }: { texto: string; cambiar: (t: st
           onChange={(e) => cambiar(e.target.value)}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${id}-error` : undefined}
-          className="num h-12 w-full rounded-medio border border-linea bg-fondo pr-4 pl-9 text-lg font-bold text-texto transition-colors focus:border-acento aria-invalid:border-peligro"
+          className="mono h-12 w-full rounded-t-chico border-0 border-b-2 border-suave bg-superficie-2/70 pr-4 pl-9 text-lg font-bold text-texto transition-colors outline-none focus:border-acento focus:bg-superficie-2 aria-invalid:border-peligro"
         />
       </div>
       {error && (
@@ -104,10 +104,13 @@ export function CalculadoraFaltas() {
   }, [perdida, recuperas, errorTicket])
 
   return (
-    <div className="@container relative rounded-grande bg-superficie p-5 ring-1 ring-linea sombra-flotante sm:p-8">
-      {/* Filete del color de la marca, como la pestaña de una ficha */}
-      <span aria-hidden className="absolute top-0 left-8 h-1 w-16 rounded-b-full bg-acento" />
-      <p className="folio text-acento-texto">Calculadora</p>
+    // Ticket de caja: el borde de abajo arrancado en zigzag y el contorno que lo sigue (en el envoltorio, que no lleva máscara).
+    <div className="contorno-talon">
+    <div className="@container relative borde-roto rounded-t-grande bg-superficie p-5 pb-10 sm:p-8 sm:pb-12">
+      <p className="folio flex justify-between gap-3 text-acento-texto">
+        <span>Calculadora</span>
+        <span aria-hidden className="text-suave">Ticket N.º 0001</span>
+      </p>
       <h3 className="titular mt-2 text-3xl">Hacé la cuenta con tus números</h3>
       <div className="mt-6 flex flex-col gap-4">
         <Deslizador etiqueta="Faltas por semana" valor={faltas} min={0} max={30} paso={1} mostrar={(v) => String(v)} cambiar={setFaltas} />
@@ -125,30 +128,34 @@ export function CalculadoraFaltas() {
       </div>
 
       {/* Cada resultado es un grupo con nombre (lo usan los tests y el lector de pantalla); no son controles: div y no fieldset */}
-      <div className="mt-6 grid border-t border-linea @md:grid-cols-2">
+      {/* Los renglones del ticket: concepto, puntitos guía y monto en letra de caja */}
+      <div className="mt-7 flex flex-col gap-4 border-t-2 border-dashed border-linea pt-5">
         {/* oxlint-disable-next-line jsx-a11y/prefer-tag-over-role */}
-        <div role="group" aria-label="Perdés por mes" className="border-b border-linea py-5 @md:border-r @md:border-b-0 @md:pr-5">
-          <p className="flex items-center gap-1.5 text-sm font-semibold text-peligro">
+        <div role="group" aria-label="Perdés por mes" className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <p className="rotulo flex items-center gap-1.5 text-peligro">
             <TrendingDown className="size-4" aria-hidden />
             Perdés por mes
           </p>
-          <p className="titular num mt-1 text-4xl text-peligro">{precio(perdida)}</p>
+          <span aria-hidden className="min-w-4 flex-1 border-b-2 border-dotted border-linea" />
+          <p className="cifra text-4xl text-peligro">{precio(perdida)}</p>
         </div>
         {/* oxlint-disable-next-line jsx-a11y/prefer-tag-over-role */}
-        <div role="group" aria-label="Podés recuperar por mes" className="py-5 @md:pl-5">
-          <p className="flex items-center gap-1.5 text-sm font-semibold text-exito">
+        <div role="group" aria-label="Podés recuperar por mes" className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <p className="rotulo flex items-center gap-1.5 text-exito">
             <TrendingUp className="size-4" aria-hidden />
             Podés recuperar por mes
           </p>
-          <p className="titular num mt-1 text-4xl text-exito">{precio(recuperas)}</p>
+          <span aria-hidden className="min-w-4 flex-1 border-b-2 border-dotted border-linea" />
+          <p className="cifra text-4xl text-exito">{precio(recuperas)}</p>
         </div>
       </div>
       <p className="sr-only" aria-live="polite" aria-atomic="true">{anuncio}</p>
-      <p className="border-t border-linea pt-4 text-sm text-suave [text-wrap:pretty]">
-        En un año son <strong className="num font-semibold text-texto">{precio(redondear(recuperas * 12))}</strong> que hoy se van en sillas y camillas vacías.
+      <p className="mt-5 border-t-4 border-double border-linea pt-4 text-sm text-suave [text-wrap:pretty]">
+        En un año son <strong className="mono font-bold text-texto">{precio(redondear(recuperas * 12))}</strong> que hoy se van en sillas y camillas vacías.
         Es una estimación con tus números, no una promesa.
       </p>
       <CtaDemo className="mt-5 w-full" texto="Quiero dejar de perder esa plata" textoSinContacto="Probá la demo" />
+    </div>
     </div>
   )
 }

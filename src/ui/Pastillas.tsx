@@ -14,7 +14,7 @@ interface Props<T extends string> {
 export function Pastillas<T extends string>({ etiqueta, ocultarEtiqueta, valor, opciones, onCambiar, className }: Props<T>) {
   return (
     <fieldset className={className}>
-      <legend className={ocultarEtiqueta ? 'sr-only' : 'mb-1.5 text-sm font-semibold text-suave'}>{etiqueta}</legend>
+      <legend className={ocultarEtiqueta ? 'sr-only' : 'rotulo mb-2 text-suave'}>{etiqueta}</legend>
       <div className="flex flex-wrap gap-2">
         {opciones.map((o) => (
           <button
@@ -23,8 +23,10 @@ export function Pastillas<T extends string>({ etiqueta, ocultarEtiqueta, valor, 
             aria-pressed={valor === o.id}
             onClick={() => onCambiar(o.id)}
             className={cn(
-              'h-11 rounded-full px-4 text-sm font-semibold transition-colors',
-              valor === o.id ? 'bg-acento text-sobre-acento' : 'bg-superficie ring-1 ring-linea hover:ring-acento-borde',
+              'h-11 rounded-chico px-4 text-sm font-semibold transition-colors',
+              valor === o.id
+                ? 'bg-acento text-sobre-acento shadow-[inset_0_-3px_0_rgb(0_0_0/0.16)]'
+                : 'bg-superficie ring-1 ring-inset ring-linea hover:ring-suave/60',
             )}
           >
             {o.texto}

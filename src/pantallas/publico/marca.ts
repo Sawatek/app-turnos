@@ -11,10 +11,38 @@ export const MARCA = {
   slogan: 'Turnos que se confirman solos',
   descripcion:
     'La app de turnos con la marca de tu negocio: tus clientes reservan en segundos, les llega el recordatorio por WhatsApp y confirman con un toque.',
-  /** Color y modo del sitio (se aplican con useTemaNegocio). */
-  color: '#e0b352',
-  modo: 'oscuro',
-  personalidad: 'moderna',
+  /** Color y modo del sitio (se aplican con useTemaNegocio): tinta azul de sello sobre papel. */
+  color: '#2b44c8',
+  modo: 'claro',
+  personalidad: 'clasica',
+} as const
+
+/**
+ * El papel del sitio: la paleta generada tiñe los neutros con el tono de la marca (quedaría un blanco azulado de oficina);
+ * el sitio de la plataforma usa un papel cálido, de libreta. Mismos contrastes (texto y "suave" siguen pasando AA).
+ * Lo aplican useMarcaSitio (en el navegador) y el pre-render de la portada (estatico.tsx).
+ */
+export const PAPEL_SITIO = {
+  '--t-fondo': '#f4efe4',
+  '--t-superficie': '#fffcf5',
+  '--t-superficie-2': '#ebe4d6',
+  '--t-linea': '#d9d0bd',
+  '--t-acento-suave': '#e4e5f6',
+} as const
+
+/**
+ * El papel del sitio en modo oscuro: papel carbónico cálido (no el negro azulado que saldría de la paleta) y la tinta
+ * azul más clara para que el texto en tinta pase AA sobre todas las superficies (5,9:1 sobre la más clara).
+ */
+export const PAPEL_SITIO_OSCURO = {
+  '--t-fondo': '#14130f',
+  '--t-superficie': '#1c1a16',
+  '--t-superficie-2': '#26231d',
+  '--t-linea': '#3a352c',
+  '--t-texto': '#f3eee4',
+  '--t-suave': '#b3ab9c',
+  '--t-acento-texto': '#8199ff',
+  '--t-acento-suave': '#1d2340',
 } as const
 
 export const CONTACTO = {

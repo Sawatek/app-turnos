@@ -14,19 +14,27 @@ interface Props {
   children: React.ReactNode
 }
 
-/** Recuadro con título que se anuncia como región (el título le da nombre). */
+/**
+ * Ficha: recuadro con su encabezado separado por una línea fina (como una ficha de archivo).
+ * Se anuncia como región (el título le da nombre).
+ */
 export function Tarjeta({ titulo, bajada, nivel = 3, id, className, children }: Props) {
   const idTitulo = useId()
   const Titulo = nivel === 2 ? 'h2' : 'h3'
+  const encabezado = titulo || bajada
   return (
-    <section aria-labelledby={titulo ? idTitulo : undefined} id={id} className={cn('rounded-grande bg-superficie p-4 ring-1 ring-linea', nivel === 2 && 'sm:p-5', className)}>
-      {titulo && (
-        <Titulo id={idTitulo} className={cn('titulo', nivel === 2 ? 'text-lg' : 'text-base', nivel === 3 && !bajada && 'mb-3')}>
-          {titulo}
-        </Titulo>
+    <section aria-labelledby={titulo ? idTitulo : undefined} id={id} className={cn('rounded-grande bg-superficie ring-1 ring-linea', className)}>
+      {encabezado && (
+        <header className={cn('border-b border-linea px-4 pt-3.5 pb-3', nivel === 2 && 'sm:px-5 sm:pt-4')}>
+          {titulo && (
+            <Titulo id={idTitulo} className={cn('titulo', nivel === 2 ? 'text-xl' : 'text-[17px]')}>
+              {titulo}
+            </Titulo>
+          )}
+          {bajada && <p className="mt-0.5 text-sm text-suave">{bajada}</p>}
+        </header>
       )}
-      {bajada && <p className={cn('mt-0.5 text-sm text-suave', nivel === 3 && 'mb-3')}>{bajada}</p>}
-      {nivel === 2 ? <div className={titulo || bajada ? 'mt-4' : undefined}>{children}</div> : children}
+      <div className={cn('p-4', nivel === 2 && 'sm:p-5')}>{children}</div>
     </section>
   )
 }
