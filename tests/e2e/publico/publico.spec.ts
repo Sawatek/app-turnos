@@ -166,6 +166,46 @@ test.describe('Inicio (/)', () => {
     await expect(pantalla).toContainText('Cambiar horario')
   })
 
+  test('en el celular, los talones de ejemplo son un carrusel que se desliza de costado', async ({ page }) => {
+    await page.goto('/')
+    const carrusel = page.getByRole('region', { name: 'Turnos de ejemplo' })
+    await carrusel.scrollIntoViewIfNeeded()
+    // Se frena el avance automático para probar el manejo a mano (lo prueba el test siguiente).
+    await carrusel.getByRole('button', { name: 'Pausar los turnos' }).click()
+    await carrusel.getByRole('button', { name: 'Ir al turno 1' }).click()
+    await expect(carrusel.getByRole('group', { name: '1 de 7' })).toBeVisible()
+    await expect(carrusel.getByRole('button', { name: 'Turno anterior' })).toBeDisabled()
+    await carrusel.getByRole('button', { name: 'Turno siguiente' }).click()
+    await expect(carrusel.getByRole('button', { name: 'Ir al turno 2' })).toHaveAttribute('aria-current', 'true')
+    await expect(carrusel.getByRole('status')).toHaveText('Turno 2 de 7')
+    // A mano: la pista se desliza de costado y encastra en un talón (el punto lo acompaña).
+    await carrusel.getByRole('group', { name: 'Talones' }).evaluate((p) => p.scrollTo({ left: p.scrollWidth }))
+    await expect(carrusel.getByRole('button', { name: 'Ir al turno 7' })).toHaveAttribute('aria-current', 'true')
+    await expect(carrusel.getByRole('button', { name: 'Turno siguiente' })).toBeDisabled()
+    expect(await sinScrollHorizontal(page)).toBe(true)
+  })
+
+  test('el carrusel de talones avanza solo, se pausa y con "reducir movimiento" arranca quieto', async ({ page }) => {
+    await page.goto('/')
+    const carrusel = page.getByRole('region', { name: 'Turnos de ejemplo' })
+    await carrusel.scrollIntoViewIfNeeded()
+    const punto = (n: number) => carrusel.getByRole('button', { name: `Ir al turno ${n}` })
+    await expect(punto(2)).toHaveAttribute('aria-current', 'true', { timeout: 6000 })
+
+    await carrusel.getByRole('button', { name: 'Pausar los turnos' }).click()
+    await expect(carrusel.getByRole('button', { name: 'Seguir pasando los turnos' })).toBeVisible()
+    const quieto = await carrusel.locator('[aria-current="true"]').getAttribute('aria-label')
+    await page.waitForTimeout(4500)
+    expect(await carrusel.locator('[aria-current="true"]').getAttribute('aria-label')).toBe(quieto)
+
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.reload()
+    await carrusel.scrollIntoViewIfNeeded()
+    await expect(carrusel.getByRole('button', { name: 'Seguir pasando los turnos' })).toBeVisible()
+    await page.waitForTimeout(4500)
+    await expect(punto(1)).toHaveAttribute('aria-current', 'true')
+  })
+
   test('la calculadora usa los números del dueño', async ({ page }) => {
     await page.goto('/')
     await page.getByLabel('Faltas por semana').fill('10')

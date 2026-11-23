@@ -497,8 +497,7 @@
    La línea de tiempo es la de la franja (--franja), no la de la cinta, que es más ancha que la pantalla. */
 @keyframes cinta {
   from { translate: 0 0; }
-  /* --recorrido: qué parte de la cinta pasa (en el celular, la mitad: si no, corre demasiado rápido para leerla). */
-  to { translate: calc((-100% + 100vw) * var(--recorrido, 1)) 0; }
+  to { translate: calc(-100% + 100vw) 0; }
 }
 @utility cinta {
   @media (prefers-reduced-motion: no-preference) {
